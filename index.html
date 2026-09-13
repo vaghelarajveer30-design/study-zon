@@ -81,7 +81,7 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #ccd5e2;border-ra
 </div>
 <section id="studentLogin" class="card">
 <h2>👨‍🎓 Student Login</h2>
-<p class="muted">મોબાઇલ નંબર અને OTP દ્વારા Login કરો.</p>
+<p class="muted">મોબાઇલ નંબર અને એપમાં દેખાતા 4 અંકના OTP દ્વારા Login કરો.</p>
 
 <div id="studentLoginBox">
   <label>મોબાઇલ નંબર</label>
@@ -91,8 +91,9 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #ccd5e2;border-ra
 </div>
 
 <div id="studentOtpArea" style="display:none;margin-top:12px">
-  <label>OTP</label>
-  <input id="studentOTP" type="tel" inputmode="numeric" maxlength="6" placeholder="SMSમાં આવેલ 6 અંકનો OTP">
+  <div id="studentDemoOtp" class="badge" style="font-size:20px;margin:8px 0"></div>
+  <label>4 અંકનો OTP</label>
+  <input id="studentOTP" type="tel" inputmode="numeric" maxlength="4" placeholder="ઉપર દેખાતો 4 અંકનો OTP">
   <button type="button" onclick="verifyStudentOTP()">✅ OTP Verify કરીને Login</button>
 </div>
 
@@ -103,16 +104,22 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #ccd5e2;border-ra
 
 <div id="studentRegistration" class="card hidden" style="max-width:520px;margin:15px auto">
 <h2>📝 Student Registration</h2>
-<p class="muted">નામ અને મોબાઇલ નંબર આપો. OTP Verify થયા પછી તમારું Student Account બની જશે.</p>
+<p class="muted">વિદ્યાર્થીની માહિતી ભરો. Registration OTP એપમાં જ 4 અંકમાં દેખાશે.</p>
 <label>વિદ્યાર્થીનું નામ</label>
-<input id="regStudentName" placeholder="તમારું નામ">
+<input id="regStudentName" placeholder="વિદ્યાર્થીનું નામ">
+<label>પપ્પાનું નામ</label>
+<input id="regFatherName" placeholder="પપ્પાનું નામ">
+<label>શાળાનું નામ</label>
+<input id="regSchoolName" placeholder="શાળાનું નામ">
+<label>એડ્રેસ</label>
+<textarea id="regAddress" rows="3" placeholder="રહેઠાણનું સરનામું"></textarea>
 <label>મોબાઇલ નંબર</label>
 <input id="regStudentMobile" type="tel" inputmode="numeric" maxlength="10" placeholder="10 અંકનો મોબાઇલ નંબર">
-<div id="regRecaptcha"></div>
 <button type="button" onclick="sendRegistrationOTP()">📱 Registration OTP મોકલો</button>
 <div id="regOtpArea" style="display:none;margin-top:12px">
-  <label>OTP</label>
-  <input id="regStudentOTP" type="tel" inputmode="numeric" maxlength="6" placeholder="6 અંકનો OTP">
+  <div id="regDemoOtp" class="badge" style="font-size:20px;margin:8px 0"></div>
+  <label>4 અંકનો OTP</label>
+  <input id="regStudentOTP" type="tel" inputmode="numeric" maxlength="4" placeholder="ઉપર દેખાતો 4 અંકનો OTP">
   <button type="button" onclick="verifyRegistrationOTP()">✅ OTP Verify & Register</button>
 </div>
 <div id="regMsg"></div>
@@ -631,6 +638,10 @@ let studentOtpConfirmation=null;
 let studentOtpVerifier=null;
 let registrationOtpConfirmation=null;
 let registrationOtpVerifier=null;
+let studentDemoOtp='';
+let registrationDemoOtp='';
+let studentOtpExpiresAt=0;
+let registrationOtpExpiresAt=0;
 
 function digits10(id){
  return String(document.getElementById(id)?.value||'').replace(/\D/g,'').slice(0,10);
@@ -642,25 +653,18 @@ function findStudentByMobile(mobile){
    return sm===digits && s.active!==false;
  });
 }
-function makeRecaptcha(elementId, current){
- if(current || !window.firebase || !firebase.auth) return current;
- const box=document.getElementById(elementId);
- if(!box) return current;
- try{
-   current=new firebase.auth.RecaptchaVerifier(elementId,{size:'normal',callback:function(){}});
-   current.render().catch(function(){});
- }catch(e){console.error(e);}
- return current;
+function make4DigitOtp(){
+ return String(Math.floor(1000 + Math.random()*9000));
 }
-function firebasePhoneReady(msgId){
- if(!window.firebase || !firebase.auth || !window.firebaseConfig || !firebaseConfig.apiKey){
-   const el=document.getElementById(msgId); if(el)el.textContent='❌ Firebase Authentication ચાલુ નથી.';
-   return false;
- }
- return true;
+function otpStillValid(expiresAt){
+ return Date.now() < Number(expiresAt||0);
+}
+function showDemoOtp(elementId, otp){
+ const el=document.getElementById(elementId);
+ if(el)el.textContent='🔐 તમારો 4 અંકનો OTP: '+otp;
 }
 
-async function sendStudentOTP(){
+function sendStudentOTP(){
  const mobile=digits10('studentMobile');
  const msgEl=document.getElementById('studentMsg');
  if(mobile.length!==10){if(msgEl)msgEl.textContent='❌ 10 અંકનો મોબાઇલ નંબર નાખો.';return;}
@@ -668,42 +672,42 @@ async function sendStudentOTP(){
    if(msgEl)msgEl.textContent='❌ આ નંબરથી Student Registration થયેલ નથી. પહેલા Registration કરો.';
    return;
  }
- if(!firebasePhoneReady('studentMsg'))return;
- try{
-   studentOtpVerifier=makeRecaptcha('studentRecaptcha',studentOtpVerifier);
-   if(!studentOtpVerifier)throw new Error('reCAPTCHA તૈયાર થયું નથી.');
-   studentOtpConfirmation=await firebase.auth().signInWithPhoneNumber('+91'+mobile,studentOtpVerifier);
-   document.getElementById('studentOtpArea').style.display='block';
-   if(msgEl)msgEl.textContent='✅ OTP મોકલાયો છે.';
- }catch(e){
-   console.error(e);
-   if(msgEl)msgEl.textContent='❌ OTP મોકલી શકાયો નથી. Firebase Phone Authentication/India SMS region તપાસો.';
- }
+ studentDemoOtp=make4DigitOtp();
+ studentOtpExpiresAt=Date.now()+5*60*1000;
+ showDemoOtp('studentDemoOtp',studentDemoOtp);
+ document.getElementById('studentOtpArea').style.display='block';
+ if(msgEl)msgEl.textContent='✅ OTP તૈયાર છે. 5 મિનિટ સુધી માન્ય રહેશે.';
 }
 
-async function verifyStudentOTP(){
+function verifyStudentOTP(){
  const mobile=digits10('studentMobile');
  const otp=String(document.getElementById('studentOTP')?.value||'').replace(/\D/g,'');
  const msgEl=document.getElementById('studentMsg');
- if(!studentOtpConfirmation||otp.length!==6){if(msgEl)msgEl.textContent='❌ પહેલા OTP મોકલો અને 6 અંકનો OTP નાખો.';return;}
- try{
-   const result=await studentOtpConfirmation.confirm(otp);
-   const pair=findStudentByMobile(mobile);
-   if(!pair)throw new Error('Student not found');
-   const sid=pair[0],s={...pair[1],id:sid,uid:result.user.uid};
-   await dataSet('students',sid,{...pair[1],uid:result.user.uid});
-   currentStudent=s;
-   localStorage.setItem('nirmala_current_student',sid);
-   document.getElementById('studentLogin')?.classList.add('hidden');
-   document.getElementById('studentHome')?.classList.remove('hidden');
-   if(document.getElementById('studentHome'))document.getElementById('studentHome').style.display='block';
-   const hu=document.getElementById('headerUser');if(hu)hu.textContent='👨‍🎓 '+s.name;
-   if(typeof studentSection==='function')studentSection('noticesSection');
-   if(typeof renderStudent==='function')renderStudent();
-   if(msgEl)msgEl.textContent='';
- }catch(e){
-   console.error(e);if(msgEl)msgEl.textContent='❌ OTP ખોટો છે અથવા Login નિષ્ફળ થયું.';
+ if(!studentDemoOtp||!otpStillValid(studentOtpExpiresAt)||otp.length!==4){
+   if(msgEl)msgEl.textContent='❌ પહેલા 4 અંકનો OTP મેળવો અને સમયસર દાખલ કરો.';
+   return;
  }
+ if(otp!==studentDemoOtp){
+   if(msgEl)msgEl.textContent='❌ OTP ખોટો છે.';
+   return;
+ }
+ const pair=findStudentByMobile(mobile);
+ if(!pair){
+   if(msgEl)msgEl.textContent='❌ Student મળ્યો નથી.';
+   return;
+ }
+ const sid=pair[0],s={...pair[1],id:sid};
+ currentStudent=s;
+ localStorage.setItem('nirmala_current_student',sid);
+ studentDemoOtp='';
+ studentOtpExpiresAt=0;
+ document.getElementById('studentLogin')?.classList.add('hidden');
+ document.getElementById('studentHome')?.classList.remove('hidden');
+ if(document.getElementById('studentHome'))document.getElementById('studentHome').style.display='block';
+ const hu=document.getElementById('headerUser');if(hu)hu.textContent='👨‍🎓 '+s.name;
+ if(typeof studentSection==='function')studentSection('noticesSection');
+ if(typeof renderStudent==='function')renderStudent();
+ if(msgEl)msgEl.textContent='';
 }
 
 function openStudentRegistration(){
@@ -714,38 +718,62 @@ function closeStudentRegistration(){
  document.getElementById('studentRegistration')?.classList.add('hidden');
  document.getElementById('studentLogin')?.classList.remove('hidden');
 }
-async function sendRegistrationOTP(){
+
+function sendRegistrationOTP(){
  const name=(document.getElementById('regStudentName')?.value||'').trim();
+ const fatherName=(document.getElementById('regFatherName')?.value||'').trim();
+ const schoolName=(document.getElementById('regSchoolName')?.value||'').trim();
+ const address=(document.getElementById('regAddress')?.value||'').trim();
  const mobile=digits10('regStudentMobile');
  const msgEl=document.getElementById('regMsg');
- if(!name){if(msgEl)msgEl.textContent='❌ તમારું નામ નાખો.';return;}
+ if(!name){if(msgEl)msgEl.textContent='❌ વિદ્યાર્થીનું નામ નાખો.';return;}
+ if(!fatherName){if(msgEl)msgEl.textContent='❌ પપ્પાનું નામ નાખો.';return;}
+ if(!schoolName){if(msgEl)msgEl.textContent='❌ શાળાનું નામ નાખો.';return;}
+ if(!address){if(msgEl)msgEl.textContent='❌ એડ્રેસ નાખો.';return;}
  if(mobile.length!==10){if(msgEl)msgEl.textContent='❌ 10 અંકનો મોબાઇલ નંબર નાખો.';return;}
  if(findStudentByMobile(mobile)){if(msgEl)msgEl.textContent='❌ આ મોબાઇલ નંબર પહેલેથી Registered છે. Student Login કરો.';return;}
- if(!firebasePhoneReady('regMsg'))return;
- try{
-   registrationOtpVerifier=makeRecaptcha('regRecaptcha',registrationOtpVerifier);
-   if(!registrationOtpVerifier)throw new Error('reCAPTCHA તૈયાર થયું નથી.');
-   registrationOtpConfirmation=await firebase.auth().signInWithPhoneNumber('+91'+mobile,registrationOtpVerifier);
-   document.getElementById('regOtpArea').style.display='block';
-   if(msgEl)msgEl.textContent='✅ Registration OTP મોકલાયો છે.';
- }catch(e){
-   console.error(e);if(msgEl)msgEl.textContent='❌ OTP મોકલી શકાયો નથી. Firebase Phone Authentication સેટિંગ તપાસો.';
- }
+
+ registrationDemoOtp=make4DigitOtp();
+ registrationOtpExpiresAt=Date.now()+5*60*1000;
+ showDemoOtp('regDemoOtp',registrationDemoOtp);
+ document.getElementById('regOtpArea').style.display='block';
+ if(msgEl)msgEl.textContent='✅ 4 અંકનો Registration OTP તૈયાર છે. 5 મિનિટ સુધી માન્ય રહેશે.';
 }
+
 async function verifyRegistrationOTP(){
  const name=(document.getElementById('regStudentName')?.value||'').trim();
+ const fatherName=(document.getElementById('regFatherName')?.value||'').trim();
+ const schoolName=(document.getElementById('regSchoolName')?.value||'').trim();
+ const address=(document.getElementById('regAddress')?.value||'').trim();
  const mobile=digits10('regStudentMobile');
  const otp=String(document.getElementById('regStudentOTP')?.value||'').replace(/\D/g,'');
  const msgEl=document.getElementById('regMsg');
- if(!registrationOtpConfirmation||otp.length!==6){if(msgEl)msgEl.textContent='❌ પહેલા OTP મોકલો અને 6 અંકનો OTP નાખો.';return;}
+ if(!registrationDemoOtp||!otpStillValid(registrationOtpExpiresAt)||otp.length!==4){
+   if(msgEl)msgEl.textContent='❌ પહેલા 4 અંકનો OTP મેળવો અને સમયસર દાખલ કરો.';
+   return;
+ }
+ if(otp!==registrationDemoOtp){
+   if(msgEl)msgEl.textContent='❌ OTP ખોટો છે.';
+   return;
+ }
  try{
-   const result=await registrationOtpConfirmation.confirm(otp);
    if(findStudentByMobile(mobile)){if(msgEl)msgEl.textContent='❌ આ નંબર પહેલેથી Registered છે.';return;}
    const id='s_'+Date.now();
-   const student={name,mobile,active:true,approved:true,uid:result.user.uid,registeredAt:new Date().toISOString()};
+   const student={
+     name,
+     fatherName,
+     schoolName,
+     address,
+     mobile,
+     active:true,
+     approved:true,
+     registeredAt:new Date().toISOString()
+   };
    await dataSet('students',id,student);
    currentStudent={...student,id};
    localStorage.setItem('nirmala_current_student',id);
+   registrationDemoOtp='';
+   registrationOtpExpiresAt=0;
    document.getElementById('studentRegistration')?.classList.add('hidden');
    document.getElementById('studentHome')?.classList.remove('hidden');
    if(document.getElementById('studentHome'))document.getElementById('studentHome').style.display='block';
@@ -754,13 +782,18 @@ async function verifyRegistrationOTP(){
    if(typeof renderStudent==='function')renderStudent();
    if(msgEl)msgEl.textContent='';
  }catch(e){
-   console.error(e);if(msgEl)msgEl.textContent='❌ OTP ખોટો છે અથવા Registration નિષ્ફળ થયું.';
+   console.error(e);
+   if(msgEl)msgEl.textContent='❌ Registration સેવ થવામાં સમસ્યા આવી.';
  }
 }
 
 function studentLogout(){
  try{ if(window.firebase && firebase.auth) firebase.auth().signOut(); }catch(e){}
  studentOtpConfirmation=null;
+ studentDemoOtp='';
+ studentOtpExpiresAt=0;
+ registrationDemoOtp='';
+ registrationOtpExpiresAt=0;
  currentStudent=null;
  localStorage.removeItem('nirmala_current_student');
  document.getElementById('studentHome')?.classList.add('hidden');
