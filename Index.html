@@ -1,0 +1,1112 @@
+<!doctype html>
+<html lang="gu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NIRMLA STUDY ZON</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f4f7fb;color:#172033}
+header{background:#173b72;color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center}
+button{border:0;border-radius:9px;padding:10px 14px;background:#173b72;color:white;font-weight:700;cursor:pointer}
+button.secondary{background:#e9eef7;color:#173b72}button.danger{background:#c62828}
+.wrap{max-width:900px;margin:auto;padding:16px}.card{background:white;border-radius:14px;padding:16px;margin:12px 0;box-shadow:0 2px 10px #0001}
+input,select,textarea{width:100%;padding:10px;border:1px solid #ccd5e2;border-radius:8px;margin:5px 0 10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.section-buttons{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin:12px 0}
+.section-buttons button{min-height:48px;font-size:15px}
+.teacher-nav button{background:#173b72}
+.app-section,.teacher-section{margin-top:12px}
+.pdf-title{font-weight:700;margin-bottom:4px}
+#testPdfFile{background:#fff}
+
+.hidden{display:none!important}.muted{color:#667085;font-size:13px}.item{border:1px solid #e1e7ef;border-radius:10px;padding:12px;margin:8px 0}
+.top-actions{display:flex;gap:8px;align-items:center}.teacher-icon{position:fixed;right:10px;top:8px;z-index:1000;width:36px;height:36px;padding:0;border-radius:50%;background:#fff;color:#173b72;font-size:18px}
+.badge{display:inline-block;padding:4px 8px;border-radius:20px;background:#eaf1ff;color:#173b72;font-size:12px;font-weight:700}
+@media(max-width:600px){header{padding-right:55px}}
+
+.section-buttons button.active{outline:3px solid #8fb3ff;transform:translateY(-1px)}
+.search-box{position:relative;margin:10px 0}
+.search-box input{padding-left:40px;margin:0}
+.search-icon{position:absolute;left:13px;top:11px;font-size:18px}
+.subject-grid,.marks-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:9px;margin-top:10px}
+.subject-grid button,.marks-grid button{min-height:48px}
+.notice-new{border-left:5px solid #e67e22}
+.favorite-btn{float:right;background:#fff;color:#173b72;border:1px solid #ccd5e2;padding:5px 8px}
+.progress-wrap{background:#e8edf5;border-radius:20px;height:12px;overflow:hidden;margin:7px 0}
+.progress-bar{height:100%;width:0%;background:#173b72}
+.progress-text{font-size:12px;color:#667085}
+.photo-preview{max-width:100%;border-radius:10px;margin-top:8px}
+.pdf-file-name{font-size:12px;color:#667085}
+.setting-note{font-size:12px;color:#667085;line-height:1.5}
+
+.offline-badge{display:inline-block;padding:5px 9px;border-radius:14px;font-size:12px;background:#eef7ee;margin-left:5px}
+.backup-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px}
+.sync-status{font-size:13px;margin-top:8px}
+
+#teacherLoginModal:not(.hidden),#teacherModal:not(.hidden){display:flex!important}
+#studentLogin:not(.hidden){display:block!important}
+
+.personal-card{border-left:5px solid #173b72}
+.personal-list .item{margin-bottom:9px}
+.read-badge{font-size:11px;padding:3px 7px;border-radius:10px;background:#eaf7ea}
+.unread-badge{font-size:11px;padding:3px 7px;border-radius:10px;background:#fff2cc}
+</style></style>
+
+<style id="teacher-reset-visibility-fix">
+#nsl-forgot{
+  position:fixed!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  background:rgba(0,0,0,.62)!important;
+  z-index:1000001!important;
+  display:none!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:18px!important;
+  box-sizing:border-box!important;
+}
+#nsl-forgot.show{display:flex!important}
+#nsl-teacher-login #nsl-forgot{display:none!important}
+</style>
+</head>
+<body>
+<header><div><b>📚 NIRMLA STUDY ZON</b></div><div id="headerUser"></div></header>
+
+<button class="teacher-icon" title="Teacher Login" onclick="openTeacherLogin()">👨‍🏫</button>
+
+<main class="wrap">
+
+<div id="nsl-student-entry" style="margin:18px auto;max-width:520px;text-align:center">
+ <button type="button" onclick="nirmalaOpenStudentLogin()" style="width:100%;min-height:54px;border:0;border-radius:14px;background:#173b72;color:#fff;font-size:18px;cursor:pointer">👨‍🎓 Student Login</button>
+</div>
+<section id="studentLogin" class="card">
+<h2>👨‍🎓 Student Login</h2>
+<p class="muted">વિદ્યાર્થી નામ અને Passwordથી Login કરે.</p>
+<label>વિદ્યાર્થીનું નામ</label><input id="studentName" placeholder="નામ">
+<label>Password</label><input id="studentPassword" type="password" placeholder="Password">
+<button onclick="studentLogin()">🔐 Student Login</button>
+<div id="studentMsg"></div>
+</section>
+
+<section id="studentHome" class="hidden">
+<div class="card"><h2>👨‍🎓 Student Dashboard</h2><span id="studentWelcome" class="badge"></span>
+<span id="connectionStatus" class="offline-badge">📡 તપાસી રહ્યું છે...</span>
+<button class="secondary" style="float:right" onclick="studentLogout()">Logout</button></div>
+
+<div class="section-buttons">
+<button onclick="studentSection('noticesSection')">📢 Notice Board <span id="noticeCountBadge"></span></button>
+<button onclick="studentSection('lessonsSection')">📚 Lessons <span id="lessonCountBadge"></span></button>
+<button onclick="studentSection('pdfSection')">📄 Test PDF <span id="pdfCountBadge"></span></button>
+<button onclick="studentSection('personalStudentSection')">💬 My Messages <span id="personalCountBadge"></span></button>
+<button onclick="studentSection('recentSection')">🕐 Recently Viewed</button>
+<button onclick="studentSection('profileSection')">👤 My Profile</button>
+<button onclick="studentSection('progressSection')">📈 My Progress</button>
+</div>
+
+<div id="noticesSection" class="card app-section hidden">
+<h3>📢 Notice Board</h3><div id="studentNotices">લોડ થઈ રહ્યું છે...</div>
+</div>
+
+<div id="lessonsSection" class="card app-section hidden">
+<h3>📚 Subject-wise Lessons</h3>
+<div class="search-box"><span class="search-icon">🔍</span><input id="lessonSearch" oninput="renderStudentLessons()" placeholder="Lesson અથવા વિષય શોધો..."></div>
+<div id="lessonSubjects" class="subject-grid"></div>
+<div id="studentLessons">લોડ થઈ રહ્યું છે...</div>
+</div>
+
+<div id="pdfSection" class="card app-section hidden">
+<h3>📄 Test PDF</h3>
+<p class="muted"><b>1️⃣ વિષય પસંદ કરો → 2️⃣ માર્ક્સ પસંદ કરો → 3️⃣ Paper પસંદ કરો → 4️⃣ PDF ખોલો</b></p>
+<div class="nsz-offline-all">
+<button class="secondary" type="button" onclick="saveAllPDFsOffline()">📥 આ બધા PDF Offline Save કરો</button>
+<span id="bulkPdfStatus" class="muted"></span>
+</div>
+<div id="pdfStep1" class="item"><b>1️⃣ વિષય પસંદ કરો</b><div id="testSubjects" class="subject-grid"></div></div>
+<div id="pdfStep2" class="item hidden" style="margin-top:10px">
+<b>2️⃣ માર્ક્સ પસંદ કરો</b>
+<div id="chosenSubject" style="margin-top:8px"></div>
+<div class="marks-grid">
+<button onclick="showTests(20)">20 માર્ક્સ</button>
+<button onclick="showTests(25)">25 માર્ક્સ</button>
+<button onclick="showTests(50)">50 માર્ક્સ</button>
+<button onclick="showTests(100)">100 માર્ક્સ</button>
+<button onclick="showTests(120)">120 માર્ક્સ</button>
+</div>
+<button class="secondary" onclick="backToPdfSubjects()" style="margin-top:8px">↩️ વિષય બદલો</button>
+</div>
+<div id="pdfStep3" class="item hidden" style="margin-top:10px">
+<b>3️⃣ Paper પસંદ કરો</b>
+<div id="testResults" style="margin-top:8px"></div>
+<button class="secondary" onclick="backToPdfMarks()" style="margin-top:8px">↩️ માર્ક્સ બદલો</button>
+</div>
+<div class="search-box"><span class="search-icon">🔍</span><input id="pdfSearch" oninput="renderStudentPDFs()" placeholder="Paper અથવા વિષય શોધો..."></div>
+
+</div>
+
+
+<div id="personalStudentSection" class="card app-section hidden personal-card">
+<h3>💬 My Personal Messages</h3>
+<p class="muted">Teacher દ્વારા તમને વ્યક્તિગત રીતે મોકલેલી Fee Receipt, Message, PDF અથવા Link અહીં મળશે.</p>
+<div id="studentPersonalList">લોડ થઈ રહ્યું છે...</div>
+</div>
+
+<div id="recentSection" class="card app-section hidden">
+<h3>🕐 Recently Viewed</h3>
+<p class="muted">તમે છેલ્લે જોયેલા Lesson અને PDF અહીં દેખાશે.</p>
+<div id="recentList">લોડ થઈ રહ્યું છે...</div>
+</div>
+
+<div id="profileSection" class="card app-section hidden">
+<h3>👤 My Profile</h3>
+<div class="nsz-profile-grid">
+<input id="profileName" placeholder="નામ">
+<input id="profileMobile" placeholder="મોબાઇલ નંબર" inputmode="numeric">
+<input id="profileCourse" placeholder="Course / Batch">
+</div>
+<p class="muted">મોબાઇલ નંબર OTP verification પછી બદલવા માટે ફરી OTP verification જરૂરી રહેશે.</p>
+<button onclick="saveStudentProfile()">💾 Profile Save</button>
+<div id="profileMsg" class="sync-status"></div>
+<hr style="border:0;border-top:1px solid #e5e7eb;margin:15px 0">
+<h4>🔐 Password</h4>
+<input id="profileNewPass" type="password" placeholder="નવો Password">
+<button onclick="changeStudentPassword()">🔑 Password Change</button>
+<div id="passwordMsg" class="sync-status"></div>
+</div>
+<div id="progressSection" class="card app-section hidden">
+<h3>📈 My Study Progress</h3>
+<div id="studentProgress">લોડ થઈ રહ્યું છે...</div>
+<div id="achievementBox" style="margin-top:12px"></div>
+</div>
+
+<div id="noticesSection" class="card app-section hidden">
+<h3>📢 Notice Board</h3><div id="studentNotices">લોડ થઈ રહ્યું છે...</div>
+</div>
+
+<div id="lessonsSection" class="card app-section hidden">
+<h3>📚 Lessons</h3><div id="studentLessons">લોડ થઈ રહ્યું છે...</div>
+</div>
+
+<div id="pdfSection" class="card app-section hidden">
+<h3>📄 Test PDF</h3>
+<p class="muted">પહેલા વિષય પસંદ કરો → પછી માર્ક્સ પસંદ કરો → પછી PDF પેપર ખોલો.</p>
+<div id="testSubjects" class="grid"></div>
+<div id="testMarks" class="hidden" style="margin-top:12px">
+<h4 id="chosenSubject"></h4>
+<div class="grid">
+<button onclick="showTests(20)">20 માર્ક્સ</button>
+<button onclick="showTests(25)">25 માર્ક્સ</button>
+<button onclick="showTests(50)">50 માર્ક્સ</button>
+<button onclick="showTests(100)">100 માર્ક્સ</button>
+<button onclick="showTests(120)">120 માર્ક્સ</button>
+</div>
+<div id="testResults"></div>
+</div>
+</div>
+</section>
+
+<section id="teacherHome" class="hidden">
+
+<div class="card"><h2>👨‍🏫 Teacher Dashboard</h2><span id="teacherWelcome" class="badge"></span>
+<button class="secondary" style="float:right" onclick="teacherLogout()">Logout</button></div>
+
+<div class="section-buttons teacher-nav">
+<button onclick="teacherSection('studentsSection')">👨‍🎓 Students</button>
+<button onclick="teacherSection('noticesTeacherSection')">📢 Notices</button>
+<button onclick="teacherSection('lessonsTeacherSection')">📚 Lessons</button>
+<button onclick="teacherSection('pdfTeacherSection')">📄 Test PDFs</button>
+<button onclick="teacherSection('personalTeacherSection')">💬 Personal</button>
+<button onclick="teacherSection('settingsTeacherSection')">⚙️ Settings</button>
+</div>
+
+<div id="studentsSection" class="card teacher-section">
+<h3>👨‍🎓 Students</h3>
+<div class="grid">
+<input id="newStudentName" placeholder="વિદ્યાર્થીનું નામ">
+<input id="newStudentPass" placeholder="Password">
+<input id="newStudentCourse" placeholder="Course">
+</div>
+<button onclick="addStudent()">➕ Student ઉમેરો</button>
+<div id="teacherStudents"></div>
+</div>
+
+<div id="noticesTeacherSection" class="card teacher-section hidden">
+<h3>📢 Notice Board</h3>
+<textarea id="noticeText" placeholder="બધા વિદ્યાર્થીઓ માટે Notice"></textarea>
+<button onclick="addNotice()">📢 Notice Publish</button>
+<div id="teacherNotices"></div>
+</div>
+
+<div id="lessonsTeacherSection" class="card teacher-section hidden">
+<h3>📚 Lesson ઉમેરો</h3>
+<div class="grid">
+<input id="lessonTitle" placeholder="Lesson Title">
+<input id="lessonSubject" placeholder="વિષય (જેમ કે ગણિત)">
+<input id="lessonCourse" placeholder="Course">
+</div>
+<select id="lessonType">
+<option value="text">Text</option>
+<option value="photo">Photo</option>
+<option value="pdf">PDF</option>
+<option value="video">Video</option>
+<option value="link">Link</option>
+</select>
+<textarea id="lessonContent" placeholder="Lesson content / URL"></textarea>
+<label><input type="checkbox" id="lessonAll" checked> આ Courseના બધા વિદ્યાર્થીઓ માટે</label><br>
+<button onclick="addLesson()">📚 Lesson Publish</button>
+<div id="teacherLessons"></div>
+</div>
+
+<div id="pdfTeacherSection" class="card teacher-section hidden">
+<h3>📄 Test PDF / Paper</h3>
+<p class="muted"><b>વિદ્યાર્થી માટે: વિષય → માર્ક્સ → Paper → PDF</b></p>
+<p class="muted">વિષય અને માર્ક્સ પસંદ કરીને મોબાઇલમાંથી PDF Paper Upload કરો. માર્ક્સ: 20 / 25 / 50 / 100 / 120.</p>
+<div class="grid">
+<input id="testTitle" placeholder="Paper / Test Name">
+<input id="testSubject" placeholder="વિષય">
+<select id="testMarks">
+<option>20</option><option>25</option><option>50</option><option>100</option><option>120</option>
+</select>
+</div>
+<label style="display:block;margin-top:10px;font-weight:600">📁 PDF Paper પસંદ કરો</label>
+<input id="testPdfFile" type="file" accept="application/pdf" style="padding:12px;border:1px dashed #9aa7b8;border-radius:10px;width:100%;box-sizing:border-box">
+<div id="pdfUploadStatus" class="muted" style="margin-top:8px">કોઈ PDF પસંદ કરેલ નથી.</div>
+<button id="pdfPublishBtn" onclick="uploadAndPublishPDF()">📤 PDF Upload & Publish</button>
+<div id="teacherTests"></div>
+</div>
+
+
+<div id="personalTeacherSection" class="card teacher-section hidden personal-card">
+<h3>💬 Personal Message / Document</h3>
+<p class="muted">કોઈ એક વિદ્યાર્થીને વ્યક્તિગત રીતે Message, Fee Receipt, PDF અથવા કોઈ Link મોકલી શકો.</p>
+<div class="grid">
+<select id="personalStudent"></select>
+<input id="personalTitle" placeholder="શીર્ષક — જેમ કે Fee Receipt September">
+</div>
+<textarea id="personalMessage" placeholder="વિદ્યાર્થી માટે વ્યક્તિગત Message"></textarea>
+<div class="grid">
+<input id="personalLink" placeholder="Optional Link (જેમ કે Fee Receipt / Google Drive)">
+<input id="personalFile" type="file" accept=".pdf,image/*" >
+</div>
+<button id="personalSendBtn" onclick="sendPersonalMessage()">📤 Personal મોકલો</button>
+<div id="personalMsg" class="sync-status"></div>
+<hr style="border:0;border-top:1px solid #e5e7eb;margin:15px 0">
+<h4>📨 મોકલેલા Personal Messages</h4>
+<div id="teacherPersonalList" class="personal-list"></div>
+</div>
+<div id="settingsTeacherSection" class="card teacher-section hidden">
+<h3>⚙️ Teacher Login ID / Password</h3>
+<p class="muted">Login થયા પછી જ અહીંથી ID અને Password બદલી શકાશે.</p>
+<div class="grid">
+<input id="setTeacherId" placeholder="નવું Teacher ID">
+<input id="setTeacherPass" type="password" placeholder="નવો Password">
+</div>
+<button onclick="saveTeacherCredentials()">💾 ID / Password Save કરો</button>
+<div id="credentialMsg"></div>
+<hr style="border:0;border-top:1px solid #e5e7eb;margin:16px 0">
+<h3>☁️ Firebase Cloud Setup</h3><p class="setting-note"><b>✅ NIRMLA STUDY ZON Firebase Project 3: study-zon</b><br>આ એપમાં Firebase configuration પહેલેથી સેટ છે.</p>
+<p class="setting-note">Project 3 ની Firebase Web App configuration અહીં એક વખત નાખો. ત્યારબાદ Students, Notices, Lessons અને PDF Papers બધા devices પર cloudમાં sync થઈ શકશે.</p>
+<div class="grid">
+<input id="fbApiKey" placeholder="apiKey">
+<input id="fbAuthDomain" placeholder="authDomain">
+<input id="fbDatabaseURL" placeholder="databaseURL">
+<input id="fbProjectId" placeholder="projectId">
+<input id="fbStorageBucket" placeholder="storageBucket">
+<input id="fbMessagingSenderId" placeholder="messagingSenderId">
+<input id="fbAppId" placeholder="appId">
+</div>
+<button onclick="saveFirebaseConfig()">☁️ Firebase Config Save & Reload</button>
+<div id="firebaseMsg"></div>
+
+<hr style="border:0;border-top:1px solid #e5e7eb;margin:16px 0">
+<h3>💾 Backup & Restore</h3>
+<p class="setting-note">Appના Students, Notices, Lessons અને Test PDFની માહિતીનો backup તમારા મોબાઇલમાં JSON ફાઇલ તરીકે સાચવી શકાય છે. જરૂર પડે ત્યારે એ જ ફાઇલથી Restore કરી શકાય છે.</p>
+<div class="backup-grid">
+<button onclick="downloadBackup()">💾 Backup Download</button>
+<button onclick="document.getElementById('restoreFile').click()">♻️ Restore Backup</button>
+<button class="secondary" onclick="exportOfflineContent()">📦 Offline Data Export</button>
+</div>
+<input id="restoreFile" type="file" accept=".json,application/json" style="display:none" onchange="restoreBackup(this.files[0])">
+<div id="backupMsg" class="sync-status"></div><p class="setting-note">નોંધ: PDF Offline Save માટે PDF download browser દ્વારા મંજૂર હોવું જરૂરી છે. Firebase Storage પરથી મળેલી PDF સામાન્ય રીતે સારી રીતે cache થઈ શકે છે.</p>
+
+</div>
+
+</section>
+</main>
+
+<div id="teacherModal" class="hidden" style="position:fixed;inset:0;background:#0008;z-index:2000;align-items:center;justify-content:center;padding:16px">
+<div class="card" style="width:min(400px,100%)">
+<h3>👨‍🏫 Teacher Login</h3>
+<label>Teacher ID</label><input id="teacherId">
+<label>Password</label><input id="teacherPass" type="password">
+<button onclick="teacherLogin()">🔐 Login</button>
+<button class="secondary" onclick="closeTeacherLogin()">બંધ કરો</button>
+<div id="teacherMsg"></div>
+</div></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js">
+document.addEventListener('DOMContentLoaded',function(){
+ const b=document.getElementById('teacherBtn');
+ if(b){b.type='button';b.onclick=openTeacherLogin;}
+ const m=document.getElementById('teacherLoginModal')||document.getElementById('teacherModal');
+ if(m){
+   m.addEventListener('click',function(e){if(e.target===m){m.classList.add('hidden');m.style.display='none';}});
+ }
+});
+
+
+document.addEventListener('DOMContentLoaded',function(){
+ try{
+  const tb=document.getElementById('teacherBtn');
+  if(tb){tb.type='button';tb.onclick=function(e){e.preventDefault();openTeacherLogin();};}
+  const sb=document.getElementById('studentLoginBtn');
+  if(sb){sb.type='button';sb.onclick=function(e){e.preventDefault();showStudentLogin();};}
+  // Also wire any button whose visible text is Student Login / Teacher Login.
+  document.querySelectorAll('button').forEach(function(b){
+    const t=(b.textContent||'').trim().toLowerCase();
+    if(t.includes('teacher login')){b.type='button';b.onclick=function(e){e.preventDefault();openTeacherLogin();};}
+    if(t.includes('student login')){b.type='button';b.onclick=function(e){e.preventDefault();showStudentLogin();};}
+  });
+ }catch(e){console.error(e);}
+});
+
+</script><script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script>
+const defaultFirebaseConfig = {
+  apiKey: "AIzaSyAh2BrF_EhZ7bjJ5DZurf5kzBygo7bVOPc",
+  authDomain: "study-zon.firebaseapp.com",
+  databaseURL: "https://study-zon-default-rtdb.firebaseio.com",
+  projectId: "study-zon",
+  storageBucket: "study-zon.firebasestorage.app",
+  messagingSenderId: "419936963635",
+  appId: "1:419936963635:web:7bfbc258bce9c3507bee36"
+};
+let firebaseConfig = JSON.parse(localStorage.getItem('nirmala_firebase_config') || 'null') || defaultFirebaseConfig;
+let db=null, storage=null, students={}, notices={}, lessons={}, tests={}, personalMessages={};
+let cloudMode=false;
+window.firebaseConfig=firebaseConfig;
+window.NIRMLA_FIREBASE_PROJECT='study-zon';
+let currentStudent=null;
+
+
+
+const OFFLINE_CACHE_KEY='nirmala_offline_cache_v1';
+function updateConnectionStatus(){
+ const el=document.getElementById('connectionStatus');
+ if(!el)return;
+ if(navigator.onLine) el.textContent='🟢 Online';
+ else el.textContent='🔴 Offline';
+}
+window.addEventListener('online',()=>{updateConnectionStatus(); if(typeof initFirebase==='function') installPWAHelpers(); registerOfflineWorker(); initFirebase();});
+window.addEventListener('offline',updateConnectionStatus);
+
+function snapshotAppData(){
+ return {
+  version:1,
+  app:'NIRMLA STUDY ZON',
+  savedAt:new Date().toISOString(),
+  students:window.students||{},
+  notices:window.notices||{},
+  lessons:window.lessons||{},
+  tests:window.tests||{},
+  personalMessages:window.personalMessages||{},
+  viewed:currentStudent?getViewed():null
+ };
+}
+function downloadBackup(){
+ const data=snapshotAppData();
+ const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+ const a=document.createElement('a');
+ a.href=URL.createObjectURL(blob);
+ a.download='NIRMLA_STUDY_ZON_BACKUP_'+new Date().toISOString().slice(0,10)+'.json';
+ document.body.appendChild(a);a.click();a.remove();
+ msg('backupMsg','✅ Backup ફાઇલ Download થઈ ગઈ.');
+}
+async function restoreBackup(file){
+ if(!file)return;
+ try{
+  const data=JSON.parse(await file.text());
+  if(data.app!=='NIRMLA STUDY ZON' || !data.version){
+   throw new Error('invalid');
+  }
+  const keys=['students','notices','lessons','tests','personalMessages'];
+  for(const k of keys){
+   const value=data[k]||{};
+   if(cloudMode && db){
+    await db.ref(k).set(value);
+   }else{
+    saveLocalData(k,value); window[k]=value;
+   }
+  }
+  window.students=data.students||{};students=window.students;
+  window.notices=data.notices||{};notices=window.notices;
+  window.lessons=data.lessons||{};lessons=window.lessons;
+  window.tests=data.tests||{};tests=window.tests;
+  if(data.viewed && currentStudent)saveViewed(data.viewed);
+  renderTeacher(); if(currentStudent)renderStudent();
+  msg('backupMsg','✅ Backup Restore સફળ થયું.');
+ }catch(e){
+  console.error(e); msg('backupMsg','❌ Backup ફાઇલ યોગ્ય નથી અથવા Restore નિષ્ફળ ગયું.');
+ }
+}
+function cacheCurrentData(){
+ try{
+  const data=snapshotAppData();
+  localStorage.setItem(OFFLINE_CACHE_KEY,JSON.stringify(data));
+ }catch(e){}
+}
+function restoreOfflineCache(){
+ try{
+  const raw=localStorage.getItem(OFFLINE_CACHE_KEY);
+  if(!raw)return;
+  const d=JSON.parse(raw);
+  if(d.students){window.students=d.students;students=d.students}
+  if(d.notices){window.notices=d.notices;notices=d.notices}
+  if(d.lessons){window.lessons=d.lessons;lessons=d.lessons}
+  if(d.tests){window.tests=d.tests;tests=d.tests}
+ }catch(e){}
+}
+function exportOfflineContent(){
+ cacheCurrentData();
+ const raw=localStorage.getItem(OFFLINE_CACHE_KEY);
+ if(!raw){msg('backupMsg','❌ Offline data તૈયાર થઈ શક્યું નથી.');return}
+ const blob=new Blob([raw],{type:'application/json'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+ a.download='NIRMLA_STUDY_ZON_OFFLINE_DATA.json';document.body.appendChild(a);a.click();a.remove();
+ msg('backupMsg','✅ Offline data export થઈ ગયું.');
+}
+async function savePDFOffline(id){
+ const t=tests[id]; if(!t || !(t.url||t.pdfUrl)){alert('PDF ઉપલબ્ધ નથી.');return}
+ try{
+  if(!('caches' in window)){alert('આ browserમાં Offline PDF Save સપોર્ટ નથી.');return}
+  const url=t.url||t.pdfUrl;
+  const cache=await caches.open('nirmala-pdfs-v1');
+  const response=await fetch(url,{mode:'cors'});
+  if(!response.ok)throw new Error('download failed');
+  await cache.put(url,response.clone());
+  localStorage.setItem('nirmala_pdf_offline_'+id,'1');
+  alert('✅ PDF Offline માટે Save થઈ ગઈ છે. હવે નેટ વગર પણ ખોલી શકાશે.');
+ }catch(e){
+  console.error(e);
+  alert('❌ PDF Offline Save થઈ નથી. Firebase Storage/CORS અથવા browser permissionને કારણે થઈ શકે છે.');
+ }
+}
+async function openOfflineOrOnlinePDF(id){
+ const t=tests[id]; if(!t)return;
+ const url=t.url||t.pdfUrl; if(!url)return;
+ try{
+  if('caches' in window){
+   const cache=await caches.open('nirmala-pdfs-v1');
+   const cached=await cache.match(url);
+   if(cached){
+    const blob=await cached.blob();
+    const localUrl=URL.createObjectURL(blob);
+    window.open(localUrl,'_blank');
+    return;
+   }
+  }
+ }catch(e){}
+ window.open(url,'_blank');
+}
+function installPWAHelpers(){
+ updateConnectionStatus(); cacheCurrentData();
+}
+
+function hasFirebaseConfig(){
+ return !!(firebaseConfig.apiKey && firebaseConfig.databaseURL && firebaseConfig.projectId);
+}
+function localData(key){
+ try{return JSON.parse(localStorage.getItem('nirmala_'+key)||'{}')||{};}catch(e){return {};}
+}
+function saveLocalData(key,data){localStorage.setItem('nirmala_'+key,JSON.stringify(data||{}));}
+function dataSet(key,id,value){
+ if(cloudMode && db) return db.ref(key+'/'+id).set(value);
+ const d=localData(key); d[id]=value; saveLocalData(key,d); window[key]=d; if(key==='personalMessages')personalMessages=d; if(currentStudent)renderStudent(); renderTeacher(); cacheCurrentData();
+ return Promise.resolve();
+}
+function dataRemove(key,id){
+ if(cloudMode && db) return db.ref(key+'/'+id).remove();
+ const d=localData(key); delete d[id]; saveLocalData(key,d); window[key]=d; if(key==='personalMessages')personalMessages=d; if(currentStudent)renderStudent(); renderTeacher(); cacheCurrentData();
+ return Promise.resolve();
+}
+function viewedKey(){return currentStudent ? 'nirmala_viewed_'+String(currentStudent.name).toLowerCase() : 'nirmala_viewed_guest';}
+function getViewed(){try{return JSON.parse(localStorage.getItem(viewedKey())||'{"lessons":{},"pdfs":{}}')}catch(e){return {lessons:{},pdfs:{}}}}
+function saveViewed(v){localStorage.setItem(viewedKey(),JSON.stringify(v))}
+function markViewed(type,id){
+ const v=getViewed(); v[type]=v[type]||{}; v[type][id]=Date.now(); saveViewed(v); renderProgress();
+}
+function toggleFavorite(type,id){
+ const key='nirmala_favorites_'+String(currentStudent?.name||'').toLowerCase();
+ let f={lessons:{},pdfs:{}}; try{f=JSON.parse(localStorage.getItem(key)||'{"lessons":{},"pdfs":{}}')}catch(e){}
+ f[type]=f[type]||{}; if(f[type][id]) delete f[type][id]; else f[type][id]=true;
+ localStorage.setItem(key,JSON.stringify(f)); renderStudent();
+}
+function isFavorite(type,id){
+ const key='nirmala_favorites_'+String(currentStudent?.name||'').toLowerCase();
+ try{const f=JSON.parse(localStorage.getItem(key)||'{}');return !!(f[type]&&f[type][id])}catch(e){return false}
+}
+function saveFirebaseConfig(){
+ const c={
+  apiKey:document.getElementById('fbApiKey').value.trim(),
+  authDomain:document.getElementById('fbAuthDomain').value.trim(),
+  databaseURL:document.getElementById('fbDatabaseURL').value.trim(),
+  projectId:document.getElementById('fbProjectId').value.trim(),
+  storageBucket:document.getElementById('fbStorageBucket').value.trim(),
+  messagingSenderId:document.getElementById('fbMessagingSenderId').value.trim(),
+  appId:document.getElementById('fbAppId').value.trim()
+ };
+ if(!c.apiKey||!c.databaseURL||!c.projectId){msg('firebaseMsg','❌ apiKey, databaseURL અને projectId જરૂરી છે.');return}
+ localStorage.setItem('nirmala_firebase_config',JSON.stringify(c));
+ msg('firebaseMsg','✅ Config સેવ થઈ. App reload થશે...');
+ setTimeout(()=>location.reload(),800);
+}
+function loadFirebaseConfigForm(){
+ const c=firebaseConfig;
+ ['apiKey','authDomain','databaseURL','projectId','storageBucket','messagingSenderId','appId'].forEach(k=>{
+   const el=document.getElementById('fb'+k.charAt(0).toUpperCase()+k.slice(1)); if(el) el.value=c[k]||'';
+ });
+}
+
+function creds(){return{id:localStorage.getItem('teacher_id')||'teacher',pass:localStorage.getItem('teacher_pass')||'1234'}}
+function openTeacherLogin(){
+ const modal=document.getElementById('teacherLoginModal') || document.getElementById('teacherModal');
+ if(modal){modal.classList.remove('hidden');modal.style.display='flex';}
+ const id=document.getElementById('teacherId'); const pass=document.getElementById('teacherPass');
+ if(id){id.value='';setTimeout(()=>id.focus(),100);} if(pass)pass.value='';
+}
+function teacherLogin(){
+ const id=(document.getElementById('teacherId')?.value||'').trim();
+ const pass=document.getElementById('teacherPass')?.value||'';
+ const c=creds();
+ if(id===c.id && pass===c.pass){
+   closeTeacherLogin();
+   document.getElementById('studentLogin')?.classList.add('hidden');
+   document.getElementById('teacherHome')?.classList.remove('hidden');
+   if(document.getElementById('teacherHome')) document.getElementById('teacherHome').style.display='block';
+   const hu=document.getElementById('headerUser'); if(hu)hu.textContent='👨‍🏫 Teacher';
+   if(typeof teacherSection==='function')teacherSection('studentsSection');
+   if(typeof renderTeacher==='function')renderTeacher();
+ }else{
+   alert('Teacher ID અથવા Password ખોટો છે.');
+ }
+}
+function teacherLogout(){document.getElementById('teacherHome').classList.add('hidden');document.getElementById('studentLogin').classList.remove('hidden');document.getElementById('headerUser').textContent='';}
+function studentLogin(){
+ const name=(document.getElementById('studentName')?.value||'').trim().toLowerCase();
+ const pass=document.getElementById('studentPass')?.value||'';
+ const all=Object.values(students||{});
+ const s=all.find(x=>String(x.name||'').trim().toLowerCase()===name && String(x.password||'')===pass);
+ if(!s){alert('વિદ્યાર્થીનું નામ અથવા Password ખોટો છે.');return;}
+ currentStudent=s;
+ document.getElementById('studentLogin')?.classList.add('hidden');
+ document.getElementById('studentHome')?.classList.remove('hidden');
+ if(document.getElementById('studentHome'))document.getElementById('studentHome').style.display='block';
+ const hu=document.getElementById('headerUser');if(hu)hu.textContent='👨‍🎓 '+s.name;
+ if(typeof studentSection==='function')studentSection('noticesSection');
+ if(typeof renderStudent==='function')renderStudent();
+}
+function studentLogout(){currentStudent=null;document.getElementById('studentHome').classList.add('hidden');document.getElementById('studentLogin').classList.remove('hidden');document.getElementById('headerUser').textContent='';}
+function msg(id,t){document.getElementById(id).innerHTML=t}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
+function studentSection(id){
+ document.querySelectorAll('#studentHome .app-section').forEach(x=>x.classList.add('hidden'));
+ const el=document.getElementById(id); if(el) el.classList.remove('hidden');
+ if(id==='recentSection')renderRecent();
+ if(id==='lessonsSection'||id==='pdfSection')localStorage.setItem('nirmala_content_seen_'+String(currentStudent?.name||'').toLowerCase(),String(Date.now()));
+ if(id==='profileSection')renderProfile();
+ if(id==='personalStudentSection')renderStudentPersonal();
+}
+function teacherSection(id){
+ document.querySelectorAll('#teacherHome .teacher-section').forEach(x=>x.classList.add('hidden'));
+ const el=document.getElementById(id); if(el) el.classList.remove('hidden');
+}
+
+function registerOfflineWorker(){
+ if(!('serviceWorker' in navigator))return;
+ const sw=`const CACHE='nirmala-shell-v1';
+self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll([location.href])).then(()=>self.skipWaiting())));
+self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
+self.addEventListener('fetch',e=>{
+ if(e.request.method!=='GET')return;
+ e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{
+  const copy=res.clone(); caches.open(CACHE).then(c=>c.put(e.request,copy)).catch(()=>{}); return res;
+ }).catch(()=>caches.match(location.href))));
+});`;
+ try{
+  const blob=new Blob([sw],{type:'text/javascript'});
+  const url=URL.createObjectURL(blob);
+  navigator.serviceWorker.register(url).catch(()=>{});
+ }catch(e){}
+}
+
+function showStudentLogin(){
+ const s=document.getElementById('studentLogin');
+ const h=document.getElementById('studentHome');
+ if(s){s.classList.remove('hidden');s.style.display='block';}
+ if(h){h.classList.add('hidden');h.style.display='none';}
+ const n=document.getElementById('studentName'); if(n){n.focus();}
+}
+function initFirebase(){
+ restoreOfflineCache();
+ const localKeys=['students','notices','lessons','tests','personalMessages'];
+ localKeys.forEach(k=>window[k]=localData(k));
+ students=window.students; notices=window.notices; lessons=window.lessons; tests=window.tests; personalMessages=window.personalMessages||{};
+ loadFirebaseConfigForm();
+ if(!hasFirebaseConfig()){cloudMode=false; if(currentStudent)renderStudent(); renderTeacher(); cacheCurrentData(); return;}
+ try{
+  if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);
+  db=firebase.database(); storage=firebase.storage(); cloudMode=true;
+  localKeys.forEach(k=>db.ref(k).on('value',s=>{
+    window[k]=s.val()||{}; if(k==='students')students=window[k];
+    if(k==='notices')notices=window[k]; if(k==='lessons')lessons=window[k]; if(k==='tests')tests=window[k]; if(k==='personalMessages')personalMessages=window[k];
+    if(currentStudent)renderStudent(); renderTeacher(); cacheCurrentData();
+  }));
+ }catch(e){cloudMode=false;console.log(e);}
+}
+function addStudent(){
+ const name=document.getElementById('newStudentName').value.trim(),password=document.getElementById('newStudentPass').value,course=document.getElementById('newStudentCourse').value.trim();
+ if(!name||!password)return alert('નામ અને Password નાખો.');
+ const id='s_'+Date.now();dataSet('students',id,{name,password,course,active:true,approved:true});
+}
+function addNotice(){const text=document.getElementById('noticeText').value.trim();if(!text)return;dataSet('notices','n_'+Date.now(),{text,date:new Date().toLocaleString('gu-IN'),important:true});document.getElementById('noticeText').value='';}
+function addLesson(){
+ const title=document.getElementById('lessonTitle').value.trim(),subject=document.getElementById('lessonSubject').value.trim(),course=document.getElementById('lessonCourse').value.trim(),type=document.getElementById('lessonType').value,content=document.getElementById('lessonContent').value.trim();
+ if(!title||!content)return alert('Title અને Content/URL નાખો.');
+ dataSet('lessons','l_'+Date.now(),{title,subject,course,type,content,allStudents:document.getElementById('lessonAll').checked,date:new Date().toLocaleString('gu-IN')});
+ document.getElementById('lessonTitle').value='';document.getElementById('lessonSubject').value='';document.getElementById('lessonContent').value='';
+}
+async function uploadAndPublishPDF(){
+ const title=document.getElementById('testTitle').value.trim();
+ const subject=document.getElementById('testSubject').value.trim();
+ const marks=Number(document.getElementById('testMarks').value);
+ const file=document.getElementById('testPdfFile').files[0];
+ const status=document.getElementById('pdfUploadStatus');
+ const btn=document.getElementById('pdfPublishBtn');
+
+ if(!title||!subject||!file){
+   alert('Paper Name, વિષય અને PDF ફાઇલ પસંદ કરો.');
+   return;
+ }
+ if(file.type!=='application/pdf'){
+   alert('માત્ર PDF ફાઇલ અપલોડ કરી શકાય છે.');
+   return;
+ }
+ if(file.size>10*1024*1024){
+   alert('PDF 10 MB કરતાં નાની રાખો.');
+   return;
+ }
+ if(!storage || !cloudMode){
+   alert('PDF બીજા devices પર મૂકવા માટે Settings → Firebase Cloud Setup માં Project 3 configuration save કરો.');
+   return;
+ }
+
+ try{
+   btn.disabled=true;
+   btn.textContent='⏳ PDF Upload થઈ રહ્યું છે...';
+   status.textContent='📤 '+file.name+' Upload થઈ રહ્યું છે...';
+
+   const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+   const id='t_'+Date.now();
+   const ref=storage.ref('test_pdfs/'+id+'_'+safeName);
+   const snap=await ref.put(file,{contentType:'application/pdf'});
+   const url=await snap.ref.getDownloadURL();
+
+   await dataSet('tests',id,{
+     title, subject, totalMarks:marks,
+     url, pdfUrl:url, type:'pdf',
+     fileName:file.name, status:'active',
+     date:new Date().toLocaleString('gu-IN')
+   });
+
+   document.getElementById('testTitle').value='';
+   document.getElementById('testSubject').value='';
+   document.getElementById('testPdfFile').value='';
+   status.textContent='✅ PDF સફળતાપૂર્વક Upload અને Publish થઈ ગયું.';
+   btn.textContent='📤 PDF Upload & Publish';
+ }catch(e){
+   console.error(e);
+   status.textContent='❌ PDF Upload નિષ્ફળ ગયું.';
+   alert('PDF Upload થઈ શક્યું નથી. Firebase Storage Rules અને configuration તપાસો.');
+   btn.textContent='📤 PDF Upload & Publish';
+ }finally{
+   btn.disabled=false;
+ }
+}
+
+async function sendPersonalMessage(){
+ const sid=document.getElementById('personalStudent')?.value||'';
+ const title=(document.getElementById('personalTitle')?.value||'').trim();
+ const message=(document.getElementById('personalMessage')?.value||'').trim();
+ const link=(document.getElementById('personalLink')?.value||'').trim();
+ const file=document.getElementById('personalFile')?.files[0];
+ if(!sid){alert('વિદ્યાર્થી પસંદ કરો.');return}
+ if(!title && !message && !link && !file){alert('Message, Link અથવા Fileમાંથી કંઈક આપો.');return}
+ const id='pm_'+Date.now();
+ let fileUrl='';
+ let fileName='';
+ try{
+   if(file){
+     if(!storage || !cloudMode){alert('File મોકલવા માટે Firebase Cloud Setup જરૂરી છે.');return}
+     if(file.size>10*1024*1024){alert('File 10 MB કરતાં નાની રાખો.');return}
+     const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+     const ref=storage.ref('personal_files/'+sid+'/'+id+'_'+safe);
+     const snap=await ref.put(file);
+     fileUrl=await snap.ref.getDownloadURL(); fileName=file.name;
+   }
+   const record={
+     studentId:sid, title:title||'Personal Message', message, link,
+     fileUrl, fileName, read:false, date:new Date().toLocaleString('gu-IN')
+   };
+   await dataSet('personalMessages',id,record);
+   document.getElementById('personalTitle').value='';
+   document.getElementById('personalMessage').value='';
+   document.getElementById('personalLink').value='';
+   document.getElementById('personalFile').value='';
+   msg('personalMsg','✅ Personal Message સફળતાપૂર્વક મોકલાઈ ગયું.');
+ }catch(e){
+   console.error(e);msg('personalMsg','❌ Personal Message મોકલી શકાયું નથી.');
+ }
+}
+function renderPersonalTeacher(){
+ const sel=document.getElementById('personalStudent');
+ if(sel){
+   const current=sel.value;
+   sel.innerHTML='<option value="">વિદ્યાર્થી પસંદ કરો</option>'+Object.entries(students).map(([id,s])=>'<option value="'+esc(id)+'">'+esc(s.name)+' — '+esc(s.course||'')+'</option>').join('');
+   if(current && students[current])sel.value=current;
+ }
+ const list=Object.entries(personalMessages||{}).reverse();
+ const box=document.getElementById('teacherPersonalList');
+ if(box)box.innerHTML=list.map(([id,p])=>{
+   const s=students[p.studentId];
+   const sid=String(id).replace(/'/g,'');
+   return `<div class="item"><b>💬 ${esc(p.title||'Personal')}</b> — ${esc(s?.name||'વિદ્યાર્થી')}<br>${esc(p.message||'')}${p.link?`<br>🔗 <a href="${esc(p.link)}" target="_blank">Link ખોલો</a>`:''}${p.fileUrl?`<br>📎 <a href="${esc(p.fileUrl)}" target="_blank">${esc(p.fileName||'File')}</a>`:''}<br><small>${esc(p.date||'')}</small> <button class="danger" type="button" onclick="dataRemove('personalMessages','${sid}')">Delete</button></div>`;
+ }).join('')||'<p class="muted">હજી Personal Message મોકલ્યો નથી.</p>';
+}
+function renderStudentPersonal(){
+ if(!currentStudent)return;
+ const sid=currentStudent.id || Object.entries(students).find(([id,s])=>s===currentStudent)?.[0];
+ const list=Object.entries(personalMessages||{}).filter(([id,p])=>String(p.studentId)===String(sid)||String(p.studentName||'').toLowerCase()===String(currentStudent.name||'').toLowerCase()).reverse();
+ const box=document.getElementById('studentPersonalList');
+ if(!box)return;
+ box.innerHTML=list.map(([id,p])=>{
+   const file=p.fileUrl?'<br>📎 <a href="'+esc(p.fileUrl)+'" target="_blank"><button type="button">📄 '+esc(p.fileName||'File')+'</button></a>':'';
+   const link=p.link?'<br>🔗 <a href="'+esc(p.link)+'" target="_blank"><button type="button">Link ખોલો</button></a>':'';
+   const fresh=!p.read;
+   return '<div class="item '+(fresh?'nsz-new':'')+'"><b>💬 '+esc(p.title||'Personal')+'</b> '+(fresh?'<span class="nsz-notify-dot">NEW</span>':'')+'<br>'+esc(p.message||'')+file+link+'<br><small>'+esc(p.date||'')+'</small></div>';
+ }).join('')||'<p class="muted">તમારા માટે કોઈ Personal Message નથી.</p>';
+ markPersonalMessagesRead();
+}
+function renderStudent(){
+ if(!currentStudent)return;
+ document.getElementById('studentWelcome').textContent='👤 '+currentStudent.name;
+ const noticeArr=Object.entries(notices).reverse();
+ const noticeSeen=Number(localStorage.getItem('nirmala_notice_seen_'+String(currentStudent.name).toLowerCase())||0);
+ const unreadN=noticeArr.filter(([id,n])=>{const ts=Date.parse(n.date||'');return !isNaN(ts)&&ts>noticeSeen}).length;
+ document.getElementById('studentNotices').innerHTML=noticeArr.map(([id,n])=>{
+   const ts=Date.parse(n.date||''); const fresh=!isNaN(ts)&&ts>noticeSeen;
+   return '<div class="item '+(fresh?'nsz-new':'')+'">📢 '+esc(n.text)+' '+(fresh?'<span class="nsz-notify-dot">NEW</span>':'')+'<br><small>'+esc(n.date||'')+'</small></div>';
+ }).join('')||'<p class="muted">Notice નથી.</p>';
+ document.getElementById('noticeCountBadge').textContent=unreadN?' ('+unreadN+')':''; 
+ if(document.getElementById('noticesSection'))document.getElementById('noticesSection').onclick=function(){localStorage.setItem('nirmala_notice_seen_'+String(currentStudent.name).toLowerCase(),String(Date.now()));};
+ renderStudentLessons();
+ renderStudentPDFs();
+ const nowSeen=Number(localStorage.getItem('nirmala_content_seen_'+String(currentStudent.name).toLowerCase())||0);
+ const lc=Object.values(lessons||{}).filter(l=>{const d=Date.parse(l.date||'');return !isNaN(d)&&d>nowSeen}).length;
+ const pc2=Object.values(tests||{}).filter(t=>{const d=Date.parse(t.date||'');return !isNaN(d)&&d>nowSeen}).length;
+ const lb=document.getElementById('lessonCountBadge');if(lb)lb.textContent=lc?' ('+lc+')':'';
+ const pb=document.getElementById('pdfCountBadge');if(pb)pb.textContent=pc2?' ('+pc2+')':'';
+ renderStudentPersonal();
+ const pc=document.getElementById('personalCountBadge'); if(pc){const n=unreadPersonalCount();pc.textContent=n?' ('+n+')':'';}
+ renderRecent();
+ renderProfile();
+ renderProgress();
+}
+function renderStudentLessons(){
+ if(!currentStudent)return;
+ const q=(document.getElementById('lessonSearch')?.value||'').trim().toLowerCase();
+ const course=String(currentStudent.course||'').toLowerCase();
+ const all=Object.entries(lessons).filter(([id,l])=>{
+   const okCourse=!l.course||String(l.course).toLowerCase()===course||l.allStudents===true;
+   const hay=(String(l.title||'')+' '+String(l.subject||'')+' '+String(l.content||'')).toLowerCase();
+   return okCourse && (!q||hay.includes(q));
+ });
+ const subjects=[...new Set(all.map(([id,l])=>l.subject||'સામાન્ય'))];
+ document.getElementById('lessonSubjects').innerHTML=subjects.map(s=>'<button onclick="filterLessonSubject('+JSON.stringify(s)+')">📖 '+esc(s)+'</button>').join('')||'<p class="muted">હાલ Lesson ઉપલબ્ધ નથી.</p>';
+ const active=window.lessonSubjectFilter||'';
+ const shown=active?all.filter(([id,l])=>(l.subject||'સામાન્ય')===active):all;
+ const v=getViewed();
+ document.getElementById('studentLessons').innerHTML=shown.reverse().map(([id,l])=>{
+   const fav=isFavorite('lessons',id),seen=!!(v.lessons&&v.lessons[id]);
+   let body='';
+   if(l.type==='photo') body='<img class="photo-preview" src="'+esc(l.content)+'" alt="Lesson">';
+   else if(l.type==='pdf'||l.type==='link'||l.type==='video') body='<a href="'+esc(l.content)+'" target="_blank" onclick="markViewed(\'lessons\',\''+id+'\')"><button>🔗 '+(l.type==='pdf'?'PDF ખોલો':l.type==='video'?'Video જુઓ':'Lesson ખોલો')+'</button></a>';
+   else body='<p>'+esc(l.content)+'</p>';
+   return '<div class="item"><button class="favorite-btn" onclick="toggleFavorite(\'lessons\',\''+id+'\')">'+(fav?'⭐':'☆')+'</button><h4>'+esc(l.title)+'</h4><span class="badge">'+esc(l.subject||'સામાન્ય')+'</span> '+(seen?'<span class="badge">✓ જોયું</span>':'')+'<br><small>'+esc(l.date||'')+'</small>'+body+'</div>';
+ }).join('')||'<p class="muted">આ શોધ/વિષય માટે Lesson નથી.</p>';
+}
+function filterLessonSubject(s){window.lessonSubjectFilter=s;renderStudentLessons();}
+function renderStudentPDFs(){
+ if(!currentStudent)return;
+ const q=(document.getElementById('pdfSearch')?.value||'').trim().toLowerCase();
+ const arr=Object.entries(tests).filter(([id,t])=>{
+   const hay=(String(t.title||'')+' '+String(t.subject||'')).toLowerCase();
+   return t.status!=='inactive' && (!q||hay.includes(q));
+ });
+ const subjects=[...new Set(arr.map(([id,t])=>t.subject||'સામાન્ય'))];
+ document.getElementById('testSubjects').innerHTML=subjects.map(s=>'<button onclick="chooseSubject('+JSON.stringify(s)+')">📖 '+esc(s)+'</button>').join('')||'<p class="muted">હાલ Test PDF ઉપલબ્ધ નથી.</p>';
+ if(window.chosenSubject && !subjects.includes(window.chosenSubject)){backToPdfSubjects();}
+}
+function chooseSubject(s){
+ window.chosenSubject=s;
+ document.getElementById('pdfStep2').classList.remove('hidden');
+ document.getElementById('pdfStep3').classList.add('hidden');
+ document.getElementById('chosenSubject').textContent='📖 પસંદ કરેલ વિષય: '+s;
+ document.getElementById('testResults').innerHTML='';
+}
+function backToPdfSubjects(){
+ window.chosenSubject='';
+ document.getElementById('pdfStep2').classList.add('hidden');
+ document.getElementById('pdfStep3').classList.add('hidden');
+}
+function backToPdfMarks(){
+ document.getElementById('pdfStep3').classList.add('hidden');
+}
+function showTests(m){
+ const q=(document.getElementById('pdfSearch')?.value||'').trim().toLowerCase();
+ const a=Object.entries(tests).filter(([id,t])=>{
+   const hay=(String(t.title||'')+' '+String(t.subject||'')).toLowerCase();
+   return String(t.subject||'')===String(window.chosenSubject||'')&&Number(t.totalMarks)===m&&t.status!=='inactive'&&(!q||hay.includes(q));
+ });
+ const v=getViewed();
+ document.getElementById('pdfStep3').classList.remove('hidden');
+ document.getElementById('testResults').innerHTML=a.reverse().map(([id,t])=>{
+   const fav=isFavorite('pdfs',id),seen=!!(v.pdfs&&v.pdfs[id]);
+   const safeId=String(id).replace(/'/g,'');
+   const safeUrl=esc(t.url||t.pdfUrl||'#');
+   const safeTitle=esc(t.title||'Paper');
+   const safeFile=esc(t.fileName||'PDF');
+   return `<div class="item">
+    <button class="favorite-btn" type="button" onclick="toggleFavorite('pdfs','${safeId}')">${fav?'⭐':'☆'}</button>
+    <div class="pdf-title">📄 ${safeTitle}</div>
+    <span class="badge">${m} માર્ક્સ</span> ${seen?'<span class="badge">✓ જોયું</span>':''}
+    <br><span class="pdf-file-name">${safeFile}</span><br>
+    <button type="button" style="margin-top:8px" onclick="markViewed('pdfs','${safeId}');openOfflineOrOnlinePDF('${safeId}')">📄 PDF ખોલો</button>
+    <button type="button" class="secondary" style="margin-top:8px" onclick="savePDFOffline('${safeId}')">📥 Offline Save</button>
+   </div>`;
+ }).join('')||`<p class="muted">${m} માર્ક્સની PDF ટેસ્ટ ઉપલબ્ધ નથી.</p>`;
+}
+function renderProgress(){
+ if(!currentStudent || !document.getElementById('studentProgress'))return;
+ const v=getViewed(), totalL=Object.keys(lessons).length, totalP=Object.keys(tests).length;
+ const seenL=Object.keys(v.lessons||{}).filter(id=>lessons[id]).length;
+ const seenP=Object.keys(v.pdfs||{}).filter(id=>tests[id]).length;
+ const total=totalL+totalP, seen=seenL+seenP, pct=total?Math.round(seen*100/total):0;
+ document.getElementById('studentProgress').innerHTML='<p><b>Lessons:</b> '+seenL+' / '+totalL+'</p><div class="progress-wrap"><div class="progress-bar" style="width:'+ (totalL?Math.round(seenL*100/totalL):0) +'%"></div></div><p><b>Test PDFs:</b> '+seenP+' / '+totalP+'</p><div class="progress-wrap"><div class="progress-bar" style="width:'+ (totalP?Math.round(seenP*100/totalP):0) +'%"></div></div><p><b>કુલ પ્રગતિ: '+pct+'%</b></p><div class="progress-wrap"><div class="progress-bar" style="width:'+pct+'%"></div></div>';
+ let ach='🎯 અભ્યાસ શરૂ કરો!';
+ if(pct>=100) ach='🏆 અભિનંદન! સંપૂર્ણ Study Progress પૂર્ણ!';
+ else if(pct>=75) ach='🥇 Excellent! 75%થી વધુ Progress.';
+ else if(pct>=50) ach='🥈 ખૂબ સારું! 50% Progress પૂર્ણ.';
+ else if(pct>=25) ach='🥉 સરસ શરૂઆત! 25% Progress પૂર્ણ.';
+ document.getElementById('achievementBox').innerHTML='<div class="item"><h3>'+ach+'</h3><p class="muted">તમારી Progress આ device પર સાચવાય છે.</p></div>';
+}
+
+installPWAHelpers(); registerOfflineWorker(); initFirebase();
+</script>
+
+<style id="nirmala-login-fix-css">
+#nsl-student-login,#nsl-teacher-login{
+ position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:999999;
+ display:none;align-items:center;justify-content:center;padding:18px;box-sizing:border-box;
+}
+#nsl-student-login.show,#nsl-teacher-login.show{display:flex!important}
+.nsl-box{width:min(420px,100%);background:#fff;border-radius:18px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.3);box-sizing:border-box}
+.nsl-box h2{margin:0 0 15px}.nsl-box input{width:100%;box-sizing:border-box;margin:7px 0;padding:13px;border:1px solid #ccd3df;border-radius:10px;font-size:16px}
+.nsl-row{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}
+.nsl-row button{min-height:46px;border:0;border-radius:10px;font-size:15px;cursor:pointer}
+.nsl-main{background:#173b72;color:white}.nsl-cancel{background:#eef1f5;color:#222}
+</style>
+
+<div id="nsl-student-login" aria-hidden="true">
+ <div class="nsl-box">
+  <h2>👨‍🎓 Student Login</h2>
+  <input id="nsl-student-name" type="text" placeholder="વિદ્યાર્થીનું નામ" autocomplete="username">
+  <input id="nsl-student-pass" type="password" placeholder="Password" autocomplete="current-password">
+  <div class="nsl-row">
+   <button type="button" class="nsl-main" id="nsl-student-submit">Login</button>
+   <button type="button" class="nsl-cancel" id="nsl-student-cancel">બંધ કરો</button>
+  </div>
+  <button type="button" id="nsl-forgot-password" style="width:100%;margin-top:10px;background:none;border:0;color:#173b72;font-size:14px">🔐 Password ભૂલી ગયા?</button>
+ </div>
+</div>
+
+<div id="nsl-teacher-login" aria-hidden="true">
+ <div class="nsl-box">
+  <h2>👨‍🏫 Teacher Login</h2>
+  <input id="nsl-teacher-id" type="text" placeholder="Teacher ID" autocomplete="username">
+  <input id="nsl-teacher-pass" type="password" placeholder="Password" autocomplete="current-password">
+  <div class="nsl-row">
+   <button type="button" class="nsl-main" id="nsl-teacher-submit">Login</button>
+   <button type="button" class="nsl-cancel" id="nsl-teacher-cancel">બંધ કરો</button>
+  </div>
+ </div>
+</div>
+
+<script id="nirmala-login-fix-js">
+(function(){
+ function byId(x){return document.getElementById(x)}
+ function show(id){
+   var e=byId(id); if(!e)return;
+   e.classList.add('show'); e.setAttribute('aria-hidden','false');
+   setTimeout(function(){var i=e.querySelector('input');if(i)i.focus()},80);
+ }
+ function hide(id){
+   var e=byId(id);if(!e)return;
+   e.classList.remove('show');e.setAttribute('aria-hidden','true');
+ }
+ window.nirmalaOpenStudentLogin=function(){show('nsl-student-login')};
+ window.nirmalaOpenTeacherLogin=function(){show('nsl-teacher-login')};
+
+ function teacherCreds(){
+   return {
+     id: localStorage.getItem('teacher_id') || 'teacher',
+     pass: localStorage.getItem('teacher_pass') || '1234'
+   };
+ }
+ function doTeacher(){
+   var id=(byId('nsl-teacher-id').value||'').trim();
+   var pass=byId('nsl-teacher-pass').value||'';
+   var c=teacherCreds();
+   if(id!==c.id || pass!==c.pass){alert('Teacher ID અથવા Password ખોટો છે.');return}
+   hide('nsl-teacher-login');
+   var sl=byId('studentLogin');if(sl)sl.classList.add('hidden');
+   var sh=byId('studentHome');if(sh){sh.classList.add('hidden');sh.style.display='none'}
+   var th=byId('teacherHome');
+   if(th){th.classList.remove('hidden');th.style.display='block'}
+   var hu=byId('headerUser');if(hu)hu.textContent='👨‍🏫 Teacher';
+   try{if(typeof teacherSection==='function')teacherSection('studentsSection')}catch(e){}
+   try{if(typeof renderTeacher==='function')renderTeacher()}catch(e){}
+ }
+ function doStudent(){
+   var name=(byId('nsl-student-name').value||'').trim().toLowerCase();
+   var pass=byId('nsl-student-pass').value||'';
+   var all=Object.values(window.students||{});
+   var s=all.find(function(x){
+     return String(x.name||'').trim().toLowerCase()===name && String(x.password||'')===pass;
+   });
+   if(!s){alert('વિદ્યાર્થીનું નામ અથવા Password ખોટો છે.');return}
+   window.currentStudent=s; if(!s.id){const found=Object.entries(students).find(([k,v])=>v===s);if(found)s.id=found[0];}
+   hide('nsl-student-login');
+   var th=byId('teacherHome');if(th){th.classList.add('hidden');th.style.display='none'}
+   var sh=byId('studentHome');
+   if(sh){sh.classList.remove('hidden');sh.style.display='block'}
+   var sl=byId('studentLogin');if(sl){sl.classList.add('hidden');sl.style.display='none'}
+   var hu=byId('headerUser');if(hu)hu.textContent='👨‍🎓 '+s.name;
+   try{if(typeof studentSection==='function')studentSection('noticesSection')}catch(e){}
+   try{if(typeof renderStudent==='function')renderStudent()}catch(e){}
+ }
+
+ function wire(){
+   var sb=byId('nsl-student-submit'),tb=byId('nsl-teacher-submit');
+   if(sb)sb.onclick=function(e){e.preventDefault();doStudent()};
+   if(tb)tb.onclick=function(e){e.preventDefault();doTeacher()};
+   var sc=byId('nsl-student-cancel'),tc=byId('nsl-teacher-cancel');
+   if(sc)sc.onclick=function(){hide('nsl-student-login')};
+   if(tc)tc.onclick=function(){hide('nsl-teacher-login')};
+   ['nsl-student-login','nsl-teacher-login'].forEach(function(id){
+     var e=byId(id);if(e)e.addEventListener('click',function(ev){if(ev.target===e)hide(id)});
+   });
+   document.addEventListener('keydown',function(e){
+     if(e.key==='Escape'){hide('nsl-student-login');hide('nsl-teacher-login')}
+     if(e.key==='Enter'){
+       if(byId('nsl-student-login').classList.contains('show'))doStudent();
+       if(byId('nsl-teacher-login').classList.contains('show'))doTeacher();
+     }
+   });
+
+   // Wire ALL existing login buttons/icons by text or known IDs.
+   document.querySelectorAll('button,a,[role="button"]').forEach(function(b){
+     var t=(b.textContent||'').replace(/\s+/g,' ').trim().toLowerCase();
+     var id=(b.id||'').toLowerCase();
+     if(id==='teacherbtn' || t.indexOf('teacher login')>=0 || t==='👨‍🏫'){
+       b.setAttribute('type','button');b.onclick=function(e){e.preventDefault();window.nirmalaOpenTeacherLogin()};
+     }else if(id==='studentloginbtn' || t.indexOf('student login')>=0 || t.indexOf('student login')>=0){
+       b.setAttribute('type','button');b.onclick=function(e){e.preventDefault();window.nirmalaOpenStudentLogin()};
+     }
+   });
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wire);else wire();
+})();
+</script>
+
+
+
+</div>
+
+
+
+<div id="nsl-forgot" aria-hidden="true">
+ <div class="nsl-box">
+  <h2>🔐 Password Reset</h2>
+  <input id="nsl-forgot-mobile" type="tel" inputmode="numeric" maxlength="10" placeholder="Registration વાળો મોબાઇલ નંબર">
+  <div id="nsl-forgot-recaptcha"></div>
+  <button type="button" class="nsl-main" id="nsl-forgot-send" style="width:100%;min-height:46px;border:0;border-radius:10px">📱 OTP મોકલો</button>
+  <div id="nsl-forgot-otp-area" style="display:none">
+   <input id="nsl-forgot-otp" type="tel" inputmode="numeric" maxlength="6" placeholder="OTP">
+   <input id="nsl-forgot-newpass" type="password" placeholder="નવો Password">
+   <button type="button" class="nsl-main" id="nsl-forgot-verify" style="width:100%;min-height:46px;border:0;border-radius:10px">✅ Verify & Change Password</button>
+  </div>
+  <button type="button" class="nsl-cancel" id="nsl-forgot-close" style="width:100%;margin-top:8px;min-height:42px;border:0;border-radius:10px">બંધ કરો</button>
+  <div id="nsl-forgot-msg" class="sync-status"></div>
+ </div>
+</div>
+
+<script>
+(function(){
+ let fr=null,fv=null;
+ function E(i){return document.getElementById(i)}
+ function openF(){E('nsl-forgot').classList.add('show');setup()}
+ function closeF(){E('nsl-forgot').classList.remove('show')}
+ function setup(){if(fv||!window.firebase||!firebase.auth)return;try{fv=new firebase.auth.RecaptchaVerifier('nsl-forgot-recaptcha',{size:'invisible'});fv.render().catch(()=>{})}catch(e){}}
+ async function send(){
+   const mobile=(E('nsl-forgot-mobile').value||'').replace(/\D/g,'');
+   if(mobile.length!==10){E('nsl-forgot-msg').textContent='10 અંકનો મોબાઇલ નંબર નાખો.';return}
+   if(!window.firebase||!firebase.auth||!window.firebaseConfig||!firebaseConfig.apiKey){E('nsl-forgot-msg').textContent='Firebase Phone Authentication ચાલુ કરો.';return}
+   try{setup();fr=await firebase.auth().signInWithPhoneNumber('+91'+mobile,fv);E('nsl-forgot-otp-area').style.display='block';E('nsl-forgot-msg').textContent='✅ OTP મોકલાયો.'}
+   catch(e){console.error(e);E('nsl-forgot-msg').textContent='❌ OTP મોકલી શકાયો નથી.'}
+ }
+ async function verify(){
+   const mobile=(E('nsl-forgot-mobile').value||'').replace(/\D/g,'');
+   const otp=E('nsl-forgot-otp').value.trim(),pass=E('nsl-forgot-newpass').value;
+   if(!fr||otp.length!==6||pass.length<4){alert('OTP અને ઓછામાં ઓછો 4 અક્ષરનો નવો Password નાખો.');return}
+   try{
+    const result=await fr.confirm(otp),uid=result.user.uid;
+    const pair=Object.entries(students||{}).find(([id,s])=>String(s.mobile||'').replace(/\D/g,'')===mobile || s.uid===uid);
+    if(!pair){alert('આ મોબાઇલથી કોઈ Student Profile મળ્યું નથી.');return}
+    const sid=pair[0],old=pair[1];await dataSet('students',sid,{...old,password:pass,uid});
+    alert('✅ Password બદલાઈ ગયો. હવે Login કરો.');closeF();
+   }catch(e){console.error(e);E('nsl-forgot-msg').textContent='❌ OTP ખોટો છે અથવા Reset નિષ્ફળ થયું.'}
+ }
+ document.addEventListener('DOMContentLoaded',()=>{
+  E('nsl-forgot-password')?.addEventListener('click',openF);
+  E('nsl-forgot-close')?.addEventListener('click',closeF);
+  E('nsl-forgot-send')?.addEventListener('click',send);
+  E('nsl-forgot-verify')?.addEventListener('click',verify);
+ });
+})();
+</script>
+
+<script id="teacher-reset-guard">
+(function(){
+ function hideTeacherReset(){
+   var f=document.getElementById('nsl-forgot');
+   var th=document.getElementById('teacherHome');
+   if(f && th && !th.classList.contains('hidden')) {
+     f.classList.remove('show');
+     f.style.display='none';
+   }
+ }
+ document.addEventListener('DOMContentLoaded',hideTeacherReset);
+ window.addEventListener('load',hideTeacherReset);
+})();
+</script>
+</body></html>
