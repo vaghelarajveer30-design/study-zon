@@ -1508,4 +1508,109 @@ installPWAHelpers(); registerOfflineWorker(); initFirebase();
  window.addEventListener('load',hideTeacherReset);
 })();
 </script>
+
+<script id="nirmala-fingerprint-fixed">
+(function(){
+  'use strict';
+  const KEY_ID='nirmala_teacher_biometric_credential';
+  const KEY_USER='nirmala_teacher_biometric_user';
+  const KEY_VER='nirmala_teacher_biometric_v2';
+  function el(id){return document.getElementById(id)}
+  function msg(t,ok){
+    ['fingerprintMsg','nsl-teacher-bio-msg'].forEach(function(id){
+      var e=el(id); if(e){e.textContent=t; e.style.color=ok?'#16803c':'#b42318';}
+    });
+  }
+  function b64url(bytes){
+    var s=''; for(var i=0;i<bytes.length;i++) s+=String.fromCharCode(bytes[i]);
+    return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  }
+  function randomBytes(n){var a=new Uint8Array(n); crypto.getRandomValues(a); return a;}
+  function base64ToBytes(str){
+    str=str.replace(/-/g,'+').replace(/_/g,'/');
+    while(str.length%4) str+='=';
+    var bin=atob(str), a=new Uint8Array(bin.length);
+    for(var i=0;i<bin.length;i++) a[i]=bin.charCodeAt(i);
+    return a;
+  }
+  function isHttps(){return window.isSecureContext && (location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1')}
+  async function supported(){
+    if(!window.PublicKeyCredential || !navigator.credentials) return false;
+    try{
+      if(PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable){
+        return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+      }
+      return true;
+    }catch(e){return false;}
+  }
+  function friendly(e){
+    if(!e) return 'Fingerprint setup/login થઈ શક્યું નથી.';
+    var n=e.name||'', m=e.message||'';
+    if(n==='NotAllowedError') return 'Fingerprint/biometric prompt બંધ થયું, સમય પૂરો થયો અથવા deviceમાં biometric lock સેટ નથી.';
+    if(n==='SecurityError') return 'આ પેજ HTTPS પર ખોલવું જરૂરી છે. GitHub Pagesની linkથી app ખોલો.';
+    if(n==='InvalidStateError') return 'આ deviceમાં fingerprint પહેલેથી સેટ છે. પહેલા Remove કરીને ફરી Setup કરો.';
+    if(n==='NotSupportedError') return 'આ browser/deviceમાં supported biometric login ઉપલબ્ધ નથી.';
+    return 'Fingerprint error: '+(m||n);
+  }
+  function loginSuccess(){
+    var m=el('nsl-teacher-login'); if(m){m.classList.remove('show');m.setAttribute('aria-hidden','true');}
+    var sl=el('studentLogin'); if(sl){sl.classList.add('hidden');sl.style.display='none';}
+    var sh=el('studentHome'); if(sh){sh.classList.add('hidden');sh.style.display='none';}
+    var th=el('teacherHome'); if(th){th.classList.remove('hidden');th.style.display='block';}
+    var hu=el('headerUser'); if(hu) hu.textContent='👨‍🏫 Teacher';
+    try{if(typeof teacherSection==='function')teacherSection('studentsSection')}catch(e){}
+    try{if(typeof renderTeacher==='function')renderTeacher()}catch(e){}
+  }
+  window.setupTeacherFingerprint=async function(){
+    try{
+      if(!isHttps()){msg('❌ Fingerprint માટે app HTTPS પર ખોલો (GitHub Pages link).',false);return;}
+      if(!(await supported())){msg('❌ આ device/browserમાં supported fingerprint/biometric login ઉપલબ્ધ નથી.',false);return;}
+      msg('📱 હવે Android fingerprint/biometric prompt આવે તેની રાહ જુઓ...',true);
+      var uid=localStorage.getItem(KEY_USER);
+      if(!uid){uid=b64url(randomBytes(32));localStorage.setItem(KEY_USER,uid);}
+      var cred=await navigator.credentials.create({publicKey:{
+        challenge:randomBytes(32),
+        rp:{name:'NIRMLA STUDY ZON'},
+        user:{id:base64ToBytes(uid),name:'teacher',displayName:'NIRMLA STUDY ZON Teacher'},
+        pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+        authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required',residentKey:'preferred'},
+        timeout:60000,
+        attestation:'none'
+      }});
+      if(!cred) throw new Error('Credential create returned empty');
+      localStorage.setItem(KEY_ID,cred.id);
+      localStorage.setItem(KEY_VER,'2');
+      msg('✅ Fingerprint/biometric Setup સફળ થયું. હવે Teacher Loginમાં Fingerprint Login દબાવો.',true);
+    }catch(e){
+      console.error('Fingerprint setup',e);
+      msg('❌ '+friendly(e),false);
+    }
+  };
+  window.loginTeacherFingerprint=async function(){
+    try{
+      if(!isHttps()){msg('❌ Fingerprint માટે app HTTPS પર ખોલો (GitHub Pages link).',false);return;}
+      if(!(await supported())){msg('❌ આ device/browserમાં supported fingerprint/biometric login ઉપલબ્ધ નથી.',false);return;}
+      var cid=localStorage.getItem(KEY_ID);
+      if(!cid){msg('ℹ️ પહેલા Teacher Password Login કરો અને Settings → Fingerprint Setup કરો.',false);return;}
+      msg('👆 Fingerprint/biometric verify કરો...',true);
+      var cred=await navigator.credentials.get({publicKey:{
+        challenge:randomBytes(32),
+        allowCredentials:[{type:'public-key',id:base64ToBytes(cid)}],
+        userVerification:'required',
+        timeout:60000
+      }});
+      if(!cred) throw new Error('Credential get returned empty');
+      msg('✅ Biometric verification સફળ.',true);
+      loginSuccess();
+    }catch(e){
+      console.error('Fingerprint login',e);
+      msg('❌ '+friendly(e),false);
+    }
+  };
+  window.removeTeacherFingerprint=function(){
+    localStorage.removeItem(KEY_ID);localStorage.removeItem(KEY_USER);localStorage.removeItem(KEY_VER);
+    msg('🗑️ Fingerprint Login આ deviceમાંથી remove થયું.',true);
+  };
+})();
+</script>
 </body></html>
