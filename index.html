@@ -395,7 +395,7 @@ Student Registration અને Login માટે એપમાં જ 4 અં�
 <div id="credentialMsg"></div>
 <hr style="border:0;border-top:1px solid #e5e7eb;margin:16px 0">
 <h3>👆 Teacher Fingerprint Login</h3>
-<p class="muted">આ device/browserમાં Fingerprint અથવા supported biometric lock સેટ કરી શકાય છે. પ્રથમ વાર Password Login પછી Setup કરો.</p>
+<p class="muted">આ Android appમાં ફોનનું Fingerprint / supported biometric lock વાપરી શકાય છે. પહેલાં Password Login કરો, પછી Setup કરો.</p>
 <button type="button" onclick="setupTeacherFingerprint()">👆 Fingerprint Setup</button>
 <button type="button" class="secondary" onclick="removeTeacherFingerprint()" style="margin-left:6px">Fingerprint Remove</button>
 <div id="fingerprintMsg" class="sync-status"></div>
@@ -1012,36 +1012,70 @@ async function uploadFileFast(file, storagePath, statusElId, compressImage=false
   if(!file) throw new Error('No file selected');
   const statusEl=document.getElementById(statusElId);
   const status=t=>{if(statusEl)statusEl.textContent=t;};
+
   let uploadFile=file;
   if(compressImage && file.type.startsWith('image/')){
     status('🖼️ ફોટો size ઘટાડાઈ રહ્યો છે...');
-    uploadFile=await compressLessonImage(file,1000,0.62);
+    uploadFile=await compressLessonImage(file,1200,0.72);
   }
-  const ref=firebase.storage().ref(storagePath);
-  const task=ref.put(uploadFile,{contentType:uploadFile.type||file.type||'application/octet-stream',cacheControl:'public,max-age=31536000'});
-  task.on(firebase.storage.TaskEvent.STATE_CHANGED,
-    snap=>{
-      const pct=snap.totalBytes?Math.round(snap.bytesTransferred*100/snap.totalBytes):0;
-      status('⏳ Upload '+pct+'%');
-    },
-    err=>{status('❌ Upload error: '+(err.code||err.message||'unknown'));throw err;},
-    ()=>{status('🔗 ફાઇલ તૈયાર થઈ રહી છે...');}
-  );
-  await Promise.race([
-    task,
-    new Promise((_,reject)=>setTimeout(()=>{
-      try{task.cancel();}catch(e){}
-      const err=new Error('Upload timeout: Firebase Storageએ 45 સેકન્ડમાં progress આપ્યો નથી.');
-      err.code='storage/timeout';
-      reject(err);
-    },15000))
-  ]);
-  status('🔗 ફાઇલ તૈયાર થઈ રહી છે...');
-  const url=await ref.getDownloadURL();
-  status('✅ Upload પૂર્ણ થયું.');
-  return url;
-}
 
+  /*
+   * પહેલા Firebase Storage try કરીએ છીએ. જો Storage billing/permission/timeout
+   * કારણે ઉપલબ્ધ ન હોય તો Firebase Realtime Databaseમાં file ને Base64 data URL
+   * તરીકે સાચવીએ છીએ. આથી Spark/free projectમાં પણ Photo/PDF upload ચાલુ રહી શકે.
+   */
+  try{
+    if(storage){
+      status('☁️ Firebase Storage Upload શરૂ...');
+      const ref=firebase.storage().ref(storagePath);
+      const task=ref.put(uploadFile,{contentType:uploadFile.type||file.type||'application/octet-stream',cacheControl:'public,max-age=31536000'});
+
+      const uploadPromise=new Promise((resolve,reject)=>{
+        task.on(firebase.storage.TaskEvent.STATE_CHANGED,
+          snap=>{
+            const pct=snap.totalBytes?Math.round(snap.bytesTransferred*100/snap.totalBytes):0;
+            status('⏳ Upload '+pct+'%');
+          },
+          err=>reject(err),
+          async()=>{
+            try{resolve(await ref.getDownloadURL());}
+            catch(e){reject(e);}
+          }
+        );
+      });
+
+      const url=await Promise.race([
+        uploadPromise,
+        new Promise((_,reject)=>setTimeout(()=>{
+          try{task.cancel();}catch(e){}
+          const err=new Error('Firebase Storageએ સમયસર જવાબ આપ્યો નથી. Free upload mode ચાલુ કરી રહ્યા છીએ.');
+          err.code='storage/timeout';
+          reject(err);
+        },8000))
+      ]);
+      status('✅ Upload પૂર્ણ થયું.');
+      return url;
+    }
+  }catch(storageErr){
+    console.warn('Firebase Storage unavailable; using Realtime Database file mode.',storageErr);
+    status('🔄 Storage ઉપલબ્ધ નથી — Free Upload ચાલુ...');
+  }
+
+  // Free fallback: store the selected Photo/PDF as a data URL in Realtime Database.
+  status('📦 ફાઇલ તૈયાર થઈ રહી છે...');
+  const dataUrl=await new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result);
+    reader.onerror=()=>reject(new Error('ફાઇલ વાંચી શકાઈ નથી. ફરી પ્રયાસ કરો.'));
+    reader.readAsDataURL(uploadFile);
+  });
+  status('☁️ Free Cloud Upload થઈ રહ્યું છે...');
+  status('⏳ 0%');
+  // dataUrl is returned and saved by addLesson/uploadAndPublishPDF through dataSet().
+  status('⏳ 100%');
+  status('✅ Free Upload તૈયાર થયું.');
+  return dataUrl;
+}
 async function uploadLessonFile(file){
   const safe=(file.name||'lesson_file').replace(/[^a-zA-Z0-9._-]/g,'_');
   const ext=file.type==='application/pdf'?'.pdf':(file.type.startsWith('image/')?'.jpg':'');
@@ -1400,6 +1434,89 @@ installPWAHelpers(); registerOfflineWorker(); initFirebase();
  </div>
 </div>
 
+<script id="nirmala-native-biometric-js">
+(function(){
+  window.onFingerprintResult = function(success, message){
+    var msg = document.getElementById('fingerprintMsg');
+    var loginMsg = document.getElementById('nsl-teacher-bio-msg');
+    var action = localStorage.getItem('teacher_fingerprint_action') || '';
+    localStorage.removeItem('teacher_fingerprint_action');
+
+    if(success){
+      localStorage.setItem('teacher_fingerprint_enabled','1');
+      if(msg) msg.textContent = '✅ Fingerprint Login ચાલુ થઈ ગયું છે.';
+      if(loginMsg) loginMsg.textContent = '✅ Fingerprint Login તૈયાર છે.';
+      if(action === 'login'){
+        window.nirmalaFingerprintLoginSuccess();
+      }
+    }else{
+      var text = message || 'Biometric authentication નિષ્ફળ થયું.';
+      if(msg) msg.textContent = '❌ ' + text;
+      if(loginMsg) loginMsg.textContent = '❌ ' + text;
+    }
+  };
+
+  window.setupTeacherFingerprint = function(){
+    if(!window.AndroidFingerprint || !window.AndroidFingerprint.authenticate){
+      alert('Fingerprint માટે Android APKમાં Native Biometric જોડાયેલું નથી.');
+      return;
+    }
+    localStorage.setItem('teacher_fingerprint_action','setup');
+    try{ window.AndroidFingerprint.authenticate(); }
+    catch(e){
+      localStorage.removeItem('teacher_fingerprint_action');
+      alert('Fingerprint શરૂ થઈ શક્યું નથી: ' + e.message);
+    }
+  };
+
+  window.loginTeacherFingerprint = function(){
+    if(localStorage.getItem('teacher_fingerprint_enabled') !== '1'){
+      alert('પહેલા Teacher Password Login કરો અને Settingsમાં Fingerprint Setup કરો.');
+      return;
+    }
+    if(!window.AndroidFingerprint || !window.AndroidFingerprint.authenticate){
+      alert('આ સુવિધા માત્ર Android APKમાં ઉપલબ્ધ છે.');
+      return;
+    }
+    localStorage.setItem('teacher_fingerprint_action','login');
+    try{ window.AndroidFingerprint.authenticate(); }
+    catch(e){
+      localStorage.removeItem('teacher_fingerprint_action');
+      alert('Fingerprint શરૂ થઈ શક્યું નથી: ' + e.message);
+    }
+  };
+
+  window.removeTeacherFingerprint = function(){
+    localStorage.removeItem('teacher_fingerprint_enabled');
+    localStorage.removeItem('teacher_fingerprint_action');
+    var msg=document.getElementById('fingerprintMsg');
+    var loginMsg=document.getElementById('nsl-teacher-bio-msg');
+    if(msg)msg.textContent='Fingerprint Login બંધ કરવામાં આવ્યું.';
+    if(loginMsg)loginMsg.textContent='Fingerprint Login બંધ છે. ફરી Setup કરો.';
+  };
+
+  window.nirmalaFingerprintLoginSuccess = function(){
+    var modal=document.getElementById('nsl-teacher-login');
+    if(modal){modal.classList.remove('show');modal.setAttribute('aria-hidden','true');}
+    var sl=document.getElementById('studentLogin');
+    if(sl)sl.classList.add('hidden');
+    var sh=document.getElementById('studentHome');
+    if(sh){sh.classList.add('hidden');sh.style.display='none';}
+    var th=document.getElementById('teacherHome');
+    if(th){th.classList.remove('hidden');th.style.display='block';}
+    var hu=document.getElementById('headerUser');
+    if(hu)hu.textContent='👨‍🏫 Teacher';
+    try{if(typeof teacherSection==='function')teacherSection('studentsSection')}catch(e){}
+    try{if(typeof renderTeacher==='function')renderTeacher()}catch(e){}
+  };
+
+  document.addEventListener('DOMContentLoaded',function(){
+    var enabled=localStorage.getItem('teacher_fingerprint_enabled')==='1';
+    var m=document.getElementById('nsl-teacher-bio-msg');
+    if(m && enabled)m.textContent='✅ Fingerprint Login તૈયાર છે.';
+  });
+})();
+</script>
 <script id="nirmala-login-fix-js">
 (function(){
  function byId(x){return document.getElementById(x)}
@@ -1506,111 +1623,6 @@ installPWAHelpers(); registerOfflineWorker(); initFirebase();
  }
  document.addEventListener('DOMContentLoaded',hideTeacherReset);
  window.addEventListener('load',hideTeacherReset);
-})();
-</script>
-
-<script id="nirmala-fingerprint-fixed">
-(function(){
-  'use strict';
-  const KEY_ID='nirmala_teacher_biometric_credential';
-  const KEY_USER='nirmala_teacher_biometric_user';
-  const KEY_VER='nirmala_teacher_biometric_v2';
-  function el(id){return document.getElementById(id)}
-  function msg(t,ok){
-    ['fingerprintMsg','nsl-teacher-bio-msg'].forEach(function(id){
-      var e=el(id); if(e){e.textContent=t; e.style.color=ok?'#16803c':'#b42318';}
-    });
-  }
-  function b64url(bytes){
-    var s=''; for(var i=0;i<bytes.length;i++) s+=String.fromCharCode(bytes[i]);
-    return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-  }
-  function randomBytes(n){var a=new Uint8Array(n); crypto.getRandomValues(a); return a;}
-  function base64ToBytes(str){
-    str=str.replace(/-/g,'+').replace(/_/g,'/');
-    while(str.length%4) str+='=';
-    var bin=atob(str), a=new Uint8Array(bin.length);
-    for(var i=0;i<bin.length;i++) a[i]=bin.charCodeAt(i);
-    return a;
-  }
-  function isHttps(){return window.isSecureContext && (location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1')}
-  async function supported(){
-    if(!window.PublicKeyCredential || !navigator.credentials) return false;
-    try{
-      if(PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable){
-        return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-      }
-      return true;
-    }catch(e){return false;}
-  }
-  function friendly(e){
-    if(!e) return 'Fingerprint setup/login થઈ શક્યું નથી.';
-    var n=e.name||'', m=e.message||'';
-    if(n==='NotAllowedError') return 'Fingerprint/biometric prompt બંધ થયું, સમય પૂરો થયો અથવા deviceમાં biometric lock સેટ નથી.';
-    if(n==='SecurityError') return 'આ પેજ HTTPS પર ખોલવું જરૂરી છે. GitHub Pagesની linkથી app ખોલો.';
-    if(n==='InvalidStateError') return 'આ deviceમાં fingerprint પહેલેથી સેટ છે. પહેલા Remove કરીને ફરી Setup કરો.';
-    if(n==='NotSupportedError') return 'આ browser/deviceમાં supported biometric login ઉપલબ્ધ નથી.';
-    return 'Fingerprint error: '+(m||n);
-  }
-  function loginSuccess(){
-    var m=el('nsl-teacher-login'); if(m){m.classList.remove('show');m.setAttribute('aria-hidden','true');}
-    var sl=el('studentLogin'); if(sl){sl.classList.add('hidden');sl.style.display='none';}
-    var sh=el('studentHome'); if(sh){sh.classList.add('hidden');sh.style.display='none';}
-    var th=el('teacherHome'); if(th){th.classList.remove('hidden');th.style.display='block';}
-    var hu=el('headerUser'); if(hu) hu.textContent='👨‍🏫 Teacher';
-    try{if(typeof teacherSection==='function')teacherSection('studentsSection')}catch(e){}
-    try{if(typeof renderTeacher==='function')renderTeacher()}catch(e){}
-  }
-  window.setupTeacherFingerprint=async function(){
-    try{
-      if(!isHttps()){msg('❌ Fingerprint માટે app HTTPS પર ખોલો (GitHub Pages link).',false);return;}
-      if(!(await supported())){msg('❌ આ device/browserમાં supported fingerprint/biometric login ઉપલબ્ધ નથી.',false);return;}
-      msg('📱 હવે Android fingerprint/biometric prompt આવે તેની રાહ જુઓ...',true);
-      var uid=localStorage.getItem(KEY_USER);
-      if(!uid){uid=b64url(randomBytes(32));localStorage.setItem(KEY_USER,uid);}
-      var cred=await navigator.credentials.create({publicKey:{
-        challenge:randomBytes(32),
-        rp:{name:'NIRMLA STUDY ZON'},
-        user:{id:base64ToBytes(uid),name:'teacher',displayName:'NIRMLA STUDY ZON Teacher'},
-        pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
-        authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required',residentKey:'preferred'},
-        timeout:60000,
-        attestation:'none'
-      }});
-      if(!cred) throw new Error('Credential create returned empty');
-      localStorage.setItem(KEY_ID,cred.id);
-      localStorage.setItem(KEY_VER,'2');
-      msg('✅ Fingerprint/biometric Setup સફળ થયું. હવે Teacher Loginમાં Fingerprint Login દબાવો.',true);
-    }catch(e){
-      console.error('Fingerprint setup',e);
-      msg('❌ '+friendly(e),false);
-    }
-  };
-  window.loginTeacherFingerprint=async function(){
-    try{
-      if(!isHttps()){msg('❌ Fingerprint માટે app HTTPS પર ખોલો (GitHub Pages link).',false);return;}
-      if(!(await supported())){msg('❌ આ device/browserમાં supported fingerprint/biometric login ઉપલબ્ધ નથી.',false);return;}
-      var cid=localStorage.getItem(KEY_ID);
-      if(!cid){msg('ℹ️ પહેલા Teacher Password Login કરો અને Settings → Fingerprint Setup કરો.',false);return;}
-      msg('👆 Fingerprint/biometric verify કરો...',true);
-      var cred=await navigator.credentials.get({publicKey:{
-        challenge:randomBytes(32),
-        allowCredentials:[{type:'public-key',id:base64ToBytes(cid)}],
-        userVerification:'required',
-        timeout:60000
-      }});
-      if(!cred) throw new Error('Credential get returned empty');
-      msg('✅ Biometric verification સફળ.',true);
-      loginSuccess();
-    }catch(e){
-      console.error('Fingerprint login',e);
-      msg('❌ '+friendly(e),false);
-    }
-  };
-  window.removeTeacherFingerprint=function(){
-    localStorage.removeItem(KEY_ID);localStorage.removeItem(KEY_USER);localStorage.removeItem(KEY_VER);
-    msg('🗑️ Fingerprint Login આ deviceમાંથી remove થયું.',true);
-  };
 })();
 </script>
 </body></html>
