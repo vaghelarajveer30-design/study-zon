@@ -314,6 +314,10 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #ccd5e2;border-ra
 <option value="photo">Photo Upload</option>
 <option value="pdf">PDF Upload</option>
 </select>
+<select id="lessonCategory">
+<option value="lesson">📚 સામાન્ય Lesson</option>
+<option value="swadhyay">📝 સ્વાધ્યાય</option>
+</select>
 <textarea id="lessonContent" placeholder="Lesson content"></textarea>
 <div id="lessonFileWrap" style="display:none;margin-top:10px">
 <label style="display:block;margin-bottom:6px;font-weight:600">📁 Photo અથવા PDF પસંદ કરો</label>
@@ -321,6 +325,10 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #ccd5e2;border-ra
 <div id="lessonUploadStatus" class="muted" style="margin-top:8px">કોઈ ફાઇલ પસંદ કરેલ નથી.</div>
 </div>
 <label><input type="checkbox" id="lessonAll" checked> આ Courseના બધા વિદ્યાર્થીઓ માટે</label><br>
+<label style="display:block;margin-top:10px"><input type="checkbox" id="lessonHidden"> 👁️ હમણાં વિદ્યાર્થીઓથી Hide રાખો</label>
+<label style="display:block;margin-top:8px">⏰ વિદ્યાર્થીઓને દેખાવાનો સમય (Optional)</label>
+<input id="lessonReleaseAt" type="datetime-local" style="width:100%;padding:12px;border:1px solid #ccd3df;border-radius:10px;box-sizing:border-box;margin-top:5px">
+<div class="muted" style="margin-top:5px">Hide ચાલુ હોય અને સમય આપ્યો હોય તો તે સમય આવ્યા પછી Lesson આપમેળે દેખાશે.</div>
 <button onclick="addLesson()">📚 Lesson Publish</button>
 <div id="teacherLessons"></div>
 </div>
@@ -625,6 +633,35 @@ function dataRemove(key,id){
  const d=localData(key); delete d[id]; saveLocalData(key,d); window[key]=d; if(key==='personalMessages')personalMessages=d; if(key==='questionBanks')questionBanks=d; if(key==='students')students=d; if(key==='notices')notices=d; if(key==='lessons')lessons=d; if(key==='tests')tests=d; if(currentStudent)renderStudent(); renderTeacher(); cacheCurrentData();
  return Promise.resolve();
 }
+
+// Teacher can permanently remove any item from the Teacher Panel.
+// For Lesson/Test/Personal files, also try to remove the linked Firebase Storage file.
+async function deleteTeacherItem(key,id){
+ const labels={students:'વિદ્યાર્થી',notices:'Notice',lessons:'Lesson',questionBanks:'પ્રશ્નો',tests:'Test PDF',personalMessages:'Personal Message'};
+ const label=labels[key]||'આ વસ્તુ';
+ if(!confirm('શું તમે '+label+' ને કાયમ માટે Delete કરવા માંગો છો?\n\nઆ ક્રિયા પાછી Undo કરી શકાશે નહીં.')) return;
+ try{
+   let item=null;
+   if(cloudMode && db){
+     const snap=await db.ref(key+'/'+id).once('value');
+     item=snap.val();
+   }else{
+     item=(window[key]||{})[id]||null;
+   }
+   await dataRemove(key,id);
+   // Remove the associated Storage object when the record contains a Firebase Storage URL.
+   const fileUrl=item?.content || item?.url || item?.pdfUrl || item?.fileUrl || '';
+   if(storage && cloudMode && /^https?:/i.test(String(fileUrl)) && String(fileUrl).includes('firebasestorage.googleapis.com')){
+     try{ await storage.refFromURL(fileUrl).delete(); }catch(storageErr){ console.warn('Storage file could not be deleted:',storageErr); }
+   }
+   alert('✅ '+label+' Delete થઈ ગયું.');
+   if(typeof renderTeacher==='function')renderTeacher();
+   if(typeof renderStudent==='function' && currentStudent)renderStudent();
+ }catch(e){
+   console.error(e);
+   alert('❌ Delete થઈ શક્યું નથી.\n'+(e?.message||e));
+ }
+}
 function viewedKey(){return currentStudent ? 'nirmala_viewed_'+String(currentStudent.name).toLowerCase() : 'nirmala_viewed_guest';}
 function getViewed(){try{return JSON.parse(localStorage.getItem(viewedKey())||'{"lessons":{},"pdfs":{}}')}catch(e){return {lessons:{},pdfs:{}}}}
 function saveViewed(v){localStorage.setItem(viewedKey(),JSON.stringify(v))}
@@ -925,7 +962,7 @@ function renderTeacherStudents(){
  const all=Object.entries(students||{}).reverse();
  const arr=teacherStudentView==='registered'?all.filter(([id,s])=>String(s.source||'registration')!=='teacher'):all;
  const total=document.getElementById('studentTotalBadge');if(total)total.textContent='કુલ: '+all.length;
- box.innerHTML=arr.map(([id,s])=>{const type=String(s.source||'registration')==='teacher'?'👨‍🏫 Teacher Added':'🟢 Registered';return `<div class="item"><b>👨‍🎓 ${esc(s.name||'')}</b> <span class="badge">${type}</span><br>👨 ${esc(s.fatherName||'')}<br>🏫 ${esc(s.schoolName||'')}<br>🏠 ${esc(s.address||'')}<br>📱 ${esc(s.mobile||'')}<br><button class="danger" type="button" onclick="dataRemove('students','${esc(id)}')">Delete</button></div>`;}).join('')||'<p class="muted">આ વિભાગમાં કોઈ Student નથી.</p>';
+ box.innerHTML=arr.map(([id,s])=>{const type=String(s.source||'registration')==='teacher'?'👨‍🏫 Teacher Added':'🟢 Registered';return `<div class="item"><b>👨‍🎓 ${esc(s.name||'')}</b> <span class="badge">${type}</span><br>👨 ${esc(s.fatherName||'')}<br>🏫 ${esc(s.schoolName||'')}<br>🏠 ${esc(s.address||'')}<br>📱 ${esc(s.mobile||'')}<br><button class="danger" type="button" onclick="deleteTeacherItem('students','${esc(id)}')">Delete</button></div>`;}).join('')||'<p class="muted">આ વિભાગમાં કોઈ Student નથી.</p>';
 }
 
 async function addStudent(){
@@ -1107,6 +1144,9 @@ async function addLesson(){
  const subject=document.getElementById('lessonSubject').value.trim();
  const course=document.getElementById('lessonCourse').value.trim();
  const type=document.getElementById('lessonType').value;
+ const category=document.getElementById('lessonCategory')?.value||'lesson';
+ const hidden=!!document.getElementById('lessonHidden')?.checked;
+ const releaseInput=document.getElementById('lessonReleaseAt')?.value||'';
  let content=document.getElementById('lessonContent').value.trim();
  const file=document.getElementById('lessonFile')?.files?.[0]||null;
  if(!title||!subject)return alert('Lesson Title અને વિષય નાખો.');
@@ -1123,21 +1163,57 @@ async function addLesson(){
      if(!cloudMode||!storage)throw new Error('Firebase Storage ઉપલબ્ધ નથી.');
      content=await uploadLessonFile(file);
    }
-   await dataSet('lessons',id,{title,subject,course,type,content,fileName:file?file.name:'',allStudents:document.getElementById('lessonAll').checked,date:new Date().toLocaleString('gu-IN')});
+   await dataSet('lessons',id,{title,subject,course,type,category,content,fileName:file?file.name:'',allStudents:document.getElementById('lessonAll').checked,hidden,releaseAt:releaseInput?new Date(releaseInput).getTime():0,date:new Date().toLocaleString('gu-IN')});
    document.getElementById('lessonTitle').value='';
    document.getElementById('lessonSubject').value='';
    document.getElementById('lessonContent').value='';
+   document.getElementById('lessonCourse').value='';
    if(document.getElementById('lessonFile'))document.getElementById('lessonFile').value='';
+   if(document.getElementById('lessonHidden'))document.getElementById('lessonHidden').checked=false;
+   if(document.getElementById('lessonReleaseAt'))document.getElementById('lessonReleaseAt').value='';
    if(status)status.textContent='કોઈ ફાઇલ પસંદ કરેલ નથી.';
    document.getElementById('lessonType').value='text';
+   if(document.getElementById('lessonCategory'))document.getElementById('lessonCategory').value='lesson';
    toggleLessonUpload();
-   alert('✅ Lesson Publish થઈ ગયું.');
+   alert(hidden?'✅ Lesson Save થયું. હાલ વિદ્યાર્થીઓથી Hide છે.':'✅ Lesson Publish થઈ ગયું.');
  }catch(e){
    console.error(e);
    if(status)status.textContent='❌ Upload નિષ્ફળ ગયું.';
    const code=e?.code?(' ['+e.code+']'):'';
    alert('❌ Lesson Upload/Publish થઈ શક્યું નથી.'+code+'\n'+(e?.message||'Firebase Storage Rules અને Internet ચેક કરો.'));
  }
+}
+
+async function toggleLessonVisibility(id){
+ const item=(window.lessons||{})[id];
+ if(!item)return;
+ const makeVisible=!!item.hidden;
+ try{
+   await dataSet('lessons',id,{...item,hidden:!makeVisible,releaseAt:makeVisible?0:(item.releaseAt||0)});
+   alert(makeVisible?'✅ Lesson વિદ્યાર્થીઓ માટે Show કરી દીધું.':'✅ Lesson વિદ્યાર્થીઓથી Hide કરી દીધું.');
+   renderTeacher();
+   if(currentStudent)renderStudent();
+ }catch(e){alert('❌ Lessonનું visibility બદલાઈ શક્યું નથી.\n'+(e?.message||e));}
+}
+
+async function setLessonRelease(id){
+ const item=(window.lessons||{})[id];
+ if(!item)return;
+ const value=prompt('વિદ્યાર્થીને Lesson કયા સમયે દેખાડવો?\n\nઉદાહરણ: 15/09/2026 10:30\n\nખાલી રાખશો તો સમય આધારિત Publish નહીં થાય.','');
+ if(value===null)return;
+ let ts=0;
+ if(value.trim()){
+   const m=value.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})$/);
+   if(!m)return alert('સમય આ રીતે લખો: 15/09/2026 10:30');
+   ts=new Date(Number(m[3]),Number(m[2])-1,Number(m[1]),Number(m[4]),Number(m[5])).getTime();
+   if(!isFinite(ts))return alert('સાચી તારીખ/સમય નાખો.');
+ }
+ try{
+   await dataSet('lessons',id,{...item,hidden:ts>0,releaseAt:ts});
+   alert(ts?'✅ Lesson Hide રાખ્યું છે. આપેલા સમય પછી વિદ્યાર્થીને દેખાશે.':'✅ Lessonનો સમય દૂર કર્યો.');
+   renderTeacher();
+   if(currentStudent)renderStudent();
+ }catch(e){alert('❌ સમય Save થઈ શક્યો નથી.\n'+(e?.message||e));}
 }
 async function uploadAndPublishPDF(){
  const title=document.getElementById('testTitle').value.trim();
@@ -1235,16 +1311,26 @@ function renderTeacher(){
  if(box){
    const arr=Object.entries(students||{}).reverse();
    const total=document.getElementById('studentTotalBadge'); if(total) total.textContent='કુલ: '+arr.length;
-   box.innerHTML=arr.map(([id,s])=>`<div class="item"><b>👨‍🎓 ${esc(s.name||'')}</b><br>👨 ${esc(s.fatherName||'')}<br>🏫 ${esc(s.schoolName||'')}<br>🏠 ${esc(s.address||'')}<br>📱 ${esc(s.mobile||'')}<br><button class="danger" type="button" onclick="dataRemove('students','${esc(id)}')">Delete</button></div>`).join('')||'<p class="muted">હજી કોઈ Student નથી.</p>';
+   box.innerHTML=arr.map(([id,s])=>`<div class="item"><b>👨‍🎓 ${esc(s.name||'')}</b><br>👨 ${esc(s.fatherName||'')}<br>🏫 ${esc(s.schoolName||'')}<br>🏠 ${esc(s.address||'')}<br>📱 ${esc(s.mobile||'')}<br><button class="danger" type="button" onclick="deleteTeacherItem('students','${esc(id)}')">🗑️ Delete</button></div>`).join('')||'<p class="muted">હજી કોઈ Student નથી.</p>';
  }
  const nb=document.getElementById('teacherNotices');
- if(nb)nb.innerHTML=Object.entries(notices||{}).reverse().map(([id,n])=>`<div class="item">📢 ${esc(n.text||'')}<br><small>${esc(n.date||'')}</small></div>`).join('')||'<p class="muted">Notice નથી.</p>';
+ if(nb)nb.innerHTML=Object.entries(notices||{}).reverse().map(([id,n])=>`<div class="item"><b>📢 ${esc(n.text||'')}</b><br><small>${esc(n.date||'')}</small><br><button class="danger" type="button" onclick="deleteTeacherItem('notices','${esc(id)}')">🗑️ Delete Notice</button></div>`).join('')||'<p class="muted">Notice નથી.</p>';
  const lb=document.getElementById('teacherLessons');
- if(lb)lb.innerHTML=Object.entries(lessons||{}).reverse().map(([id,l])=>`<div class="item"><b>📚 ${esc(l.title||'')}</b> — ${esc(l.subject||'')}<br><small>${esc(l.date||'')}</small></div>`).join('')||'<p class="muted">Lesson નથી.</p>';
+ if(lb)lb.innerHTML=Object.entries(lessons||{}).reverse().map(([id,l])=>{
+   const hidden=l.hidden===true;
+   const release=Number(l.releaseAt||0);
+   const releaseText=release?new Date(release).toLocaleString('gu-IN'):'';
+   const status=hidden?(release&&release>Date.now()?'⏳ સમય સુધી Hidden':'👁️ Hidden'):'👁️ Visible';
+   return `<div class="item"><b>📚 ${esc(l.title||'')}</b> — ${esc(l.subject||'')} ${l.course?`— 📚 ${esc(l.course)}`:''} ${l.category==='swadhyay'?'<span class="badge">📝 સ્વાધ્યાય</span>':''}<br><small>${esc(l.date||'')}</small><br><span class="badge">${status}</span>${releaseText?` <span class="badge">⏰ ${esc(releaseText)}</span>`:''}<br><button type="button" onclick="toggleLessonVisibility('${esc(id)}')">${hidden?'👁️ Show':'🙈 Hide'}</button> <button type="button" onclick="setLessonRelease('${esc(id)}')">⏰ સમય સેટ</button> <button class="danger" type="button" onclick="deleteTeacherItem('lessons','${esc(id)}')">🗑️ Delete Lesson</button></div>`;
+ }).join('')||'<p class="muted">Lesson નથી.</p>';
+ const qb=document.getElementById('teacherQuestionBanks');
+ if(qb){
+   const arr=Object.entries(questionBanks||{}).reverse();
+   qb.innerHTML=arr.map(([id,q])=>`<div class="item"><b>📖 ${esc(q.subject||'સામાન્ય')}</b>${q.title?' — '+esc(q.title):''}<br><small>${esc(q.date||'')}</small><br><button class="danger" type="button" onclick="deleteTeacherItem('questionBanks','${esc(id)}')">🗑️ Delete પ્રશ્નો</button></div>`).join('')||'<p class="muted">હજી પ્રશ્નો સેવ કર્યા નથી.</p>';
+ }
  const tb=document.getElementById('teacherTests');
- if(tb)tb.innerHTML=Object.entries(tests||{}).reverse().map(([id,t])=>`<div class="item"><b>📄 ${esc(t.title||'')}</b> — ${esc(t.subject||'')} — ${esc(t.totalMarks||'')} માર્ક્સ<br><small>${esc(t.date||'')}</small></div>`).join('')||'<p class="muted">Test PDF નથી.</p>';
+ if(tb)tb.innerHTML=Object.entries(tests||{}).reverse().map(([id,t])=>`<div class="item"><b>📄 ${esc(t.title||'')}</b> — ${esc(t.subject||'')} — ${esc(t.totalMarks||'')} માર્ક્સ<br><small>${esc(t.date||'')}</small><br><button class="danger" type="button" onclick="deleteTeacherItem('tests','${esc(id)}')">🗑️ Delete Test PDF</button></div>`).join('')||'<p class="muted">Test PDF નથી.</p>';
  renderPersonalTeacher();
- renderQuestionBanks();
 }
 
 function renderPersonalTeacher(){
@@ -1259,7 +1345,7 @@ function renderPersonalTeacher(){
  if(box)box.innerHTML=list.map(([id,p])=>{
    const s=students[p.studentId];
    const sid=String(id).replace(/'/g,'');
-   return `<div class="item"><b>💬 ${esc(p.title||'Personal')}</b> — ${esc(s?.name||'વિદ્યાર્થી')}<br>${esc(p.message||'')}${p.link?`<br>🔗 <a href="${esc(p.link)}" target="_blank">Link ખોલો</a>`:''}${p.fileUrl?`<br>📎 <a href="${esc(p.fileUrl)}" target="_blank">${esc(p.fileName||'File')}</a>`:''}<br><small>${esc(p.date||'')}</small> <button class="danger" type="button" onclick="dataRemove('personalMessages','${sid}')">Delete</button></div>`;
+   return `<div class="item"><b>💬 ${esc(p.title||'Personal')}</b> — ${esc(s?.name||'વિદ્યાર્થી')}<br>${esc(p.message||'')}${p.link?`<br>🔗 <a href="${esc(p.link)}" target="_blank">Link ખોલો</a>`:''}${p.fileUrl?`<br>📎 <a href="${esc(p.fileUrl)}" target="_blank">${esc(p.fileName||'File')}</a>`:''}<br><small>${esc(p.date||'')}</small> <button class="danger" type="button" onclick="deleteTeacherItem('personalMessages','${sid}')">Delete</button></div>`;
  }).join('')||'<p class="muted">હજી Personal Message મોકલ્યો નથી.</p>';
 }
 function renderStudentPersonal(){
@@ -1305,10 +1391,12 @@ function renderStudentLessons(){
  if(!currentStudent)return;
  const q=(document.getElementById('lessonSearch')?.value||'').trim().toLowerCase();
  const course=String(currentStudent.course||'').toLowerCase();
+ const now=Date.now();
  const all=Object.entries(lessons).filter(([id,l])=>{
    const okCourse=!l.course||String(l.course).toLowerCase()===course||l.allStudents===true;
+   const released=!l.hidden || (Number(l.releaseAt||0)>0 && Number(l.releaseAt||0)<=now);
    const hay=(String(l.title||'')+' '+String(l.subject||'')+' '+String(l.content||'')).toLowerCase();
-   return okCourse && (!q||hay.includes(q));
+   return okCourse && released && (!q||hay.includes(q));
  });
  const subjects=[...new Set(all.map(([id,l])=>l.subject||'સામાન્ય'))];
  document.getElementById('lessonSubjects').innerHTML=subjects.map(s=>'<button onclick="filterLessonSubject('+JSON.stringify(s)+')">📖 '+esc(s)+'</button>').join('')||'<p class="muted">હાલ Lesson ઉપલબ્ધ નથી.</p>';
@@ -1321,7 +1409,7 @@ function renderStudentLessons(){
    if(l.type==='photo') body='<img class="photo-preview" src="'+esc(l.content)+'" alt="Lesson">';
    else if(l.type==='pdf'||l.type==='link'||l.type==='video') body='<a href="'+esc(l.content)+'" target="_blank" onclick="markViewed(\'lessons\',\''+id+'\')"><button>🔗 '+(l.type==='pdf'?'PDF ખોલો':l.type==='video'?'Video જુઓ':'Lesson ખોલો')+'</button></a>';
    else body='<p>'+esc(l.content)+'</p>';
-   return '<div class="item"><button class="favorite-btn" onclick="toggleFavorite(\'lessons\',\''+id+'\')">'+(fav?'⭐':'☆')+'</button><h4>'+esc(l.title)+'</h4><span class="badge">'+esc(l.subject||'સામાન્ય')+'</span> '+(seen?'<span class="badge">✓ જોયું</span>':'')+'<br><small>'+esc(l.date||'')+'</small>'+body+'</div>';
+   return '<div class="item"><button class="favorite-btn" onclick="toggleFavorite(\'lessons\',\''+id+'\')">'+(fav?'⭐':'☆')+'</button><h4>'+esc(l.title)+'</h4><span class="badge">'+esc(l.subject||'સામાન્ય')+'</span> '+(l.category==='swadhyay'?'<span class="badge">📝 સ્વાધ્યાય</span>':'')+' '+(seen?'<span class="badge">✓ જોયું</span>':'')+'<br><small>'+esc(l.date||'')+'</small>'+body+'</div>';
  }).join('')||'<p class="muted">આ શોધ/વિષય માટે Lesson નથી.</p>';
 }
 function filterLessonSubject(s){window.lessonSubjectFilter=s;renderStudentLessons();}
