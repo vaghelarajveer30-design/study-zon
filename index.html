@@ -76,9 +76,6 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #ccd5e2;border-ra
 
 <main class="wrap">
 
-<div id="nsl-student-entry" style="margin:18px auto;max-width:520px;text-align:center">
- <button type="button" onclick="nirmalaOpenStudentLogin()" style="width:100%;min-height:54px;border:0;border-radius:14px;background:#173b72;color:#fff;font-size:18px;cursor:pointer">👨‍🎓 Student Login</button>
-</div>
 <section id="studentLogin" class="card">
 <h2>👨‍🎓 Student Login</h2>
 <p class="muted">મોબાઇલ નંબર અને એપમાં દેખાતા 4 અંકના OTP દ્વારા Login કરો.</p>
@@ -587,57 +584,42 @@ function exportOfflineContent(){
 }
 async function savePDFOffline(id){
  const t=tests[id]; if(!t || !(t.url||t.pdfUrl)){alert('PDF ઉપલબ્ધ નથી.');return}
- const url=t.url||t.pdfUrl;
  try{
-  if(url.startsWith('data:')){
-    const a=document.createElement('a'); a.href=url; a.download=t.fileName||t.title||'test.pdf';
-    document.body.appendChild(a); a.click(); a.remove();
-    localStorage.setItem('nirmala_pdf_offline_'+id,'1');
-    alert('✅ PDF ફોનમાં Offline Save કરવા માટે Download શરૂ થયું.'); return;
-  }
-  if(!('caches' in window))throw new Error('cache unsupported');
+  if(!('caches' in window)){alert('આ browserમાં Offline PDF Save સપોર્ટ નથી.');return}
+  const url=t.url||t.pdfUrl;
   const cache=await caches.open('nirmala-pdfs-v1');
   const response=await fetch(url,{mode:'cors'});
   if(!response.ok)throw new Error('download failed');
   await cache.put(url,response.clone());
   localStorage.setItem('nirmala_pdf_offline_'+id,'1');
-  alert('✅ PDF Offline માટે Save થઈ ગઈ છે.');
+  alert('✅ PDF Offline માટે Save થઈ ગઈ છે. હવે નેટ વગર પણ ખોલી શકાશે.');
  }catch(e){
   console.error(e);
-  try{
-    const a=document.createElement('a');a.href=url;a.download=t.fileName||t.title||'test.pdf';a.target='_blank';document.body.appendChild(a);a.click();a.remove();
-    localStorage.setItem('nirmala_pdf_offline_'+id,'1');
-    alert('📥 Browserએ PDF Download કરવા માટે શરૂ કરી છે.');
-  }catch(e2){alert('❌ PDF Save થઈ નથી. Firebase Storage URL/CORS તપાસો.')}
+  alert('❌ PDF Offline Save થઈ નથી. Firebase Storage/CORS અથવા browser permissionને કારણે થઈ શકે છે.');
  }
 }
 async function openOfflineOrOnlinePDF(id){
  const t=tests[id]; if(!t)return;
  const url=t.url||t.pdfUrl; if(!url)return;
- let win=null;
- try{win=window.open('about:blank','_blank');}catch(e){}
  try{
-  if(url.startsWith('data:')){ if(win){win.location.href=url;}else{location.href=url;} return; }
   if('caches' in window){
    const cache=await caches.open('nirmala-pdfs-v1');
    const cached=await cache.match(url);
-   if(cached){const blob=await cached.blob();const localUrl=URL.createObjectURL(blob);if(win)win.location.href=localUrl;else window.open(localUrl,'_blank');return;}
+   if(cached){
+    const blob=await cached.blob();
+    const localUrl=URL.createObjectURL(blob);
+    window.open(localUrl,'_blank');
+    return;
+   }
   }
- }catch(e){console.warn('Offline PDF open failed',e)}
- if(win)win.location.href=url; else window.open(url,'_blank');
+ }catch(e){}
+ window.open(url,'_blank');
 }
 async function saveLessonOffline(id, silent=false){
  const l=lessons[id]; if(!l || !l.content){if(!silent)alert('Lesson ફાઇલ ઉપલબ્ધ નથી.');return false}
  if(l.type==='text'){ localStorage.setItem('nirmala_lesson_offline_'+id,'1'); if(!silent)alert('✅ Text Lesson Offline માટે Save થઈ ગયું છે.'); return true; }
  const url=l.content;
  try{
-  if(url.startsWith('data:')){
-    const a=document.createElement('a'); a.href=url; a.download=(l.fileName||l.title||'lesson')+(l.type==='pdf'?'.pdf':'.jpg');
-    document.body.appendChild(a); a.click(); a.remove();
-    localStorage.setItem('nirmala_lesson_offline_'+id,'1');
-    if(!silent)alert('✅ Lesson ફોનમાં Offline Save કરવા માટે Download શરૂ થયું.');
-    return true;
-  }
   if(!('caches' in window))throw new Error('cache unsupported');
   const cache=await caches.open('nirmala-lessons-v1');
   const cached=await cache.match(url);
@@ -651,43 +633,27 @@ async function saveLessonOffline(id, silent=false){
   return true;
  }catch(e){
   console.error(e);
-  // Cross-origin Firebase Storage may reject Cache API fetch because of CORS.
-  // Give the user a real phone download instead of a misleading offline error.
-  try{
-    const a=document.createElement('a'); a.href=url; a.download=(l.fileName||l.title||'lesson')+(l.type==='pdf'?'.pdf':'.jpg');
-    a.target='_blank'; document.body.appendChild(a); a.click(); a.remove();
-    localStorage.setItem('nirmala_lesson_offline_'+id,'1');
-    if(!silent)alert('📥 Browserએ ફાઇલ Download કરવા માટે શરૂ કરી છે. Internet વગર App Cacheમાં ખોલવું હોય તો Firebase Storage CORS જરૂરી છે.');
-    return true;
-  }catch(e2){
-    if(!silent)alert('❌ Lesson Save થઈ નથી. Firebase Storage URL/CORS તપાસો.');
-    return false;
-  }
+  if(!silent)alert('❌ Lesson Offline Save થઈ નથી. Internet/CORS અથવા Firebase Storage permission તપાસો.');
+  return false;
  }
 }
 async function openOfflineOrOnlineLesson(id){
  const l=lessons[id]; if(!l)return;
  if(l.type==='text'){ markViewed('lessons',id); return; }
  const url=l.content; if(!url)return;
- let win=null;
- try{ win=window.open('about:blank','_blank'); }catch(e){}
  try{
-  if(url.startsWith('data:')){
-    if(win){win.location.href=url;} else {location.href=url;}
-    return;
-  }
   if('caches' in window){
    const cache=await caches.open('nirmala-lessons-v1');
    const cached=await cache.match(url);
    if(cached){
     const blob=await cached.blob();
     const localUrl=URL.createObjectURL(blob);
-    if(win){win.location.href=localUrl;} else {window.open(localUrl,'_blank');}
+    window.open(localUrl,'_blank');
     return;
    }
   }
- }catch(e){console.warn('Offline cache open failed',e)}
- if(win){win.location.href=url;} else {window.open(url,'_blank');}
+ }catch(e){}
+ window.open(url,'_blank');
 }
 async function saveAllLessonsOffline(){
  const list=Object.entries(lessons||{}).filter(([id,l])=>l && l.content && l.type!=='text');
@@ -1236,7 +1202,7 @@ async function uploadFileFast(file, storagePath, statusElId, compressImage=false
     status('🔄 Storage ઉપલબ્ધ નથી — Free Upload ચાલુ...');
   }
 
-  // Free fallback: store the selected Photo/PDF as a data URL in Realtime Database. આ નાના/મધ્યમ ફાઇલ માટે ઉપયોગી છે; બહુ મોટી ફાઇલ માટે Firebase Storage જરૂરી બની શકે.
+  // Free fallback: store the selected Photo/PDF as a data URL in Realtime Database.
   status('📦 ફાઇલ તૈયાર થઈ રહી છે...');
   const dataUrl=await new Promise((resolve,reject)=>{
     const reader=new FileReader();
@@ -1299,6 +1265,7 @@ async function addLesson(){
  const status=document.getElementById('lessonUploadStatus');
  try{
    if(type==='photo'||type==='pdf'){
+     if(!cloudMode||!storage)throw new Error('Firebase Storage ઉપલબ્ધ નથી.');
      content=await uploadLessonFile(file);
    }
    await dataSet('lessons',id,{title,subject,chapter,course,type,category,content,fileName:file?file.name:'',allStudents:document.getElementById('lessonAll').checked,hidden,releaseAt:releaseInput?new Date(releaseInput).getTime():0,date:new Date().toLocaleString('gu-IN')});
@@ -1374,6 +1341,11 @@ async function uploadAndPublishPDF(){
    alert('PDF 10 MB કરતાં નાની રાખો.');
    return;
  }
+ if(!storage || !cloudMode){
+   alert('PDF બીજા devices પર મૂકવા માટે Settings → Firebase Cloud Setup માં Project 3 configuration save કરો.');
+   return;
+ }
+
  try{
    btn.disabled=true;
    btn.textContent='⏳ PDF Upload થઈ રહ્યું છે...';
@@ -1738,8 +1710,8 @@ installPWAHelpers(); registerOfflineWorker(); initFirebase();
   </div>
   <button type="button" id="nsl-teacher-bio" style="width:100%;margin-top:10px;background:#eaf1ff;color:#173b72">👆 Fingerprint Login</button>
   <div id="nsl-teacher-bio-msg" class="muted" style="margin-top:8px">પહેલી વાર Password Login પછી Settingsમાં Fingerprint Setup કરો.</div>
-  </div>
  </div>
+</div>
 </div>
 
 <script id="nirmala-native-biometric-js">
