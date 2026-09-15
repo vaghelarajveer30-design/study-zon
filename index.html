@@ -76,9 +76,6 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #ccd5e2;border-ra
 
 <main class="wrap">
 
-<div id="nsl-student-entry" style="margin:18px auto;max-width:520px;text-align:center">
- <button type="button" onclick="nirmalaOpenStudentLogin()" style="width:100%;min-height:54px;border:0;border-radius:14px;background:#173b72;color:#fff;font-size:18px;cursor:pointer">👨‍🎓 Student Login</button>
-</div>
 <section id="studentLogin" class="card">
 <h2>👨‍🎓 Student Login</h2>
 <p class="muted">મોબાઇલ નંબર અને એપમાં દેખાતા 4 અંકના OTP દ્વારા Login કરો.</p>
@@ -147,16 +144,15 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #ccd5e2;border-ra
 </div>
 
 <div id="lessonsSection" class="card app-section hidden">
-<h3>📚 Subject-wise Lessons</h3>
-<div class="search-box"><span class="search-icon">🔍</span><input id="lessonSearch" oninput="renderStudentLessons()" placeholder="Lesson અથવા વિષય શોધો..."></div>
-<div id="lessonSubjects" class="subject-grid"></div>
+<h3>📚 Course-wise Lessons</h3>
+<p class="muted">પહેલા Course → પછી વિષય → પછી Topic પસંદ કરો. Teacher જે Topic નામ લખશે તેનું બટન આપમેળે બનશે.</p>
+<div id="lessonCourseButtons" class="subject-grid"></div>
+<div id="lessonSubjects" class="subject-grid" style="margin-top:10px"></div>
 <div id="lessonChapters" class="subject-grid" style="margin-top:10px"></div>
-<div class="nsz-offline-all" style="margin-top:10px">
-<button class="secondary" type="button" onclick="saveAllLessonsOffline()">📥 બધા Lessons Offline Save કરો</button>
-<span id="bulkLessonStatus" class="muted"></span>
+<div class="search-box"><span class="search-icon">🔍</span><input id="lessonSearch" oninput="renderStudentLessons()" placeholder="Course, વિષય અથવા Topic શોધો..."></div>
+<div id="studentLessons">પહેલા Course પસંદ કરો.</div>
 </div>
-<div id="studentLessons">લોડ થઈ રહ્યું છે...</div>
-</div>
+
 
 
 <div id="questionStudentSection" class="card app-section hidden">
@@ -274,14 +270,15 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #ccd5e2;border-ra
 <button onclick="teacherSection('settingsTeacherSection')">⚙️ Settings</button>
 </div>
 
-<div id="studentsSection" class="card teacher-section hidden">
+<div id="studentsSection" class="card teacher-section">
 <h3>👨‍🎓 Students</h3>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
-<button type="button" onclick="showAllStudents()">👥 બધા Students</button>
-<button type="button" onclick="showTeacherAddStudent()">➕ નવો વિદ્યાર્થી ઉમેરો</button>
+<button type="button" onclick="showRegisteredStudents()">🟢 Registered Students</button>
+<button type="button" class="secondary" onclick="showAllStudents()">👥 બધા Students</button>
+<button type="button" onclick="showTeacherAddStudent()">➕ New Student</button>
 <span id="studentTotalBadge" class="badge">કુલ: 0</span>
 </div>
-<div id="studentViewTitle" class="badge" style="margin-bottom:8px">👥 બધા Students</div>
+<div id="studentViewTitle" class="badge" style="margin-bottom:8px">🟢 Registered Students</div>
 <div id="teacherAddStudentBox" class="card" style="display:none;margin:10px 0;padding:15px">
 <h4>➕ નવો વિદ્યાર્થી ઉમેરો</h4>
 <div class="grid">
@@ -295,7 +292,7 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #ccd5e2;border-ra
 <button type="button" onclick="addStudent()">💾 Student Save</button>
 <button type="button" class="secondary" onclick="hideTeacherAddStudent()">✖️ બંધ</button>
 </div></div>
-<div class="muted" style="margin:8px 0">👥 બધા Students અને ➕ નવો વિદ્યાર્થી ઉમેરો — બંને વિકલ્પ અહીં જ છે.</div>
+<div class="muted" style="margin:8px 0">🟢 Registered = વિદ્યાર્થીએ પોતે Registration કર્યું છે. 👥 બધા = Registered + Teacher દ્વારા ઉમેરેલા બધા વિદ્યાર્થીઓ.</div>
 <div id="teacherStudents"></div>
 </div>
 
@@ -312,7 +309,13 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #ccd5e2;border-ra
 <input id="lessonTitle" placeholder="Lesson Title">
 <input id="lessonSubject" placeholder="વિષય (જેમ કે ગણિત)">
 <input id="lessonChapter" placeholder="પ્રકરણ / Chapter (જેમ કે પ્રકરણ 1)">
-<input id="lessonCourse" placeholder="Course">
+<select id="lessonCourse">
+<option value="">Course પસંદ કરો</option>
+<option value="નવોદય">🎯 નવોદય</option>
+<option value="CET">🎓 CET</option>
+<option value="જ્ઞાન સાધના">📘 જ્ઞાન સાધના</option>
+<option value="સામાન્ય">📚 સામાન્ય</option>
+</select>
 </div>
 <select id="lessonType" onchange="toggleLessonUpload()">
 <option value="text">Text</option>
@@ -368,7 +371,7 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #ccd5e2;border-ra
 <label style="display:block;margin-top:10px;font-weight:600">📁 PDF Paper પસંદ કરો</label>
 <input id="testPdfFile" type="file" accept="application/pdf" style="padding:12px;border:1px dashed #9aa7b8;border-radius:10px;width:100%;box-sizing:border-box">
 <div id="pdfUploadStatus" class="muted" style="margin-top:8px">કોઈ PDF પસંદ કરેલ નથી.</div>
-<button type="button" id="pdfPublishBtn" onclick="uploadAndPublishPDF()">📤 PDF Upload & Publish</button>
+<button id="pdfPublishBtn" onclick="uploadAndPublishPDF()">📤 PDF Upload & Publish</button>
 <div id="teacherTests"></div>
 </div>
 
@@ -600,22 +603,36 @@ async function savePDFOffline(id){
   alert('❌ PDF Offline Save થઈ નથી. Firebase Storage/CORS અથવા browser permissionને કારણે થઈ શકે છે.');
  }
 }
-async function openOfflineOrOnlinePDF(id){
+function openOfflineOrOnlinePDF(id){
  const t=tests[id]; if(!t)return;
  const url=t.url||t.pdfUrl; if(!url)return;
- try{
-  if('caches' in window){
-   const cache=await caches.open('nirmala-pdfs-v1');
-   const cached=await cache.match(url);
-   if(cached){
-    const blob=await cached.blob();
-    const localUrl=URL.createObjectURL(blob);
-    window.open(localUrl,'_blank');
-    return;
-   }
-  }
- }catch(e){}
- window.open(url,'_blank');
+
+ // Open the tab immediately during the button click so Chrome does not block it.
+ let viewer=null;
+ try{ viewer=window.open('about:blank','_blank'); }catch(e){ viewer=null; }
+
+ if(!viewer){
+   // Popup blocked: use the current tab as a reliable fallback.
+   window.location.href=url;
+   return;
+ }
+
+ (async function(){
+   try{
+     if('caches' in window){
+       const cache=await caches.open('nirmala-pdfs-v1');
+       const cached=await cache.match(url);
+       if(cached){
+         const blob=await cached.blob();
+         const localUrl=URL.createObjectURL(blob);
+         try{ viewer.location.href=localUrl; return; }catch(e){}
+       }
+     }
+   }catch(e){}
+
+   try{ viewer.location.href=url; }
+   catch(e){ window.location.href=url; }
+ })();
 }
 async function saveLessonOffline(id, silent=false){
  const l=lessons[id]; if(!l || !l.content){if(!silent)alert('Lesson ફાઇલ ઉપલબ્ધ નથી.');return false}
@@ -639,23 +656,21 @@ async function saveLessonOffline(id, silent=false){
   return false;
  }
 }
-async function openOfflineOrOnlineLesson(id){
+function openOfflineOrOnlineLesson(id){
  const l=lessons[id]; if(!l)return;
  if(l.type==='text'){ markViewed('lessons',id); return; }
- const url=l.content; if(!url)return;
+
+ const url=l.content;
+ if(!url){ alert('આ Lesson માટે PDF ફાઇલ ઉપલબ્ધ નથી.'); return; }
+
+ // PDF button માટે URL તરત ખોલો. await/window.open પછીથી કરવાથી
+ // Android Chrome/WebView popup blocker તેને રોકી શકે છે.
  try{
-  if('caches' in window){
-   const cache=await caches.open('nirmala-lessons-v1');
-   const cached=await cache.match(url);
-   if(cached){
-    const blob=await cached.blob();
-    const localUrl=URL.createObjectURL(blob);
-    window.open(localUrl,'_blank');
-    return;
-   }
-  }
- }catch(e){}
- window.open(url,'_blank');
+   window.location.assign(url);
+ }catch(e){
+   try{ window.open(url,'_blank'); }
+   catch(e2){ alert('PDF ખોલી શકાયું નથી.'); }
+ }
 }
 async function saveAllLessonsOffline(){
  const list=Object.entries(lessons||{}).filter(([id,l])=>l && l.content && l.type!=='text');
@@ -1006,24 +1021,13 @@ function studentSection(id){
  document.querySelectorAll('#studentHome .app-section').forEach(x=>x.classList.add('hidden'));
  const el=document.getElementById(id); if(el) el.classList.remove('hidden');
  if(id==='recentSection')renderRecent(); if(id==='questionStudentSection')renderStudentQuestions();
- if(id==='lessonsSection'||id==='pdfSection')localStorage.setItem('nirmala_content_seen_'+String(currentStudent?.name||'').toLowerCase(),String(Date.now()));
+ if(id==='lessonsSection'||id==='pdfSection')localStorage.setItem('nirmala_content_seen_'+String(currentStudent?.name||'').toLowerCase(),String(Date.now())); if(id==='lessonsSection'){window.lessonCourseFilter='';window.lessonSubjectFilter='';window.lessonChapterFilter='';setTimeout(renderStudentLessons,0);}
  if(id==='profileSection')renderProfile();
  if(id==='personalStudentSection')renderStudentPersonal();
 }
 function teacherSection(id){
- document.querySelectorAll('#teacherHome .teacher-section').forEach(function(x){
-   x.classList.add('hidden');
-   x.style.display='none';
- });
- const el=document.getElementById(id);
- if(el){
-   el.classList.remove('hidden');
-   el.style.display='block';
-   setTimeout(function(){el.scrollIntoView({behavior:'smooth',block:'start'});},30);
- }
- if(id==='studentsSection'){
-   if(typeof renderTeacherStudents==='function')renderTeacherStudents();
- }
+ document.querySelectorAll('#teacherHome .teacher-section').forEach(x=>x.classList.add('hidden'));
+ const el=document.getElementById(id); if(el) el.classList.remove('hidden');
 }
 
 function registerOfflineWorker(){
@@ -1069,7 +1073,7 @@ function initFirebase(){
   setTimeout(()=>{ if(!currentStudent) restoreStudentSession(); }, 350);
  }catch(e){cloudMode=false;console.log(e); setTimeout(()=>{ if(!currentStudent) restoreStudentSession(); },350);}
 }
-let teacherStudentView='all';
+let teacherStudentView='registered';
 function showRegisteredStudents(){teacherStudentView='registered';const b=document.getElementById('teacherAddStudentBox');if(b)b.style.display='none';const t=document.getElementById('studentViewTitle');if(t)t.textContent='🟢 Registered Students';renderTeacherStudents();}
 function showAllStudents(){teacherStudentView='all';const b=document.getElementById('teacherAddStudentBox');if(b)b.style.display='none';const t=document.getElementById('studentViewTitle');if(t)t.textContent='👥 બધા Students';renderTeacherStudents();}
 function showTeacherAddStudent(){teacherStudentView='all';const b=document.getElementById('teacherAddStudentBox');if(b)b.style.display='block';const t=document.getElementById('studentViewTitle');if(t)t.textContent='➕ New Student';renderTeacherStudents();}
@@ -1077,7 +1081,7 @@ function hideTeacherAddStudent(){const b=document.getElementById('teacherAddStud
 function renderTeacherStudents(){
  const box=document.getElementById('teacherStudents');if(!box)return;
  const all=Object.entries(students||{}).reverse();
- const arr=all;
+ const arr=teacherStudentView==='registered'?all.filter(([id,s])=>String(s.source||'registration')!=='teacher'):all;
  const total=document.getElementById('studentTotalBadge');if(total)total.textContent='કુલ: '+all.length;
  box.innerHTML=arr.map(([id,s])=>{const type=String(s.source||'registration')==='teacher'?'👨‍🏫 Teacher Added':'🟢 Registered';return `<div class="item"><b>👨‍🎓 ${esc(s.name||'')}</b> <span class="badge">${type}</span><br>👨 ${esc(s.fatherName||'')}<br>🏫 ${esc(s.schoolName||'')}<br>🏠 ${esc(s.address||'')}<br>📱 ${esc(s.mobile||'')}<br><button class="danger" type="button" onclick="deleteTeacherItem('students','${esc(id)}')">Delete</button></div>`;}).join('')||'<p class="muted">આ વિભાગમાં કોઈ Student નથી.</p>';
 }
@@ -1335,90 +1339,60 @@ async function setLessonRelease(id){
  }catch(e){alert('❌ સમય Save થઈ શક્યો નથી.\n'+(e?.message||e));}
 }
 async function uploadAndPublishPDF(){
-  const subject=(document.getElementById('testSubject')?.value||'').trim();
-  const marks=Number(document.getElementById('testMarks')?.value||0);
-  const title=(document.getElementById('testTitle')?.value||'').trim();
-  const file=document.getElementById('testPdfFile')?.files?.[0];
-  const msg=document.getElementById('pdfUploadStatus');
+ const title=document.getElementById('testTitle').value.trim();
+ const subject=document.getElementById('testSubject').value.trim();
+ const marks=Number(document.getElementById('testMarks').value);
+ const file=document.getElementById('testPdfFile').files[0];
+ const status=document.getElementById('pdfUploadStatus');
+ const btn=document.getElementById('pdfPublishBtn');
 
-  if(!subject){if(msg)msg.textContent='❌ વિષય પસંદ/નાખો.';return;}
-  if(!title){if(msg)msg.textContent='❌ Paperનું નામ નાખો.';return;}
-  if(![20,25,50,100,120].includes(marks)){if(msg)msg.textContent='❌ Marks 20 / 25 / 50 / 100 / 120 માંથી પસંદ કરો.';return;}
-  if(!file){if(msg)msg.textContent='❌ PDF file પસંદ કરો.';return;}
-  if(file.type!=='application/pdf' && !/\.pdf$/i.test(file.name)){if(msg)msg.textContent='❌ ફક્ત PDF file પસંદ કરો.';return;}
+ if(!title||!subject||!file){
+   alert('Paper Name, વિષય અને PDF ફાઇલ પસંદ કરો.');
+   return;
+ }
+ if(file.type!=='application/pdf'){
+   alert('માત્ર PDF ફાઇલ અપલોડ કરી શકાય છે.');
+   return;
+ }
+ if(file.size>10*1024*1024){
+   alert('PDF 10 MB કરતાં નાની રાખો.');
+   return;
+ }
+ if(!storage || !cloudMode){
+   alert('PDF બીજા devices પર મૂકવા માટે Settings → Firebase Cloud Setup માં Project 3 configuration save કરો.');
+   return;
+ }
 
-  try{
-    if(msg)msg.textContent='⏳ PDF તૈયાર થઈ રહી છે... 0%';
+ try{
+   btn.disabled=true;
+   btn.textContent='⏳ PDF Upload થઈ રહ્યું છે...';
+   status.textContent='📤 '+file.name+' Upload થઈ રહ્યું છે...';
 
-    // Primary: Firebase Storage.
-    if(typeof firebase!=='undefined' && firebase.storage && storage){
-      try{
-        const safeName=file.name.replace(/[^\w.\-]+/g,'_');
-        const path='testPdfs/'+Date.now()+'_'+safeName;
-        const ref=storage.ref(path);
-        const task=ref.put(file,{contentType:'application/pdf'});
-        await new Promise((resolve,reject)=>{
-          let settled=false;
-          const finish=(fn,v)=>{if(!settled){settled=true;fn(v);}};
-          task.on(firebase.storage.TaskEvent.STATE_CHANGED,
-            snap=>{
-              const pct=snap.totalBytes ? Math.round((snap.bytesTransferred/snap.totalBytes)*100) : 0;
-              if(msg)msg.textContent='⏳ PDF Upload '+pct+'%';
-            },
-            err=>finish(reject,err),
-            ()=>finish(resolve)
-          );
-        });
-        const url=await ref.getDownloadURL();
-        const id='test_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
-        const item={subject,marks,title,fileName:file.name,url,type:'pdf',date:new Date().toLocaleString('en-IN'),storagePath:path,active:true};
-        tests[id]=item;
-        await dataSet('tests',id,item);
-        saveLocalData();
-        if(msg)msg.textContent='✅ PDF Upload અને Publish સફળ થયું.';
-        if(typeof renderTeacher==='function')renderTeacher();
-        return;
-      }catch(storageErr){
-        console.warn('Storage upload failed, trying free fallback:',storageErr);
-      }
-    }
+   const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+   const id='t_'+Date.now();
+   const url=await uploadFileFast(file,'test_pdfs/'+id+'_'+safeName,'pdfUploadStatus',false);
 
-    // Fallback: store small PDFs directly in Realtime Database as a data URL.
-    // This avoids the Storage timeout/permission issue, but is subject to
-    // Realtime Database size/usage limits.
-    if(msg)msg.textContent='⏳ Free Firebase fallback તૈયાર થઈ રહ્યું છે...';
-    const maxBytes=3*1024*1024;
-    if(file.size>maxBytes){
-      if(msg)msg.textContent='❌ Firebase Storage ઉપલબ્ધ નથી. આ PDF 3 MBથી મોટી છે; Firebase Storage ચાલુ કર્યા વગર આ PDF સાચવી શકાશે નહીં.';
-      return;
-    }
+   await dataSet('tests',id,{
+     title, subject, totalMarks:marks,
+     url, pdfUrl:url, type:'pdf',
+     fileName:file.name, status:'active',
+     date:new Date().toLocaleString('gu-IN')
+   });
 
-    const reader=new FileReader();
-    const dataUrl=await new Promise((resolve,reject)=>{
-      reader.onload=()=>resolve(reader.result);
-      reader.onerror=()=>reject(reader.error||new Error('PDF read failed'));
-      reader.readAsDataURL(file);
-    });
-
-    const id='test_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
-    const item={
-      subject,marks,title,fileName:file.name,
-      url:String(dataUrl), type:'pdf',
-      date:new Date().toLocaleString('en-IN'),
-      storagePath:'', inlineData:true, active:true
-    };
-    tests[id]=item;
-    await dataSet('tests',id,item);
-    saveLocalData();
-    if(msg)msg.textContent='✅ PDF Upload અને Publish સફળ થયું.';
-    if(typeof renderTeacher==='function')renderTeacher();
-  }catch(e){
-    console.error(e);
-    if(msg)msg.textContent='❌ PDF Upload નિષ્ફળ ગયું: '+(e?.message||e);
-  }
+   document.getElementById('testTitle').value='';
+   document.getElementById('testSubject').value='';
+   document.getElementById('testPdfFile').value='';
+   status.textContent='✅ PDF સફળતાપૂર્વક Upload અને Publish થઈ ગયું.';
+   btn.textContent='📤 PDF Upload & Publish';
+ }catch(e){
+   console.error(e);
+   status.textContent='❌ PDF Upload નિષ્ફળ ગયું.';
+   alert('PDF Upload થઈ શક્યું નથી. Firebase error: '+(e?.code||'unknown')+'\n'+(e?.message||'Storage/Internet તપાસો.'));
+   btn.textContent='📤 PDF Upload & Publish';
+ }finally{
+   btn.disabled=false;
+ }
 }
-window.uploadAndPublishPDF=uploadAndPublishPDF;
-
 
 async function sendPersonalMessage(){
  const sid=document.getElementById('personalStudent')?.value||'';
@@ -1536,133 +1510,172 @@ function renderStudent(){
  renderProfile();
  renderProgress();
 }
+function courseListForLessons(){
+  return ['નવોદય','CET','જ્ઞાન સાધના','સામાન્ય'];
+}
+function courseIcon(c){
+  if(c==='નવોદય')return '🎯';
+  if(c==='CET')return '🎓';
+  if(c==='જ્ઞાન સાધના')return '📘';
+  return '📚';
+}
+function subjectOrderForCourse(course){
+  if(course==='નવોદય')return ['ગણિત','ગુજરાતી','પર્યાવરણ','આકૃતિ','મિક્ષ'];
+  if(course==='CET')return ['ગણિત','પર્યાવરણ','ગુજરાતી','સામાન્ય નોલેજ','તાર્કિક'];
+  return [];
+}
+function lessonMatchesCourse(l,course){
+  const lc=String(l.course||'').trim();
+  if(!course)return false;
+  if(lc===course)return true;
+  // Old records with minor spelling/case differences still work.
+  return lc.toLowerCase()===course.toLowerCase();
+}
 function renderStudentLessons(){
- if(!currentStudent)return;
- const q=(document.getElementById('lessonSearch')?.value||'').trim().toLowerCase();
- const course=String(currentStudent.course||'').toLowerCase();
- const now=Date.now();
+  if(!currentStudent)return;
 
- const all=Object.entries(lessons||{}).filter(([id,l])=>{
-   if(!l || l.active===false)return false;
-   const okCourse=!l.course||!course||String(l.course).toLowerCase()===course||l.allStudents===true;
-   const released=!l.hidden || (Number(l.releaseAt||0)>0 && Number(l.releaseAt||0)<=now);
-   const hay=(String(l.title||'')+' '+String(l.subject||'')+' '+String(l.chapter||'')+' '+String(l.content||'')).toLowerCase();
-   return okCourse && released && (!q||hay.includes(q));
- });
+  const q=(document.getElementById('lessonSearch')?.value||'').trim().toLowerCase();
+  const courseBox=document.getElementById('lessonCourseButtons');
+  const subjectBox=document.getElementById('lessonSubjects');
+  const topicBox=document.getElementById('lessonChapters');
+  const resultsBox=document.getElementById('studentLessons');
+  if(!courseBox||!subjectBox||!topicBox||!resultsBox)return;
 
- const subjects=[...new Set(all.map(([id,l])=>String(l.subject||'સામાન્ય').trim()).filter(Boolean))];
- const subjectsBox=document.getElementById('lessonSubjects');
- const chapterBox=document.getElementById('lessonChapters');
- const resultsBox=document.getElementById('studentLessons');
+  const course=window.lessonCourseFilter||'';
+  const subject=window.lessonSubjectFilter||'';
+  const topic=window.lessonChapterFilter||'';
+  const now=Date.now();
 
- let active=window.lessonSubjectFilter||'';
- if(active && !subjects.includes(active)) active='';
- window.lessonSubjectFilter=active;
+  const all=Object.entries(lessons||{}).filter(([id,l])=>{
+    if(!l||l.active===false)return false;
+    const okCourse=lessonMatchesCourse(l,course);
+    const released=!l.hidden || (Number(l.releaseAt||0)>0 && Number(l.releaseAt||0)<=now);
+    const hay=(String(l.title||'')+' '+String(l.subject||'')+' '+String(l.chapter||'')+' '+String(l.content||'')).toLowerCase();
+    return okCourse && released && (!q||hay.includes(q));
+  });
 
- if(subjectsBox){
-   subjectsBox.innerHTML=subjects.map(s=>{
-     const selected=(s===active);
-     return '<button type="button" class="'+(selected?'':'secondary')+'" onclick="selectLessonSubjectByName(this.dataset.subject)" data-subject="'+esc(s)+'">📖 '+esc(s)+'</button>';
-   }).join('') || '<p class="muted">હાલ Lesson ઉપલબ્ધ નથી.</p>';
- }
+  // COURSE buttons
+  const courses=courseListForLessons();
+  courseBox.innerHTML=courses.map(c=>{
+    const count=Object.values(lessons||{}).filter(l=>l&&l.active!==false&&lessonMatchesCourse(l,c)).length;
+    const selected=c===course;
+    return '<button type="button" class="'+(selected?'':'secondary')+'" onclick="selectLessonCourse(this.dataset.course)" data-course="'+esc(c)+'">'+
+      courseIcon(c)+' '+esc(c)+(count?' <span class="badge">'+count+'</span>':'')+'</button>';
+  }).join('');
 
- if(!active){
-   if(chapterBox)chapterBox.innerHTML='';
-   if(resultsBox)resultsBox.innerHTML='<p class="muted">ઉપરથી વિષયનું બટન પસંદ કરો.</p>';
-   return;
- }
+  if(!course){
+    subjectBox.innerHTML='';
+    topicBox.innerHTML='';
+    resultsBox.innerHTML='<p class="muted">ઉપરથી Course પસંદ કરો.</p>';
+    return;
+  }
 
- const subjectItems=all.filter(([id,l])=>String(l.subject||'સામાન્ય').trim()===active);
- const swadhyay=subjectItems.filter(([id,l])=>String(l.category||'').toLowerCase()==='swadhyay');
- const normalLessons=subjectItems.filter(([id,l])=>String(l.category||'').toLowerCase()!=='swadhyay');
+  // SUBJECT buttons. Navodaya/CET have the requested fixed subjects.
+  const preferred=subjectOrderForCourse(course);
+  const actual=[...new Set(all.map(([id,l])=>String(l.subject||'').trim()).filter(Boolean))];
+  let subjects=preferred.filter(s=>actual.includes(s));
+  subjects=subjects.concat(actual.filter(s=>!subjects.includes(s)));
 
- // Chapter buttons for normal lessons.
- const chapterNames=[...new Set(normalLessons.map(([id,l])=>String(l.chapter||'સામાન્ય').trim()||'સામાન્ય'))];
- let chapterFilter=window.lessonChapterFilter||'';
- if(chapterFilter && !chapterNames.includes(chapterFilter))chapterFilter='';
- window.lessonChapterFilter=chapterFilter;
+  // For Gyan Sadhana / General, subjects come from whatever the teacher entered.
+  subjectBox.innerHTML=subjects.map(s=>{
+    const selected=s===subject;
+    return '<button type="button" class="'+(selected?'':'secondary')+'" onclick="selectLessonSubjectByName(this.dataset.subject)" data-subject="'+esc(s)+'">📖 '+esc(s)+'</button>';
+  }).join('') || '<p class="muted">આ Courseમાં હજી વિષય/માહિતી ઉપલબ્ધ નથી.</p>';
 
- // A single selected Swadhyay id means only that Swadhyay is shown.
- const swadhyayId=window.lessonSwadhyayFilter||'';
- const selectedSwadhyay=swadhyay.find(([id])=>id===swadhyayId);
+  if(!subject){
+    topicBox.innerHTML='';
+    resultsBox.innerHTML='<p class="muted">હવે '+esc(course)+' માંથી વિષય પસંદ કરો.</p>';
+    return;
+  }
 
- if(chapterBox){
-   let h='';
-   h+='<button type="button" class="secondary" onclick="clearLessonSubFilter()">📚 બધા પ્રકરણ</button>';
-   chapterNames.forEach(c=>{
-     h+='<button type="button" class="'+(c===chapterFilter?'':'secondary')+'" onclick="selectLessonChapterByName(this.dataset.chapter)" data-chapter="'+esc(c)+'">📚 '+esc(c)+'</button>';
-   });
-   if(swadhyay.length){
-     h+='<div style="grid-column:1/-1;margin-top:6px;font-weight:700">📝 '+esc(active)+' ના સ્વાધ્યાય</div>';
-     swadhyay.forEach(([id,l])=>{
-       const selected=id===swadhyayId;
-       h+='<button type="button" class="'+(selected?'':'secondary')+'" onclick="selectLessonSwadhyayById(this.dataset.id)" data-id="'+esc(id)+'">📝 '+esc(l.title||l.chapter||'સ્વાધ્યાય')+'</button>';
-     });
-   }
-   chapterBox.innerHTML=h;
- }
+  const subjectItems=all.filter(([id,l])=>String(l.subject||'').trim()===subject);
 
- let shown=[];
- if(selectedSwadhyay){
-   shown=[selectedSwadhyay];
- }else{
-   shown=normalLessons.filter(([id,l])=>!chapterFilter || String(l.chapter||'સામાન્ય').trim()===chapterFilter);
- }
+  // Topic buttons are created automatically from Lesson Title first,
+  // and Chapter is used as a fallback. Thus "અવિભાજ્ય સંખ્યા" becomes a button automatically.
+  const topics=[];
+  subjectItems.forEach(([id,l])=>{
+    const t=String(l.title||l.chapter||'સામાન્ય Topic').trim()||'સામાન્ય Topic';
+    if(!topics.includes(t))topics.push(t);
+  });
 
- const v=getViewed();
- if(resultsBox){
-   resultsBox.innerHTML=shown.slice().reverse().map(([id,l])=>{
-     const fav=isFavorite('lessons',id),seen=!!(v.lessons&&v.lessons[id]);
-     const offline=localStorage.getItem('nirmala_lesson_offline_'+id)==='1';
-     let body='';
-     if(l.type==='photo') body='<img class="photo-preview" src="'+esc(l.content)+'" alt="Lesson">';
-     else if(l.type==='pdf') body='<button type="button" onclick="markViewed(\'lessons\',\''+id+'\');openOfflineOrOnlineLesson(\''+id+'\')">📄 PDF ખોલો</button>';
-     else if(l.type==='link'||l.type==='video') body='<a href="'+esc(l.content)+'" target="_blank" onclick="markViewed(\'lessons\',\''+id+'\')"><button type="button">🔗 '+(l.type==='video'?'Video જુઓ':'Lesson ખોલો')+'</button></a>';
-     else body='<p>'+esc(l.content)+'</p>';
-     const offlineBtn=(l.type==='photo'||l.type==='pdf')?'<button type="button" class="secondary" style="margin-top:8px" onclick="saveLessonOffline(\''+id+'\')">'+(offline?'✅ Offline Saved':'📥 Offline Save')+'</button>':'';
-     return '<div class="item"><button type="button" class="favorite-btn" onclick="toggleFavorite(\'lessons\',\''+id+'\')">'+(fav?'⭐':'☆')+'</button><h4>'+esc(l.title)+'</h4><span class="badge">'+esc(l.subject||'સામાન્ય')+'</span> <span class="badge">📖 '+esc(l.chapter||'સામાન્ય')+'</span> '+(String(l.category||'').toLowerCase()==='swadhyay'?'<span class="badge">📝 સ્વાધ્યાય</span>':'')+' '+(seen?'<span class="badge">✓ જોયું</span>':'')+'<br><small>'+esc(l.date||'')+'</small>'+body+'<br>'+offlineBtn+'</div>';
-   }).join('') || (selectedSwadhyay ? '<p class="muted">આ સ્વાધ્યાય ઉપલબ્ધ નથી.</p>' : '<p class="muted">આ પસંદગીમાં Lesson ઉપલબ્ધ નથી.</p>');
- }
+  let activeTopic=topic;
+  if(activeTopic && !topics.includes(activeTopic))activeTopic='';
+
+  topicBox.innerHTML=topics.map(t=>{
+    const selected=t===activeTopic;
+    return '<button type="button" class="'+(selected?'':'secondary')+'" onclick="selectLessonTopicByName(this.dataset.topic)" data-topic="'+esc(t)+'">📝 '+esc(t)+'</button>';
+  }).join('') || '<p class="muted">આ વિષયમાં હજી Topic નથી.</p>';
+
+  if(!activeTopic){
+    resultsBox.innerHTML='<p class="muted">હવે Topic પસંદ કરો.</p>';
+    return;
+  }
+
+  const shown=subjectItems.filter(([id,l])=>{
+    const t=String(l.title||l.chapter||'સામાન્ય Topic').trim()||'સામાન્ય Topic';
+    return t===activeTopic;
+  });
+
+  const v=getViewed();
+  resultsBox.innerHTML=shown.slice().reverse().map(([id,l])=>{
+    const fav=isFavorite('lessons',id),seen=!!(v.lessons&&v.lessons[id]);
+    const offline=localStorage.getItem('nirmala_lesson_offline_'+id)==='1';
+    let body='';
+    if(l.type==='photo'){
+      body='<img class="photo-preview" src="'+esc(l.content)+'" alt="Lesson">';
+    }else if(l.type==='pdf'){
+      body='<button type="button" onclick="openOfflineOrOnlineLesson(\''+id+'\');markViewed(\'lessons\',\''+id+'\')">📄 PDF ખોલો</button>';
+    }else if(l.type==='link'||l.type==='video'){
+      body='<a href="'+esc(l.content)+'" target="_blank" onclick="markViewed(\'lessons\',\''+id+'\')"><button type="button">🔗 '+(l.type==='video'?'Video જુઓ':'Lesson ખોલો')+'</button></a>';
+    }else{
+      body='<div style="white-space:pre-wrap;line-height:1.7;margin-top:10px">'+esc(l.content)+'</div>';
+    }
+    const offlineBtn=(l.type==='photo'||l.type==='pdf')?
+      '<button type="button" class="secondary" style="margin-top:8px" onclick="saveLessonOffline(\''+id+'\')">'+(offline?'✅ Offline Saved':'📥 Offline Save')+'</button>':'';
+    return '<div class="item">'+
+      '<button type="button" class="favorite-btn" onclick="toggleFavorite(\'lessons\',\''+id+'\')">'+(fav?'⭐':'☆')+'</button>'+
+      '<h4>'+esc(l.title||activeTopic)+'</h4>'+
+      '<span class="badge">'+courseIcon(course)+' '+esc(course)+'</span> '+
+      '<span class="badge">📖 '+esc(l.subject||'સામાન્ય')+'</span> '+
+      (l.chapter?'<span class="badge">📝 '+esc(l.chapter)+'</span> ':'')+
+      (seen?'<span class="badge">✓ જોયું</span>':'')+
+      '<br><small>'+esc(l.date||'')+'</small>'+body+'<br>'+offlineBtn+
+      '</div>';
+  }).join('') || '<p class="muted">આ Topicની માહિતી ઉપલબ્ધ નથી.</p>';
+
+  window.lessonCourseFilter=course;
+  window.lessonSubjectFilter=subject;
+  window.lessonChapterFilter=activeTopic;
+}
+function selectLessonCourse(course){
+  window.lessonCourseFilter=String(course||'');
+  window.lessonSubjectFilter='';
+  window.lessonChapterFilter='';
+  renderStudentLessons();
 }
 function selectLessonSubjectByName(subject){
- window.lessonSubjectFilter=String(subject||'');
- window.lessonChapterFilter='';
- window.lessonSwadhyayFilter='';
- renderStudentLessons();
+  window.lessonSubjectFilter=String(subject||'');
+  window.lessonChapterFilter='';
+  renderStudentLessons();
+}
+function selectLessonTopicByName(topic){
+  window.lessonChapterFilter=String(topic||'');
+  renderStudentLessons();
 }
 function selectLessonChapterByName(chapter){
- window.lessonChapterFilter=String(chapter||'');
- window.lessonSwadhyayFilter='';
- renderStudentLessons();
-}
-function selectLessonSwadhyayById(id){
- window.lessonSwadhyayFilter=String(id||'');
- window.lessonChapterFilter='';
- renderStudentLessons();
+  selectLessonTopicByName(chapter);
 }
 function clearLessonSubFilter(){
- window.lessonChapterFilter='';
- window.lessonSwadhyayFilter='';
- renderStudentLessons();
+  window.lessonChapterFilter='';
+  renderStudentLessons();
 }
+function filterLessonSubject(s){selectLessonSubjectByName(s);}
+function filterLessonSwadhyay(id){selectLessonTopicByName(id);}
+function filterLessonChapter(c){selectLessonTopicByName(c);}
+
 function filterLessonSubject(s){selectLessonSubjectByName(s);}
 function filterLessonSwadhyay(id){selectLessonSwadhyayById(id);}
 function filterLessonChapter(c){selectLessonChapterByName(c);}
-function openTestPdf(url){
-  if(!url)return;
-  try{
-    const w=window.open();
-    if(w){w.location.href=url;return;}
-  }catch(e){}
-  const a=document.createElement('a');
-  a.href=url;
-  a.target='_blank';
-  a.rel='noopener';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-}
-
 function renderStudentPDFs(){
  if(!currentStudent)return;
  const q=(document.getElementById('pdfSearch')?.value||'').trim().toLowerCase();
@@ -1713,6 +1726,24 @@ function showTests(m){
    </div>`;
  }).join('')||`<p class="muted">${m} માર્ક્સની PDF ટેસ્ટ ઉપલબ્ધ નથી.</p>`;
 }
+function downloadPDFFile(id){
+ const t=tests[id]; if(!t)return;
+ const url=t.url||t.pdfUrl;
+ if(!url){alert('PDF ઉપલબ્ધ નથી.');return;}
+ const filename=t.fileName||((t.title||'Test')+'.pdf');
+ try{
+   const a=document.createElement('a');
+   a.href=url;
+   a.download=filename;
+   a.target='_blank';
+   document.body.appendChild(a);
+   a.click();
+   a.remove();
+ }catch(e){
+   window.open(url,'_blank');
+ }
+}
+
 function renderProgress(){
  if(!currentStudent || !document.getElementById('studentProgress'))return;
  const v=getViewed(), totalL=Object.keys(lessons).length, totalP=Object.keys(tests).length;
@@ -1768,8 +1799,8 @@ installPWAHelpers(); registerOfflineWorker(); initFirebase();
   </div>
   <button type="button" id="nsl-teacher-bio" style="width:100%;margin-top:10px;background:#eaf1ff;color:#173b72">👆 Fingerprint Login</button>
   <div id="nsl-teacher-bio-msg" class="muted" style="margin-top:8px">પહેલી વાર Password Login પછી Settingsમાં Fingerprint Setup કરો.</div>
-  </div>
  </div>
+</div>
 </div>
 
 <script id="nirmala-native-biometric-js">
@@ -1963,22 +1994,4 @@ installPWAHelpers(); registerOfflineWorker(); initFirebase();
  window.addEventListener('load',hideTeacherReset);
 })();
 </script>
-
-<script id="nirmala-test-pdf-button-fix">
-document.addEventListener('DOMContentLoaded',function(){
-  var b=document.getElementById('pdfPublishBtn');
-  if(b){
-    b.type='button';
-    b.addEventListener('click',function(e){
-      e.preventDefault();
-      if(typeof window.uploadAndPublishPDF==='function'){
-        window.uploadAndPublishPDF();
-      }else if(typeof uploadAndPublishPDF==='function'){
-        uploadAndPublishPDF();
-      }
-    });
-  }
-});
-</script>
-
 </body></html>
