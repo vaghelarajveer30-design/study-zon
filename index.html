@@ -67,6 +67,45 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #ccd5e2;border-ra
 #nsl-forgot.show{display:flex!important}
 #nsl-teacher-login #nsl-forgot{display:none!important}
 </style>
+
+<script>
+/* NIRMLA STUDY ZON - Student PDF -> Chrome */
+function openInChromePDF(url){
+    if(!url){
+        alert('PDF ઉપલબ્ધ નથી.');
+        return;
+    }
+
+    // Do NOT use intent:// because it caused "Item not found" in the wrapper.
+    try{
+        const chromeUrl =
+            'googlechrome://navigate?url=' +
+            encodeURIComponent(url);
+
+        window.location.href = chromeUrl;
+        return;
+    }catch(e){}
+
+    // Fallback for Android devices where the Chrome scheme is unavailable.
+    try{
+        const a=document.createElement('a');
+        a.href=url;
+        a.target='_blank';
+        a.rel='external noopener noreferrer';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        return;
+    }catch(e){}
+
+    try{
+        window.location.href=url;
+    }catch(e){
+        alert('Browserમાં PDF ખોલી શકાયું નથી.');
+    }
+}
+</script>
+
 </head>
 <body>
 <header><div><b>📚 NIRMLA STUDY ZON</b></div><div id="headerUser"></div></header>
@@ -574,30 +613,7 @@ function openOfflineOrOnlinePDF(id){
  if(!t){alert('PDF ઉપલબ્ધ નથી.');return;}
  const url=t.url||t.pdfUrl;
  if(!url){alert('PDF URL ઉપલબ્ધ નથી.');return;}
-
- // Try Android's external browser intent first.
- try{
-   const u=new URL(url);
-   const intent =
-     'intent://' + u.host + u.pathname + u.search +
-     '#Intent;scheme=https;action=android.intent.action.VIEW;end';
-   window.location.href=intent;
-   return;
- }catch(e){}
-
- // Fallback for wrappers that don't accept intent://.
- try{
-   const a=document.createElement('a');
-   a.href=url;
-   a.target='_blank';
-   a.rel='external noopener noreferrer';
-   document.body.appendChild(a);
-   a.click();
-   a.remove();
- }catch(e){
-   try{window.location.href=url;}
-   catch(err){alert('Browserમાં PDF ખોલી શકાયું નથી.');}
- }
+ openInChromePDF(url);
 }
 async function saveLessonOffline(id, silent=false){
  const l=lessons[id]; if(!l || !l.content){if(!silent)alert('Lesson ફાઇલ ઉપલબ્ધ નથી.');return false}
@@ -628,28 +644,7 @@ function openOfflineOrOnlineLesson(id){
  const url=l.content;
  if(!url){alert('આ Lesson માટે PDF ઉપલબ્ધ નથી.');return;}
  markViewed('lessons',id);
-
- try{
-   const u=new URL(url);
-   const intent =
-     'intent://' + u.host + u.pathname + u.search +
-     '#Intent;scheme=https;action=android.intent.action.VIEW;end';
-   window.location.href=intent;
-   return;
- }catch(e){}
-
- try{
-   const a=document.createElement('a');
-   a.href=url;
-   a.target='_blank';
-   a.rel='external noopener noreferrer';
-   document.body.appendChild(a);
-   a.click();
-   a.remove();
- }catch(e){
-   try{window.location.href=url;}
-   catch(err){alert('Browserમાં PDF ખોલી શકાયું નથી.');}
- }
+ openInChromePDF(url);
 }
 async function downloadLessonFile(id){
  const l=lessons[id];
@@ -657,45 +652,13 @@ async function downloadLessonFile(id){
    alert('આ Lesson માટે PDF ઉપલબ્ધ નથી.');
    return;
  }
-
  markViewed('lessons',id);
 
  const url=String(l.content);
 
- // Open in Android's external browser first.
- // Chrome/default browser can then use its normal PDF Download button.
- try{
-   const u=new URL(url);
-   const intent =
-     'intent://' + u.host + u.pathname + u.search +
-     '#Intent;scheme=https;action=android.intent.action.VIEW;end';
-   window.location.href=intent;
-   return;
- }catch(e){}
-
- // Fallback: standard external link.
- try{
-   const a=document.createElement('a');
-   a.href=url;
-   a.target='_blank';
-   a.rel='external noopener noreferrer';
-   document.body.appendChild(a);
-   a.click();
-   a.remove();
-   return;
- }catch(e){}
-
- // Last fallback: normal download attempt.
- try{
-   const a=document.createElement('a');
-   a.href=url;
-   a.download=((l.fileName||l.title||'Lesson').replace(/[^a-zA-Z0-9._-]/g,'_')||'Lesson')+'.pdf';
-   document.body.appendChild(a);
-   a.click();
-   a.remove();
- }catch(e){
-   alert('PDF Browserમાં ખોલી શકાયું નથી.');
- }
+ // Open the ORIGINAL Firebase PDF URL in Chrome. Chrome will then provide
+ // its normal PDF Download control.
+ openInChromePDF(url);
 }
 async function saveAllLessonsOffline(){
  const list=Object.entries(lessons||{}).filter(([id,l])=>l && l.content && l.type!=='text');
