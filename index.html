@@ -606,10 +606,47 @@ function openOfflineOrOnlineLesson(id){
  if(l.type==='text'){markViewed('lessons',id);return;}
  const url=l.content;if(!url){alert('આ Lesson માટે PDF ફાઇલ ઉપલબ્ધ નથી.');return;}
  markViewed('lessons',id);
+ // Open a tab immediately on the click, then load cached/online PDF into it.
+ let viewer=null;
+ try{viewer=window.open('about:blank','_blank');}catch(e){viewer=null;}
  (async function(){
-  try{if('caches' in window){const cache=await caches.open('nirmala-lessons-v1');const cached=await cache.match(url);if(cached){const blob=await cached.blob();const localUrl=URL.createObjectURL(blob);const w=window.open(localUrl,'_blank');if(w)return;window.location.href=localUrl;return;}}}catch(e){console.warn('Lesson cache open failed',e);}
-  try{const w=window.open(url,'_blank');if(!w)window.location.href=url;}catch(e){window.location.href=url;}
+  try{
+   if('caches' in window){
+    const cache=await caches.open('nirmala-lessons-v1');
+    const cached=await cache.match(url);
+    if(cached){
+     const blob=await cached.blob();
+     const localUrl=URL.createObjectURL(blob);
+     if(viewer){viewer.location.href=localUrl;return;}
+     window.location.href=localUrl;return;
+    }
+   }
+  }catch(e){console.warn('Lesson cache open failed',e);}
+  try{
+   if(viewer){viewer.location.href=url;return;}
+   window.location.href=url;
+  }catch(e){window.location.href=url;}
  })();
+}
+async function downloadLessonFile(id){
+ const l=lessons[id];if(!l||l.type!=='pdf'||!l.content){alert('આ Lesson માટે PDF ફાઇલ ઉપલબ્ધ નથી.');return;}
+ markViewed('lessons',id);
+ const filename=(l.fileName||l.title||'Lesson').replace(/[^a-zA-Z0-9._-]/g,'_').replace(/\.pdf$/i,'')+'.pdf';
+ // data: URLs can be downloaded directly.
+ if(String(l.content).startsWith('data:')){
+  const a=document.createElement('a');a.href=l.content;a.download=filename;document.body.appendChild(a);a.click();a.remove();return;
+ }
+ try{
+  const response=await fetch(l.content,{mode:'cors'});
+  if(!response.ok)throw new Error('PDF download failed');
+  const blob=await response.blob();
+  const blobUrl=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=blobUrl;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(blobUrl),15000);
+ }catch(e){
+  console.warn('Direct PDF download failed; opening PDF instead.',e);
+  openOfflineOrOnlineLesson(id);
+ }
 }
 async function saveAllLessonsOffline(){
  const list=Object.entries(lessons||{}).filter(([id,l])=>l && l.content && l.type!=='text');
@@ -957,6 +994,7 @@ function restoreStudentSession(){
     if(hu)hu.textContent='👨‍🎓 '+(currentStudent.name||'');
     if(typeof studentSection==='function')studentSection('noticesSection');
     if(typeof renderStudent==='function')renderStudent();
+    enableStudentNotifications();
     return true;
   }catch(e){
     clearStudentSession();
@@ -1032,6 +1070,8 @@ async function setStudentApproval(id,status){
  const updated={...s,approved:normalized==='approved',approvalStatus:normalized,active:true,approvalUpdatedAt:new Date().toISOString()};
  try{
   await dataSet('students',id,updated);
+  if(normalized==='approved') await createStudentNotification('approval','✅ Registration Approved','Teacherએ તમારી Student Registration approve કરી છે. હવે તમે Login કરી શકો છો.',id);
+  else if(normalized==='rejected') await createStudentNotification('approval','❌ Registration Rejected','Teacherએ તમારી Student Registration reject કરી છે.',id);
   if(currentStudent&&String(currentStudent.id)===String(id)&&normalized!=='approved')studentLogout();
   alert(normalized==='approved'?'✅ Student Approval આપી દીધી.':normalized==='rejected'?'❌ Student Approval Reject કરી દીધી.':'⏳ Approval Pending રાખી.');
   renderTeacherStudents();renderTeacher();
@@ -1105,6 +1145,7 @@ async function saveQuestionBank(){
      date:new Date().toLocaleString('gu-IN'),
      active:true
    });
+   await createStudentNotification('question','📝 નવા પ્રશ્નો ઉપલબ્ધ છે',course+' → '+subject+' → '+title+' માં નવી માહિતી/પ્રશ્નો મૂકવામાં આવ્યા છે.','all');
    document.getElementById('questionCourse').value='';
    document.getElementById('questionSubject').value='';
    document.getElementById('questionTitle').value='';
@@ -1692,7 +1733,7 @@ function renderStudentLessons(){
     if(l.type==='photo'){
       body='<img class="photo-preview" src="'+esc(l.content)+'" alt="Lesson">';
     }else if(l.type==='pdf'){
-      body='<button type="button" onclick="openOfflineOrOnlineLesson(\''+id+'\')">📄 PDF ખોલો / Download</button>';
+      body='<button type="button" onclick="downloadLessonFile(\''+id+'\')">📥 PDF Download</button> <button type="button" class="secondary" onclick="openOfflineOrOnlineLesson(\''+id+'\')">📄 PDF ખોલો</button>';
     }else if(l.type==='link'||l.type==='video'){
       body='<a href="'+esc(l.content)+'" target="_blank" onclick="markViewed(\'lessons\',\''+id+'\')"><button type="button">🔗 '+(l.type==='video'?'Video જુઓ':'Lesson ખોલો')+'</button></a>';
     }else{
