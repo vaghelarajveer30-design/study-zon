@@ -67,48 +67,6 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #ccd5e2;border-ra
 #nsl-forgot.show{display:flex!important}
 #nsl-teacher-login #nsl-forgot{display:none!important}
 </style>
-
-<script>
-/* NIRMLA STUDY ZON - Android/WebView PDF download helper */
-window.NSZDownloadPDF = async function(url, filename){
-  if(!url) return false;
-  filename = filename || 'document.pdf';
-
-  try{
-    const a=document.createElement('a');
-    a.href=url;
-    a.download=filename;
-    a.rel='noopener';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    return true;
-  }catch(e){}
-
-  try{
-    const r=await fetch(url,{mode:'cors',credentials:'omit'});
-    if(!r.ok) throw new Error(r.status);
-    const b=await r.blob();
-    const u=URL.createObjectURL(b);
-    const a=document.createElement('a');
-    a.href=u;
-    a.download=filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(()=>URL.revokeObjectURL(u),60000);
-    return true;
-  }catch(e){}
-
-  try{
-    window.location.assign(url);
-    return true;
-  }catch(e){
-    return false;
-  }
-};
-</script>
-
 </head>
 <body>
 <header><div><b>📚 NIRMLA STUDY ZON</b></div><div id="headerUser"></div></header>
@@ -617,20 +575,29 @@ function openOfflineOrOnlinePDF(id){
  const url=t.url||t.pdfUrl;
  if(!url){alert('PDF URL ઉપલબ્ધ નથી.');return;}
 
- // Direct PDF first.
+ // Try Android's external browser intent first.
+ try{
+   const u=new URL(url);
+   const intent =
+     'intent://' + u.host + u.pathname + u.search +
+     '#Intent;scheme=https;action=android.intent.action.VIEW;end';
+   window.location.href=intent;
+   return;
+ }catch(e){}
+
+ // Fallback for wrappers that don't accept intent://.
  try{
    const a=document.createElement('a');
    a.href=url;
    a.target='_blank';
-   a.rel='noopener noreferrer';
+   a.rel='external noopener noreferrer';
    document.body.appendChild(a);
    a.click();
    a.remove();
-   return;
- }catch(e){}
-
- try{ window.location.assign(url); }
- catch(e){ alert('PDF ખોલી શકાયું નથી.'); }
+ }catch(e){
+   try{window.location.href=url;}
+   catch(err){alert('Browserમાં PDF ખોલી શકાયું નથી.');}
+ }
 }
 async function saveLessonOffline(id, silent=false){
  const l=lessons[id]; if(!l || !l.content){if(!silent)alert('Lesson ફાઇલ ઉપલબ્ધ નથી.');return false}
@@ -663,18 +630,26 @@ function openOfflineOrOnlineLesson(id){
  markViewed('lessons',id);
 
  try{
-   const a=document.createElement('a');
-   a.href=url;
-   a.target='_blank';
-   a.rel='noopener noreferrer';
-   document.body.appendChild(a);
-   a.click();
-   a.remove();
+   const u=new URL(url);
+   const intent =
+     'intent://' + u.host + u.pathname + u.search +
+     '#Intent;scheme=https;action=android.intent.action.VIEW;end';
+   window.location.href=intent;
    return;
  }catch(e){}
 
- try{ window.location.assign(url); }
- catch(e){ alert('PDF ખોલી શકાયું નથી.'); }
+ try{
+   const a=document.createElement('a');
+   a.href=url;
+   a.target='_blank';
+   a.rel='external noopener noreferrer';
+   document.body.appendChild(a);
+   a.click();
+   a.remove();
+ }catch(e){
+   try{window.location.href=url;}
+   catch(err){alert('Browserમાં PDF ખોલી શકાયું નથી.');}
+ }
 }
 async function downloadLessonFile(id){
  const l=lessons[id];
@@ -686,57 +661,40 @@ async function downloadLessonFile(id){
  markViewed('lessons',id);
 
  const url=String(l.content);
- const filename=((l.fileName||l.title||'Lesson')
-   .replace(/[^a-zA-Z0-9._-]/g,'_')
-   .replace(/\.pdf$/i,'') || 'Lesson')+'.pdf';
 
- // Attempt 1: native HTML download.
+ // Open in Android's external browser first.
+ // Chrome/default browser can then use its normal PDF Download button.
+ try{
+   const u=new URL(url);
+   const intent =
+     'intent://' + u.host + u.pathname + u.search +
+     '#Intent;scheme=https;action=android.intent.action.VIEW;end';
+   window.location.href=intent;
+   return;
+ }catch(e){}
+
+ // Fallback: standard external link.
  try{
    const a=document.createElement('a');
    a.href=url;
-   a.download=filename;
-   a.rel='noopener';
+   a.target='_blank';
+   a.rel='external noopener noreferrer';
    document.body.appendChild(a);
    a.click();
    a.remove();
    return;
  }catch(e){}
 
- // Attempt 2: fetch the real PDF and download a Blob.
- try{
-   const r=await fetch(url,{mode:'cors',credentials:'omit'});
-   if(!r.ok) throw new Error('HTTP '+r.status);
-   const blob=await r.blob();
-   const blobUrl=URL.createObjectURL(blob);
-
-   const a=document.createElement('a');
-   a.href=blobUrl;
-   a.download=filename;
-   a.rel='noopener';
-   document.body.appendChild(a);
-   a.click();
-   a.remove();
-
-   setTimeout(()=>URL.revokeObjectURL(blobUrl),60000);
-   return;
- }catch(e){
-   console.log('PDF blob download failed',e);
- }
-
- // Attempt 3: if the wrapper does not implement downloads, open the
- // original PDF URL. This lets Android/browser PDF viewers provide Save/Download.
+ // Last fallback: normal download attempt.
  try{
    const a=document.createElement('a');
    a.href=url;
-   a.target='_blank';
-   a.rel='noopener noreferrer';
+   a.download=((l.fileName||l.title||'Lesson').replace(/[^a-zA-Z0-9._-]/g,'_')||'Lesson')+'.pdf';
    document.body.appendChild(a);
    a.click();
    a.remove();
  }catch(e){
-   try{ window.location.assign(url); }catch(err){
-     alert('PDF download/เปิด શક્ય નથી. Webinato WebView download support જરૂરી છે.');
-   }
+   alert('PDF Browserમાં ખોલી શકાયું નથી.');
  }
 }
 async function saveAllLessonsOffline(){
