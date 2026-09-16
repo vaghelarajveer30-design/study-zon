@@ -340,7 +340,7 @@ Student Registration અને Login માટે એપમાં જ 4 અં�
 <button class="secondary" onclick="exportOfflineContent()">📦 Offline Data Export</button>
 </div>
 <input id="restoreFile" type="file" accept=".json,application/json" style="display:none" onchange="restoreBackup(this.files[0])">
-<div id="backupMsg" class="sync-status"></div><p class="setting-note">નોંધ: PDF Offline Save માટે PDF download browser દ્વારા મંજૂર હોવું જરૂરી છે. PDF Download/Open હવે direct Firebase URL fallback સાથે કામ કરે છે; Offline Save માટે Firebase Storage CORS જરૂરી છે.</p>
+<div id="backupMsg" class="sync-status"></div><p class="setting-note">નોંધ: PDF Offline Save માટે PDF download browser દ્વારા મંજૂર હોવું જરૂરી છે. Firebase Storage પરથી મળેલી PDF સામાન્ય રીતે સારી રીતે cache થઈ શકે છે.</p>
 
 </div>
 
@@ -553,169 +553,52 @@ function exportOfflineContent(){
  a.download='NIRMLA_STUDY_ZON_OFFLINE_DATA.json';document.body.appendChild(a);a.click();a.remove();
  msg('backupMsg','✅ Offline data export થઈ ગયું.');
 }
-function pdfSafeName(name){
-  return String(name || 'NIRMLA_STUDY_ZON_PDF')
-    .replace(/[\\/:*?"<>|]+/g,'_')
-    .replace(/\s+/g,' ')
-    .trim()
-    .replace(/\.pdf$/i,'') + '.pdf';
-}
-
-function pdfUrlWithDownloadName(url, filename){
-  try{
-    const u = new URL(url, location.href);
-    const disposition = 'attachment; filename="' + filename.replace(/"/g,'') + '"';
-    u.searchParams.set('response-content-disposition', disposition);
-    u.searchParams.set('response-content-type', 'application/pdf');
-    return u.toString();
-  }catch(e){
-    return url;
-  }
-}
-
-function openPdfUrl(url, filename){
-  if(!url){ alert('❌ PDF URL ઉપલબ્ધ નથી.'); return; }
-  const name = pdfSafeName(filename || 'NIRMLA_STUDY_ZON_PDF');
-
-  // If the Android WebView has a native download bridge, use it.
-  try{
-    if(window.AndroidDownload && typeof window.AndroidDownload.download==='function'){
-      window.AndroidDownload.download(String(url), String(name));
-      return;
-    }
-  }catch(e){ console.warn('Android download bridge unavailable',e); }
-
-  // Open directly from the user's click. This is more reliable than
-  // fetch()->Blob for Firebase Storage URLs because it does not require CORS.
-  const downloadUrl = pdfUrlWithDownloadName(url, name);
-  let w = null;
-  try{ w = window.open(downloadUrl, '_blank'); }catch(e){ w = null; }
-
-  if(!w){
-    // Popup blocked: navigate the current page to the PDF.
-    try{ location.href = url; }
-    catch(e){ location.assign(url); }
-  }
-}
-
 async function savePDFOffline(id){
-  const t=tests[id];
-  if(!t || !(t.url||t.pdfUrl)){ alert('❌ PDF ઉપલબ્ધ નથી.'); return; }
+ const t=tests[id]; if(!t || !(t.url||t.pdfUrl)){alert('PDF ઉપલબ્ધ નથી.');return}
+ try{
+  if(!('caches' in window)){alert('આ browserમાં Offline PDF Save સપોર્ટ નથી.');return}
   const url=t.url||t.pdfUrl;
-  try{
-    if(!('caches' in window)){
-      alert('❌ આ browserમાં Offline PDF Save સપોર્ટ નથી.');
-      return;
-    }
-    const cache=await caches.open('nirmala-pdfs-v2');
-    const cached=await cache.match(url);
-    if(cached){
-      localStorage.setItem('nirmala_pdf_offline_'+id,'1');
-      alert('✅ PDF પહેલેથી Offline Save છે.');
-      return;
-    }
-
-    // CORS is required for Cache API fetch. If it fails, do not break
-    // normal PDF opening/downloading.
-    const response=await fetch(url,{mode:'cors',credentials:'omit'});
-    if(!response.ok)throw new Error('download failed: '+response.status);
-    await cache.put(url,response.clone());
-    localStorage.setItem('nirmala_pdf_offline_'+id,'1');
-    alert('✅ PDF Offline માટે Save થઈ ગઈ છે.');
-  }catch(e){
-    console.warn('PDF offline cache unavailable:',e);
-    alert('ℹ️ PDF સામાન્ય રીતે Online ખોલી શકાય છે. Offline Save માટે Firebase Storage CORS જરૂરી છે.');
-  }
+  const cache=await caches.open('nirmala-pdfs-v1');
+  const response=await fetch(url,{mode:'cors'});
+  if(!response.ok)throw new Error('download failed');
+  await cache.put(url,response.clone());
+  localStorage.setItem('nirmala_pdf_offline_'+id,'1');
+  alert('✅ PDF Offline માટે Save થઈ ગઈ છે. હવે નેટ વગર પણ ખોલી શકાશે.');
+ }catch(e){
+  console.error(e);
+  alert('❌ PDF Offline Save થઈ નથી. Firebase Storage/CORS અથવા browser permissionને કારણે થઈ શકે છે.');
+ }
 }
-
 function openOfflineOrOnlinePDF(id){
-  const t=tests[id];
-  if(!t)return;
-  const url=t.url||t.pdfUrl;
-  if(!url){ alert('❌ PDF URL ઉપલબ્ધ નથી.'); return; }
+ const t=tests[id];
+ if(!t){alert('PDF ઉપલબ્ધ નથી.');return;}
+ const url=t.url||t.pdfUrl;
+ if(!url){alert('PDF ઉપલબ્ધ નથી.');return;}
 
-  const filename=pdfSafeName(t.fileName||t.title||'NIRMLA_STUDY_ZON_Test');
-  markViewed('pdfs',id);
+ // First try a normal HTTPS PDF link. This is more compatible with Android WebView
+ // than opening a blob/about:blank URL.
+ try{
+   const a=document.createElement('a');
+   a.href=url;
+   a.target='_blank';
+   a.rel='noopener noreferrer';
+   document.body.appendChild(a);
+   a.click();
+   a.remove();
+   return;
+ }catch(e){}
 
-  // First try the already cached PDF.
-  (async function(){
-    try{
-      if('caches' in window){
-        const cache=await caches.open('nirmala-pdfs-v2');
-        const cached=await cache.match(url);
-        if(cached){
-          const blob=await cached.blob();
-          const localUrl=URL.createObjectURL(blob);
-          let w=null;
-          try{w=window.open(localUrl,'_blank');}catch(e){}
-          if(!w)location.href=localUrl;
-          return;
-        }
-      }
-    }catch(e){ console.warn('Cached PDF open failed:',e); }
-
-    // Direct Firebase URL: no CORS fetch, so Chrome/WebView can handle
-    // the PDF natively.
-    openPdfUrl(url,filename);
-  })();
+ // Fallback: use the current WebView.
+ try{ window.location.href=url; }
+ catch(e){ alert('PDF ખોલી શકાયું નથી.'); }
 }
-
-async function downloadPDFRecord(record, id){
-  if(!record){ alert('❌ PDF ઉપલબ્ધ નથી.'); return; }
-  const url=record.url||record.pdfUrl||record.content||record.fileUrl;
-  if(!url){ alert('❌ PDF URL ઉપલબ્ધ નથી.'); return; }
-
-  const filename=pdfSafeName(record.fileName||record.title||('NIRMLA_STUDY_ZON_'+id));
-  markViewed('pdfs',id);
-
-  // Native Android bridge, when present, is the most reliable APK method.
-  try{
-    if(window.AndroidDownload && typeof window.AndroidDownload.download==='function'){
-      window.AndroidDownload.download(String(url),String(filename));
-      return;
-    }
-  }catch(e){ console.warn('Native download bridge failed:',e); }
-
-  // Try a normal browser download first. This works when the Storage URL
-  // permits CORS. If it does not, use a direct attachment URL instead.
-  try{
-    if(String(url).startsWith('data:')){
-      const a=document.createElement('a');
-      a.href=url; a.download=filename;
-      document.body.appendChild(a); a.click(); a.remove();
-      return;
-    }
-
-    const response=await fetch(url,{mode:'cors',credentials:'omit'});
-    if(response.ok){
-      const blob=await response.blob();
-      const blobUrl=URL.createObjectURL(blob);
-      const a=document.createElement('a');
-      a.href=blobUrl; a.download=filename;
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(()=>URL.revokeObjectURL(blobUrl),30000);
-      return;
-    }
-  }catch(e){
-    console.warn('CORS Blob download unavailable; using direct Firebase download:',e);
-  }
-
-  // Important fallback: do NOT fetch the Firebase URL. Let the browser
-  // handle the file directly with Content-Disposition=attachment.
-  openPdfUrl(url,filename);
-}
-
-async function downloadTestPDF(id){
-  return downloadPDFRecord(tests[id],id);
-}
-
 async function saveLessonOffline(id, silent=false){
  const l=lessons[id]; if(!l || !l.content){if(!silent)alert('Lesson ફાઇલ ઉપલબ્ધ નથી.');return false}
  if(l.type==='text'){ localStorage.setItem('nirmala_lesson_offline_'+id,'1'); if(!silent)alert('✅ Text Lesson Offline માટે Save થઈ ગયું છે.'); return true; }
  const url=l.content;
  try{
   if(!('caches' in window))throw new Error('cache unsupported');
-  const cache=await caches.open('nirmala-lessons-v2');
+  const cache=await caches.open('nirmala-lessons-v1');
   const cached=await cache.match(url);
   if(!cached){
     const response=await fetch(url,{mode:'cors'});
@@ -732,51 +615,102 @@ async function saveLessonOffline(id, silent=false){
  }
 }
 function openOfflineOrOnlineLesson(id){
-  const l=lessons[id];
-  if(!l)return;
-  if(l.type==='text'){markViewed('lessons',id);return;}
-  const url=l.content;
-  if(!url){alert('❌ આ Lesson માટે PDF ફાઇલ ઉપલબ્ધ નથી.');return;}
-  markViewed('lessons',id);
-  const filename=pdfSafeName(l.fileName||l.title||'NIRMLA_STUDY_ZON_Lesson');
+ const l=lessons[id];
+ if(!l)return;
+ if(l.type==='text'){markViewed('lessons',id);return;}
+ const url=l.content;
+ if(!url){alert('આ Lesson માટે PDF ફાઇલ ઉપલબ્ધ નથી.');return;}
+ markViewed('lessons',id);
 
-  (async function(){
-    try{
-      if('caches' in window){
-        const cache=await caches.open('nirmala-lessons-v2');
-        const cached=await cache.match(url);
-        if(cached){
-          const blob=await cached.blob();
-          const localUrl=URL.createObjectURL(blob);
-          let w=null;
-          try{w=window.open(localUrl,'_blank');}catch(e){}
-          if(!w)location.href=localUrl;
-          return;
-        }
-      }
-    }catch(e){console.warn('Cached Lesson PDF open failed:',e);}
-    openPdfUrl(url,filename);
-  })();
+ // Direct HTTPS link is the most WebView-compatible method.
+ try{
+   const a=document.createElement('a');
+   a.href=url;
+   a.target='_blank';
+   a.rel='noopener noreferrer';
+   document.body.appendChild(a);
+   a.click();
+   a.remove();
+   return;
+ }catch(e){}
+
+ try{ window.location.href=url; }
+ catch(e){ alert('PDF ખોલી શકાયું નથી.'); }
 }
 async function downloadLessonFile(id){
- const l=lessons[id];if(!l||l.type!=='pdf'||!l.content){alert('આ Lesson માટે PDF ફાઇલ ઉપલબ્ધ નથી.');return;}
+ const l=lessons[id];
+ if(!l||l.type!=='pdf'||!l.content){
+   alert('આ Lesson માટે PDF ફાઇલ ઉપલબ્ધ નથી.');
+   return;
+ }
  markViewed('lessons',id);
- const filename=(l.fileName||l.title||'Lesson').replace(/[^a-zA-Z0-9._-]/g,'_').replace(/\.pdf$/i,'')+'.pdf';
- // data: URLs can be downloaded directly.
- if(String(l.content).startsWith('data:')){
-  const a=document.createElement('a');a.href=l.content;a.download=filename;document.body.appendChild(a);a.click();a.remove();return;
+
+ const filename=((l.fileName||l.title||'Lesson')
+   .replace(/[^a-zA-Z0-9._-]/g,'_')
+   .replace(/\.pdf$/i,'')||'Lesson')+'.pdf';
+
+ const url=String(l.content);
+
+ // data/blob URLs: direct download.
+ if(url.startsWith('data:') || url.startsWith('blob:')){
+   try{
+     const a=document.createElement('a');
+     a.href=url;
+     a.download=filename;
+     a.rel='noopener';
+     document.body.appendChild(a);
+     a.click();
+     a.remove();
+     return;
+   }catch(e){}
  }
+
+ // IMPORTANT for Android WebView: try the original HTTPS URL with download
+ // attribute before fetch/blob. Some WebView wrappers only handle this form.
  try{
-  const response=await fetch(l.content,{mode:'cors'});
-  if(!response.ok)throw new Error('PDF download failed');
-  const blob=await response.blob();
-  const blobUrl=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=blobUrl;a.download=filename;document.body.appendChild(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(blobUrl),15000);
+   const a=document.createElement('a');
+   a.href=url;
+   a.download=filename;
+   a.target='_blank';
+   a.rel='noopener noreferrer';
+   document.body.appendChild(a);
+   a.click();
+   a.remove();
+
+   // Give the WebView a moment. If it does not handle download attributes,
+   // the user can still use the opened PDF's own download control.
+   setTimeout(function(){
+     try{
+       if(document.visibilityState==='visible'){
+         // No forced navigation here; avoid interrupting a successful download.
+       }
+     }catch(e){}
+   },1200);
+   return;
  }catch(e){
-  console.warn('Direct PDF download failed; opening PDF instead.',e);
-  openOfflineOrOnlineLesson(id);
+   console.warn('Direct WebView download attempt failed',e);
  }
+
+ // Browser fallback: fetch the PDF and create a Blob download.
+ try{
+   const response=await fetch(url,{mode:'cors',credentials:'omit'});
+   if(!response.ok)throw new Error('HTTP '+response.status);
+   const blob=await response.blob();
+   const blobUrl=URL.createObjectURL(blob);
+   const a=document.createElement('a');
+   a.href=blobUrl;
+   a.download=filename;
+   document.body.appendChild(a);
+   a.click();
+   a.remove();
+   setTimeout(()=>URL.revokeObjectURL(blobUrl),30000);
+   return;
+ }catch(e){
+   console.warn('Blob PDF download failed; opening PDF.',e);
+ }
+
+ // Final fallback: open the actual Firebase PDF URL.
+ openOfflineOrOnlineLesson(id);
 }
 async function saveAllLessonsOffline(){
  const list=Object.entries(lessons||{}).filter(([id,l])=>l && l.content && l.type!=='text');
