@@ -67,6 +67,48 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #ccd5e2;border-ra
 #nsl-forgot.show{display:flex!important}
 #nsl-teacher-login #nsl-forgot{display:none!important}
 </style>
+
+<script>
+/* NIRMLA STUDY ZON - Android/WebView PDF download helper */
+window.NSZDownloadPDF = async function(url, filename){
+  if(!url) return false;
+  filename = filename || 'document.pdf';
+
+  try{
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=filename;
+    a.rel='noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    return true;
+  }catch(e){}
+
+  try{
+    const r=await fetch(url,{mode:'cors',credentials:'omit'});
+    if(!r.ok) throw new Error(r.status);
+    const b=await r.blob();
+    const u=URL.createObjectURL(b);
+    const a=document.createElement('a');
+    a.href=u;
+    a.download=filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(u),60000);
+    return true;
+  }catch(e){}
+
+  try{
+    window.location.assign(url);
+    return true;
+  }catch(e){
+    return false;
+  }
+};
+</script>
+
 </head>
 <body>
 <header><div><b>📚 NIRMLA STUDY ZON</b></div><div id="headerUser"></div></header>
@@ -573,10 +615,9 @@ function openOfflineOrOnlinePDF(id){
  const t=tests[id];
  if(!t){alert('PDF ઉપલબ્ધ નથી.');return;}
  const url=t.url||t.pdfUrl;
- if(!url){alert('PDF ઉપલબ્ધ નથી.');return;}
+ if(!url){alert('PDF URL ઉપલબ્ધ નથી.');return;}
 
- // First try a normal HTTPS PDF link. This is more compatible with Android WebView
- // than opening a blob/about:blank URL.
+ // Direct PDF first.
  try{
    const a=document.createElement('a');
    a.href=url;
@@ -588,8 +629,7 @@ function openOfflineOrOnlinePDF(id){
    return;
  }catch(e){}
 
- // Fallback: use the current WebView.
- try{ window.location.href=url; }
+ try{ window.location.assign(url); }
  catch(e){ alert('PDF ખોલી શકાયું નથી.'); }
 }
 async function saveLessonOffline(id, silent=false){
@@ -619,10 +659,9 @@ function openOfflineOrOnlineLesson(id){
  if(!l)return;
  if(l.type==='text'){markViewed('lessons',id);return;}
  const url=l.content;
- if(!url){alert('આ Lesson માટે PDF ફાઇલ ઉપલબ્ધ નથી.');return;}
+ if(!url){alert('આ Lesson માટે PDF ઉપલબ્ધ નથી.');return;}
  markViewed('lessons',id);
 
- // Direct HTTPS link is the most WebView-compatible method.
  try{
    const a=document.createElement('a');
    a.href=url;
@@ -634,83 +673,71 @@ function openOfflineOrOnlineLesson(id){
    return;
  }catch(e){}
 
- try{ window.location.href=url; }
+ try{ window.location.assign(url); }
  catch(e){ alert('PDF ખોલી શકાયું નથી.'); }
 }
 async function downloadLessonFile(id){
  const l=lessons[id];
- if(!l||l.type!=='pdf'||!l.content){
-   alert('આ Lesson માટે PDF ફાઇલ ઉપલબ્ધ નથી.');
+ if(!l || l.type!=='pdf' || !l.content){
+   alert('આ Lesson માટે PDF ઉપલબ્ધ નથી.');
    return;
  }
+
  markViewed('lessons',id);
 
+ const url=String(l.content);
  const filename=((l.fileName||l.title||'Lesson')
    .replace(/[^a-zA-Z0-9._-]/g,'_')
-   .replace(/\.pdf$/i,'')||'Lesson')+'.pdf';
+   .replace(/\.pdf$/i,'') || 'Lesson')+'.pdf';
 
- const url=String(l.content);
-
- // data/blob URLs: direct download.
- if(url.startsWith('data:') || url.startsWith('blob:')){
-   try{
-     const a=document.createElement('a');
-     a.href=url;
-     a.download=filename;
-     a.rel='noopener';
-     document.body.appendChild(a);
-     a.click();
-     a.remove();
-     return;
-   }catch(e){}
- }
-
- // IMPORTANT for Android WebView: try the original HTTPS URL with download
- // attribute before fetch/blob. Some WebView wrappers only handle this form.
+ // Attempt 1: native HTML download.
  try{
    const a=document.createElement('a');
    a.href=url;
    a.download=filename;
+   a.rel='noopener';
+   document.body.appendChild(a);
+   a.click();
+   a.remove();
+   return;
+ }catch(e){}
+
+ // Attempt 2: fetch the real PDF and download a Blob.
+ try{
+   const r=await fetch(url,{mode:'cors',credentials:'omit'});
+   if(!r.ok) throw new Error('HTTP '+r.status);
+   const blob=await r.blob();
+   const blobUrl=URL.createObjectURL(blob);
+
+   const a=document.createElement('a');
+   a.href=blobUrl;
+   a.download=filename;
+   a.rel='noopener';
+   document.body.appendChild(a);
+   a.click();
+   a.remove();
+
+   setTimeout(()=>URL.revokeObjectURL(blobUrl),60000);
+   return;
+ }catch(e){
+   console.log('PDF blob download failed',e);
+ }
+
+ // Attempt 3: if the wrapper does not implement downloads, open the
+ // original PDF URL. This lets Android/browser PDF viewers provide Save/Download.
+ try{
+   const a=document.createElement('a');
+   a.href=url;
    a.target='_blank';
    a.rel='noopener noreferrer';
    document.body.appendChild(a);
    a.click();
    a.remove();
-
-   // Give the WebView a moment. If it does not handle download attributes,
-   // the user can still use the opened PDF's own download control.
-   setTimeout(function(){
-     try{
-       if(document.visibilityState==='visible'){
-         // No forced navigation here; avoid interrupting a successful download.
-       }
-     }catch(e){}
-   },1200);
-   return;
  }catch(e){
-   console.warn('Direct WebView download attempt failed',e);
+   try{ window.location.assign(url); }catch(err){
+     alert('PDF download/เปิด શક્ય નથી. Webinato WebView download support જરૂરી છે.');
+   }
  }
-
- // Browser fallback: fetch the PDF and create a Blob download.
- try{
-   const response=await fetch(url,{mode:'cors',credentials:'omit'});
-   if(!response.ok)throw new Error('HTTP '+response.status);
-   const blob=await response.blob();
-   const blobUrl=URL.createObjectURL(blob);
-   const a=document.createElement('a');
-   a.href=blobUrl;
-   a.download=filename;
-   document.body.appendChild(a);
-   a.click();
-   a.remove();
-   setTimeout(()=>URL.revokeObjectURL(blobUrl),30000);
-   return;
- }catch(e){
-   console.warn('Blob PDF download failed; opening PDF.',e);
- }
-
- // Final fallback: open the actual Firebase PDF URL.
- openOfflineOrOnlineLesson(id);
 }
 async function saveAllLessonsOffline(){
  const list=Object.entries(lessons||{}).filter(([id,l])=>l && l.content && l.type!=='text');
