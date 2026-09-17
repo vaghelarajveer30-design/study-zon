@@ -71,38 +71,58 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #ccd5e2;border-ra
 <script>
 /* NIRMLA STUDY ZON - Student PDF -> Chrome */
 function openInChromePDF(url){
-    if(!url){
-        alert('PDF ઉપલબ્ધ નથી.');
-        return;
-    }
+    if(!url){ alert('PDF ઉપલબ્ધ નથી.'); return; }
+    url=String(url);
 
-    // Do NOT use intent:// because it caused "Item not found" in the wrapper.
-    try{
-        const chromeUrl =
-            'googlechrome://navigate?url=' +
-            encodeURIComponent(url);
-
-        window.location.href = chromeUrl;
-        return;
-    }catch(e){}
-
-    // Fallback for Android devices where the Chrome scheme is unavailable.
+    // WebView/Webinato: પહેલા external browser માટે normal URL ખોલો.
     try{
         const a=document.createElement('a');
         a.href=url;
         a.target='_blank';
-        a.rel='external noopener noreferrer';
+        a.rel='noopener noreferrer external';
+        a.style.display='none';
         document.body.appendChild(a);
         a.click();
-        a.remove();
+        setTimeout(()=>{try{a.remove();}catch(e){}},800);
         return;
-    }catch(e){}
+    }catch(e){ console.warn('External link failed',e); }
 
+    // WebViewમાં target=_blank support હોય તો.
     try{
-        window.location.href=url;
-    }catch(e){
-        alert('Browserમાં PDF ખોલી શકાયું નથી.');
-    }
+        const w=window.open(url,'_blank');
+        if(w) return;
+    }catch(e){ console.warn('window.open failed',e); }
+
+    // છેલ્લો fallback: Chrome scheme.
+    try{
+        window.location.href='googlechrome://navigate?url='+encodeURIComponent(url);
+        return;
+    }catch(e){ console.warn('Chrome scheme failed',e); }
+
+    try{ window.location.href=url; }
+    catch(e){ alert('PDF ખોલી શકાયું નથી. Webinatoમાં External Browser/Download ચાલુ કરવું જરૂરી છે.'); }
+}
+
+// Student PDF માટે સીધો download. WebView download block કરે તો external browser fallback.
+async function downloadPDFExternal(url,fileName='NIRMLA_STUDY_ZON.pdf'){
+    if(!url){ alert('PDF ઉપલબ્ધ નથી.'); return; }
+    url=String(url);
+    try{
+        const response=await fetch(url,{mode:'cors',credentials:'omit'});
+        if(response.ok){
+            const blob=await response.blob();
+            const blobUrl=URL.createObjectURL(blob);
+            const a=document.createElement('a');
+            a.href=blobUrl;
+            a.download=fileName || 'NIRMLA_STUDY_ZON.pdf';
+            a.style.display='none';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(()=>{try{a.remove();URL.revokeObjectURL(blobUrl);}catch(e){}},2000);
+            return;
+        }
+    }catch(e){ console.warn('WebView direct PDF download failed',e); }
+    openInChromePDF(url);
 }
 </script>
 
