@@ -424,35 +424,46 @@ Student Registration અને Login માટે એપમાં જ 4 અં�
 
 <!-- =========================================================
      NIRMLA STUDY ZON - OneSignal Push Notification Integration
-     IMPORTANT: Replace YOUR_ONESIGNAL_APP_ID_HERE with your
+     IMPORTANT: Replace 3327926e-5056-47f4-8c6e-b1b17f41e34e with your
      OneSignal App ID. Do NOT put a OneSignal REST API key here.
      ========================================================= -->
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>
-window.NIRMLA_ONESIGNAL_APP_ID = localStorage.getItem('nirmala_onesignal_app_id') || 'YOUR_ONESIGNAL_APP_ID_HERE';
+window.NIRMLA_ONESIGNAL_APP_ID = localStorage.getItem('nirmala_onesignal_app_id') || '3327926e-5056-47f4-8c6e-b1b17f41e34e';
 
 window.NirmalaOneSignal = {
   initialized: false,
 
   async init() {
     try {
-      const appId = String(window.NIRMLA_ONESIGNAL_APP_ID || '').trim();
-      if (!appId || appId === 'YOUR_ONESIGNAL_APP_ID_HERE') {
-        console.warn('OneSignal: App ID is not configured.');
-        return false;
-      }
+      const appId = '3327926e-5056-47f4-8c6e-b1b17f41e34e';
       if (!window.OneSignalDeferred) window.OneSignalDeferred = [];
 
-      await new Promise((resolve) => {
+      return await new Promise((resolve) => {
         window.OneSignalDeferred.push(async function(OneSignal) {
           try {
-            await OneSignal.init({
-              appId: appId,
-              allowLocalhostAsSecureOrigin: true,
-              notifyButton: { enable: false }
-            });
+            if (!OneSignal.__NIRMALA_INITIALIZED__) {
+              await OneSignal.init({
+                appId: appId,
+                notifyButton: { enable: false },
+                allowLocalhostAsSecureOrigin: true
+              });
+              OneSignal.__NIRMALA_INITIALIZED__ = true;
+            }
+
             window.NirmalaOneSignal.initialized = true;
-            try { await OneSignal.Slidedown.promptPush(); } catch(e) {}
+
+            // Explicitly opt-in the current device/subscription where supported.
+            try {
+              if (OneSignal.User &&
+                  OneSignal.User.PushSubscription &&
+                  typeof OneSignal.User.PushSubscription.optIn === 'function') {
+                await OneSignal.User.PushSubscription.optIn();
+              }
+            } catch (e) {
+              console.warn('OneSignal push opt-in:', e);
+            }
+
             resolve(true);
           } catch (e) {
             console.warn('OneSignal init failed:', e);
@@ -460,7 +471,6 @@ window.NirmalaOneSignal = {
           }
         });
       });
-      return window.NirmalaOneSignal.initialized;
     } catch (e) {
       console.warn('OneSignal unavailable:', e);
       return false;
@@ -469,19 +479,18 @@ window.NirmalaOneSignal = {
 
   async requestPermission() {
     try {
-      if (!this.initialized) await this.init();
-      if (window.OneSignalDeferred) {
-        return await new Promise((resolve) => {
-          window.OneSignalDeferred.push(async function(OneSignal) {
-            try {
-              await OneSignal.Notifications.requestPermission();
-              resolve(true);
-            } catch(e) { resolve(false); }
-          });
+      await this.init();
+      return await new Promise((resolve) => {
+        window.OneSignalDeferred.push(async function(OneSignal) {
+          try {
+            await OneSignal.Notifications.requestPermission();
+            resolve(true);
+          } catch(e) { resolve(false); }
         });
-      }
-    } catch(e) {}
-    return false;
+      });
+    } catch(e) {
+      return false;
+    }
   },
 
   async setStudentTags(student) {
@@ -490,19 +499,36 @@ window.NirmalaOneSignal = {
       const id = String(student.id || '');
       const mobile = String(student.mobile || '');
       const course = String(student.course || student.courseName || '');
-      if (window.OneSignalDeferred) {
+
+      window.OneSignalDeferred.push(async function(OneSignal) {
+        try {
+          await OneSignal.User.addTags({
+            role: 'student',
+            student_id: id,
+            mobile: mobile,
+            course: course
+          });
+        } catch(e) {
+          console.warn('OneSignal tags failed:', e);
+        }
+      });
+    } catch(e) {}
+  },
+
+  async getSubscriptionId() {
+    try {
+      await this.init();
+      return await new Promise((resolve) => {
         window.OneSignalDeferred.push(async function(OneSignal) {
           try {
-            await OneSignal.User.addTags({
-              role: 'student',
-              student_id: id,
-              mobile: mobile,
-              course: course
-            });
-          } catch(e) { console.warn('OneSignal tags failed:', e); }
+            const id = OneSignal.User?.PushSubscription?.id || '';
+            resolve(id);
+          } catch(e) { resolve(''); }
         });
-      }
-    } catch(e) {}
+      });
+    } catch(e) {
+      return '';
+    }
   }
 };
 
@@ -565,10 +591,24 @@ async function enableStudentNotifications(){
       await Notification.requestPermission();
     }
   }catch(e){console.warn('Notification permission unavailable',e);}
+
   try{
     if(window.NirmalaOneSignal){
       await window.NirmalaOneSignal.init();
       if(currentStudent) await window.NirmalaOneSignal.setStudentTags(currentStudent);
+
+      const subId = await window.NirmalaOneSignal.getSubscriptionId();
+      if(subId && currentStudent){
+        try{
+          const sid=String(currentStudent.id||'');
+          if(cloudMode && db && sid){
+            await db.ref('studentPushSubscriptions/'+sid).set({
+              oneSignalSubscriptionId: subId,
+              updatedAt: Date.now()
+            });
+          }
+        }catch(e){console.warn('Subscription ID save failed:',e);}
+      }
     }
   }catch(e){console.warn('OneSignal student setup failed:',e);}
 }
@@ -1442,7 +1482,14 @@ function showQuestionTopic(topic){
    ).join('')||'<p class="muted">આ Topic માટે પ્રશ્નોની માહિતી નથી.</p>';
 }
 
-async function sendTeacherNotification(){
+async function nirmalaPushStatus(){
+  const hasOneSignal = !!(window.NirmalaOneSignal && window.NirmalaOneSignal.initialized);
+  const hasNativeOneSignal = !!(window.AndroidNotification && typeof window.AndroidNotification.sendOneSignal==='function');
+  const hasNativeFCM = !!(window.AndroidNotification && typeof window.AndroidNotification.sendFCM==='function');
+  return {oneSignal:hasOneSignal,nativeOneSignal:hasNativeOneSignal,nativeFCM:hasNativeFCM};
+}
+
+function sendTeacherNotification(){
  const title=(document.getElementById('notifyTitle')?.value||'').trim();
  const body=(document.getElementById('notifyBody')?.value||'').trim();
  const target=(document.getElementById('notifyTarget')?.value||'all').trim();
@@ -1487,10 +1534,42 @@ function populateNotificationTargets(){
 
 async function notifyTeacherUpload(type,title,body,target='all'){
   try{
+    // Always keep the in-app/Firebase notification record.
     await createStudentNotification(type,title,body,target);
-  }catch(e){console.warn('Upload notification failed:',e);}
+
+    // If the AppMint native bridge provides a secure OneSignal/FCM sender,
+    // use it automatically for background push notifications.
+    if(window.AndroidNotification){
+      try{
+        if(typeof window.AndroidNotification.sendOneSignal==='function'){
+          await window.AndroidNotification.sendOneSignal(
+            String(title||'NIRMLA STUDY ZON'),
+            String(body||''),
+            String(target||'all')
+          );
+        }else if(typeof window.AndroidNotification.sendFCM==='function'){
+          window.AndroidNotification.sendFCM(
+            String(title||'NIRMLA STUDY ZON'),
+            String(body||''),
+            String(target||'all')
+          );
+        }
+      }catch(e){
+        console.warn('Native push sender unavailable:',e);
+      }
+    }
+  }catch(e){
+    console.warn('Upload notification failed:',e);
+  }
 }
-function addNotice(){const text=document.getElementById('noticeText').value.trim();if(!text)return;const id='n_'+Date.now();dataSet('notices',id,{text,date:new Date().toLocaleString('gu-IN'),important:true}).then(()=>createStudentNotification('notice','📢 નવી માહિતી / Notice',text,'all'));document.getElementById('noticeText').value='';}
+function addNotice(){
+ const text=document.getElementById('noticeText').value.trim();
+ if(!text)return;
+ const id='n_'+Date.now();
+ dataSet('notices',id,{text,date:new Date().toLocaleString('gu-IN'),important:true})
+   .then(()=>notifyTeacherUpload('notice','📢 નવી માહિતી / Notice',text,'all'));
+ document.getElementById('noticeText').value='';
+}
 function toggleLessonUpload(){
  const type=document.getElementById('lessonType')?.value||'text';
  const wrap=document.getElementById('lessonFileWrap');
