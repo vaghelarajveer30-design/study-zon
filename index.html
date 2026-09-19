@@ -1908,9 +1908,32 @@ installPWAHelpers(); registerOfflineWorker(); initFirebase();
 <script id="nirmala-teacher-biometric-js">
 (function(){
   const KEY='nirmala_teacher_biometric_enabled';
+  const API=()=>window.WebToApk;
 
-  function isAppMintBiometric(){
-    return !!(window.WebToApk && typeof window.WebToApk.authenticateBiometricEx==='function');
+  function nativeReady(){
+    return !!(API() && typeof API().authenticateBiometric==='function');
+  }
+
+  function availabilityMessage(status){
+    const m={
+      no_hardware:'આ ફોનમાં Fingerprint/Face biometric hardware નથી.',
+      not_enrolled:'ફોનમાં Fingerprint/Face સેટ થયેલ નથી. પહેલા Android Settings માં biometric ઉમેરો.',
+      none_enrolled:'ફોનમાં Fingerprint/Face સેટ થયેલ નથી. પહેલા Android Settings માં biometric ઉમેરો.',
+      unavailable:'AppMint biometric હાલમાં ઉપલબ્ધ નથી. AppMint માં Fingerprint permission ON કરીને APK ફરી Build કરો.',
+      hw_unavailable:'Biometric hardware હાલમાં ઉપલબ્ધ નથી.',
+      permission_missing:'AppMint APKમાં Fingerprint permission ચાલુ નથી. AppMint Settings → Fingerprint ON કરીને APK ફરી Build કરો.'
+    };
+    return m[status] || ('Biometric ઉપલબ્ધ નથી. Status: '+status);
+  }
+
+  function checkAvailable(cb){
+    if(!API() || typeof API().isBiometricAvailable!=='function'){
+      cb(false,'unavailable'); return;
+    }
+    try{
+      const status=API().isBiometricAvailable();
+      cb(status==='available',status);
+    }catch(e){ cb(false,'unavailable'); }
   }
 
   function openTeacherDashboard(){
@@ -1927,66 +1950,55 @@ installPWAHelpers(); registerOfflineWorker(); initFirebase();
     }catch(e){ console.error(e); }
   }
 
-  function enableBiometric(){
-    if(!isAppMintBiometric()){
-      alert('આ AppMint APKમાં Native Fingerprint/Face bridge ઉપલબ્ધ નથી. AppMint Settingsમાં Fingerprint ON કરીને APK ફરી Build કરો.');
+  function runBiometric(callbackId,title,subtitle,description,onOk){
+    if(!nativeReady()){
+      alert('આ APKમાં AppMint Native Fingerprint/Face bridge મળ્યો નથી. AppMint Settings → Fingerprint ON કરીને APK ફરી Build કરો.');
       return;
     }
-    window.__webToApkAuth = window.__webToApkAuth || {};
-    window.__webToApkAuth['teacherSetup'] = function(json){
+    checkAvailable(function(ok,status){
+      if(!ok){ alert(availabilityMessage(status)); return; }
+      window.__webToApkAuth=window.__webToApkAuth||{};
+      window.__webToApkAuth[callbackId]=function(json){
+        try{
+          var r=JSON.parse(json);
+          if(r.ok){ onOk(); }
+          else{
+            var err=r.error||'user_cancel';
+            if(err!=='user_cancel') alert('Fingerprint/Face verification પૂર્ણ થયું નથી.
+કારણ: '+err+'
+
+Password Login ચાલુ રહેશે.');
+          }
+        }catch(e){ alert('Biometric response સમજાઈ નથી. Password Login ચાલુ રહેશે.'); }
+      };
       try{
-        var r=JSON.parse(json);
-        if(r.ok){
-          localStorage.setItem(KEY,'1');
-          alert('✅ Teacher Fingerprint/Face Unlock ચાલુ થઈ ગયું. હવે Teacher Loginમાં biometric button વાપરી શકો.');
-        }else{
-          alert('Fingerprint/Face setup પૂર્ણ થયું નથી. Password Login ચાલુ રહેશે.');
-        }
+        API().authenticateBiometric(callbackId,title,subtitle);
       }catch(e){
-        alert('Biometric setupમાં સમસ્યા આવી. Password Login ચાલુ રહેશે.');
+        alert('Biometric શરૂ થઈ શક્યું નથી. Password Login ચાલુ રહેશે.');
       }
-    };
-    window.WebToApk.authenticateBiometricEx('teacherSetup', JSON.stringify({
-      title:'Teacher Biometric Setup',
-      subtitle:'NIRMLA STUDY ZON Teacher',
-      description:'Fingerprint અથવા Face થી Teacher Login ચાલુ કરો',
-      negativeButtonText:'Cancel',
-      allowDeviceCredential:false
-    }));
+    });
+  }
+
+  function enableBiometric(){
+    runBiometric('teacherSetup','Teacher Biometric Setup','NIRMLA STUDY ZON Teacher','Fingerprint / Face',function(){
+      localStorage.setItem(KEY,'1');
+      alert('✅ Teacher Fingerprint / Face Unlock સેટ થઈ ગયું. હવે Teacher Loginમાં biometric button વાપરી શકો.');
+    });
   }
 
   function biometricLogin(){
     if(localStorage.getItem(KEY)!=='1'){
-      alert('પહેલા Teacher Login ID/Passwordથી Login કરો અને Teacher Settingsમાં Fingerprint/Face Setup કરો.');
+      alert('પહેલા Teacher ID/Passwordથી Login કરો અને Teacher Settingsમાં Fingerprint / Face Setup કરો.');
       return;
     }
-    if(!isAppMintBiometric()){
-      alert('આ AppMint APKમાં Native Fingerprint/Face bridge ઉપલબ્ધ નથી. Password Login વાપરો.');
-      return;
-    }
-    window.__webToApkAuth = window.__webToApkAuth || {};
-    window.__webToApkAuth['teacherUnlock'] = function(json){
-      try{
-        var r=JSON.parse(json);
-        if(r.ok){ openTeacherDashboard(); }
-        else{ alert('Fingerprint/Face verification નિષ્ફળ થયું. Password Login વાપરો.'); }
-      }catch(e){
-        alert('Biometric verificationમાં સમસ્યા આવી. Password Login વાપરો.');
-      }
-    };
-    window.WebToApk.authenticateBiometricEx('teacherUnlock', JSON.stringify({
-      title:'Teacher Login',
-      subtitle:'NIRMLA STUDY ZON',
-      description:'Teacher Dashboard ખોલવા Fingerprint અથવા Face વાપરો',
-      negativeButtonText:'Password Login',
-      allowDeviceCredential:false
-    }));
+    runBiometric('teacherUnlock','Teacher Login','NIRMLA STUDY ZON','Teacher Dashboard',function(){
+      openTeacherDashboard();
+    });
   }
 
   function wire(){
     var b=document.getElementById('nsl-teacher-bio');
     if(b) b.onclick=biometricLogin;
-
     var settings=document.getElementById('settingsTeacherSection');
     if(settings && !document.getElementById('teacherBiometricSetup')){
       var btn=document.createElement('button');
@@ -1998,9 +2010,7 @@ installPWAHelpers(); registerOfflineWorker(); initFirebase();
       settings.insertBefore(btn,settings.firstChild);
     }
   }
-
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',wire);
-  else wire();
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',wire); else wire();
 })();
 </script>
 <script id="nirmala-login-fix-js">
