@@ -152,7 +152,7 @@ async function downloadPDFExternal(url,fileName='NIRMLA_STUDY_ZON.pdf'){
   <button type="button" onclick="verifyStudentOTP()">✅ OTP Verify કરીને Login</button>
 </div>
 
-<div id="studentMsg"></div><div class="muted" style="margin-top:8px">🔔 Notification માટે APKમાં FCM native bridge સેટ થયેલો હોવો જરૂરી છે.</div>
+<div id="studentMsg"></div>
 <hr>
 <button type="button" class="secondary" onclick="openStudentRegistration()">📝 Student Registration</button>
 </section>
@@ -184,7 +184,7 @@ async function downloadPDFExternal(url,fileName='NIRMLA_STUDY_ZON.pdf'){
 <section id="studentHome" class="hidden">
 <div class="card"><h2>👨‍🎓 Student Dashboard</h2><span id="studentWelcome" class="badge"></span>
 <span id="connectionStatus" class="offline-badge">📡 તપાસી રહ્યું છે...</span>
-<div class="top-actions" style="float:right;display:flex;gap:6px;flex-wrap:wrap"><button class="secondary" type="button" onclick="refreshApp()">🔄 Refresh</button><button class="danger" type="button" onclick="exitApp()">🚪 Exit</button></div></div>
+<button class="secondary" style="float:right" onclick="studentLogout()">Logout</button></div>
 
 <div class="section-buttons">
 <button onclick="studentSection('noticesSection')">📢 Notice Board <span id="noticeCountBadge"></span></button>
@@ -225,7 +225,7 @@ async function downloadPDFExternal(url,fileName='NIRMLA_STUDY_ZON.pdf'){
 <section id="teacherHome" class="hidden">
 
 <div class="card"><h2>👨‍🏫 Teacher Dashboard</h2><span id="teacherWelcome" class="badge"></span>
-<div class="top-actions" style="float:right;display:flex;gap:6px;flex-wrap:wrap"><button class="secondary" type="button" onclick="refreshApp()">🔄 Refresh</button><button class="danger" type="button" onclick="exitApp()">🚪 Exit</button></div></div>
+<button class="secondary" style="float:right" onclick="teacherLogout()">Logout</button></div>
 
 <div class="section-buttons teacher-nav">
 <button onclick="teacherSection('studentsSection')">👨‍🎓 Students</button>
@@ -373,7 +373,7 @@ Student Registration અને Login માટે એપમાં જ 4 અં�
 <div id="teacherBiometricStatus" class="sync-status" style="margin-top:8px"></div>
 </div>
 <h3>🔔 Notifications</h3>
-<p class="setting-note">Teacher અહીંથી notification મોકલી શકે છે. <b>દરેક Notice, Lesson, પ્રશ્ન બેંક અને Personal upload પછી notification record તરત Firebaseમાં લખાશે.</b> Firebaseમાં notification record સાચવાશે અને વિદ્યાર્થી એપ ખોલે/foregroundમાં આવે ત્યારે બતાવાશે. <b>એપ સંપૂર્ણ બંધ હોય ત્યારે સાચી push notification માટે Android APKમાં FCM native integration જરૂરી રહેશે.</b></p>
+<p class="setting-note">Teacher અહીંથી notification મોકલી શકે છે. Firebaseમાં notification record સાચવાશે અને વિદ્યાર્થી એપ ખોલે/foregroundમાં આવે ત્યારે બતાવાશે. <b>એપ સંપૂર્ણ બંધ હોય ત્યારે સાચી push notification માટે Android APKમાં FCM native integration જરૂરી રહેશે.</b></p>
 <div class="grid">
 <input id="notifyTitle" placeholder="Notification Title">
 <input id="notifyBody" placeholder="Notification Message">
@@ -421,6 +421,97 @@ Student Registration અને Login માટે એપમાં જ 4 અં�
 <button class="secondary" onclick="closeTeacherLogin()">બંધ કરો</button>
 <div id="teacherMsg"></div>
 </div></div>
+
+<!-- =========================================================
+     NIRMLA STUDY ZON - OneSignal Push Notification Integration
+     IMPORTANT: Replace YOUR_ONESIGNAL_APP_ID_HERE with your
+     OneSignal App ID. Do NOT put a OneSignal REST API key here.
+     ========================================================= -->
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+window.NIRMLA_ONESIGNAL_APP_ID = localStorage.getItem('nirmala_onesignal_app_id') || 'YOUR_ONESIGNAL_APP_ID_HERE';
+
+window.NirmalaOneSignal = {
+  initialized: false,
+
+  async init() {
+    try {
+      const appId = String(window.NIRMLA_ONESIGNAL_APP_ID || '').trim();
+      if (!appId || appId === 'YOUR_ONESIGNAL_APP_ID_HERE') {
+        console.warn('OneSignal: App ID is not configured.');
+        return false;
+      }
+      if (!window.OneSignalDeferred) window.OneSignalDeferred = [];
+
+      await new Promise((resolve) => {
+        window.OneSignalDeferred.push(async function(OneSignal) {
+          try {
+            await OneSignal.init({
+              appId: appId,
+              allowLocalhostAsSecureOrigin: true,
+              notifyButton: { enable: false }
+            });
+            window.NirmalaOneSignal.initialized = true;
+            try { await OneSignal.Slidedown.promptPush(); } catch(e) {}
+            resolve(true);
+          } catch (e) {
+            console.warn('OneSignal init failed:', e);
+            resolve(false);
+          }
+        });
+      });
+      return window.NirmalaOneSignal.initialized;
+    } catch (e) {
+      console.warn('OneSignal unavailable:', e);
+      return false;
+    }
+  },
+
+  async requestPermission() {
+    try {
+      if (!this.initialized) await this.init();
+      if (window.OneSignalDeferred) {
+        return await new Promise((resolve) => {
+          window.OneSignalDeferred.push(async function(OneSignal) {
+            try {
+              await OneSignal.Notifications.requestPermission();
+              resolve(true);
+            } catch(e) { resolve(false); }
+          });
+        });
+      }
+    } catch(e) {}
+    return false;
+  },
+
+  async setStudentTags(student) {
+    if (!student) return;
+    try {
+      const id = String(student.id || '');
+      const mobile = String(student.mobile || '');
+      const course = String(student.course || student.courseName || '');
+      if (window.OneSignalDeferred) {
+        window.OneSignalDeferred.push(async function(OneSignal) {
+          try {
+            await OneSignal.User.addTags({
+              role: 'student',
+              student_id: id,
+              mobile: mobile,
+              course: course
+            });
+          } catch(e) { console.warn('OneSignal tags failed:', e); }
+        });
+      }
+    } catch(e) {}
+  }
+};
+
+window.addEventListener('load', function() {
+  setTimeout(function() {
+    if (window.NirmalaOneSignal) window.NirmalaOneSignal.init();
+  }, 1200);
+});
+</script>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js">
 document.addEventListener('DOMContentLoaded',function(){
@@ -474,6 +565,12 @@ async function enableStudentNotifications(){
       await Notification.requestPermission();
     }
   }catch(e){console.warn('Notification permission unavailable',e);}
+  try{
+    if(window.NirmalaOneSignal){
+      await window.NirmalaOneSignal.init();
+      if(currentStudent) await window.NirmalaOneSignal.setStudentTags(currentStudent);
+    }
+  }catch(e){console.warn('OneSignal student setup failed:',e);}
 }
 function studentCanReceiveNotification(n){
   if(!currentStudent||!n)return false;
@@ -495,40 +592,12 @@ function showStudentNotification(title,body){
     }
   }catch(e){console.warn('Student notification failed',e);}
 }
-async function createStudentNotification(type,title,body,targetStudentId='all'){
+function createStudentNotification(type,title,body,targetStudentId='all'){
   const id='push_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
-  const record={
-    type,
-    title:String(title||'NIRMLA STUDY ZON'),
-    body:String(body||''),
-    targetStudentId:String(targetStudentId||'all'),
-    createdAt:Date.now(),
-    priority:'high'
-  };
-
-  // Always save locally first so notification is not lost if cloud is temporarily unavailable.
-  try{
-    const d=localData('notifications');
-    d[id]=record;
-    saveLocalData('notifications',d);
-  }catch(e){ console.warn('Local notification save failed',e); }
-
-  if(cloudMode&&db){
-    try{
-      await db.ref('notifications/'+id).set(record);
-    }catch(e){
-      console.warn('Cloud notification save failed',e);
-    }
-  }
-
-  // Native APK bridge can turn this into a real Android notification.
-  try{
-    if(window.AndroidNotification && typeof window.AndroidNotification.notify==='function'){
-      window.AndroidNotification.notify(record.title,record.body);
-    }
-  }catch(e){}
-
-  return record;
+  const record={type,title:String(title||'NIRMLA STUDY ZON'),body:String(body||''),targetStudentId:String(targetStudentId||'all'),createdAt:Date.now()};
+  if(cloudMode&&db) return db.ref('notifications/'+id).set(record).catch(e=>console.warn('Notification record save failed',e));
+  try{const d=localData('notifications');d[id]=record;saveLocalData('notifications',d);}catch(e){}
+  return Promise.resolve();
 }
 function pollStudentNotifications(){
   if(!cloudMode||!db||!currentStudent)return;
@@ -546,32 +615,14 @@ function pollStudentNotifications(){
 }
 
 function initStudentNotifications(){
-  if(!cloudMode||!db)return;
-  if(notificationListenerReady){
-    // Listener already exists; currentStudent is intentionally read dynamically.
-    pollStudentNotifications();
-    return;
-  }
+  if(notificationListenerReady||!cloudMode||!db)return;
   notificationListenerReady=true;
   notificationStartedAt=Date.now();
-
   db.ref('notifications').on('child_added',snap=>{
     const n=snap.val()||{};
-    const created=Number(n.createdAt||0);
-    if(created<=notificationStartedAt)return;
-
-    if(studentCanReceiveNotification(n)){
-      showStudentNotification(n.title,n.body);
-      try{
-        localStorage.setItem(
-          'nirmala_last_notification_'+String(currentStudent.id||''),
-          String(created)
-        );
-      }catch(e){}
-    }
+    if(Number(n.createdAt||0)<=notificationStartedAt)return;
+    if(studentCanReceiveNotification(n)){showStudentNotification(n.title,n.body); try{localStorage.setItem('nirmala_last_notification_'+String(currentStudent.id||''),String(Number(n.createdAt||Date.now())))}catch(e){}}
   });
-
-  pollStudentNotifications();
 }
 
 
@@ -812,6 +863,23 @@ function isFavorite(type,id){
  const key='nirmala_favorites_'+String(currentStudent?.name||'').toLowerCase();
  try{const f=JSON.parse(localStorage.getItem(key)||'{}');return !!(f[type]&&f[type][id])}catch(e){return false}
 }
+function saveOneSignalAppId(){
+  const el=document.getElementById('oneSignalAppIdInput');
+  const id=(el?.value||'').trim();
+  if(!id){
+    msg('oneSignalMsg','❌ OneSignal App ID નાખો.');
+    return;
+  }
+  localStorage.setItem('nirmala_onesignal_app_id',id);
+  window.NIRMLA_ONESIGNAL_APP_ID=id;
+  msg('oneSignalMsg','✅ OneSignal App ID સેવ થઈ. App reload થઈ રહી છે...');
+  setTimeout(()=>location.reload(),700);
+}
+function loadOneSignalAppIdForm(){
+  const el=document.getElementById('oneSignalAppIdInput');
+  if(el) el.value=localStorage.getItem('nirmala_onesignal_app_id') || '';
+}
+
 function saveFirebaseConfig(){
  const c={
   apiKey:document.getElementById('fbApiKey').value.trim(),
@@ -1020,58 +1088,6 @@ async function verifyRegistrationOTP(){
  }
 }
 
-
-/* ===== NIRMLA APP CONTROLS ===== */
-function refreshApp(){
-  try{
-    // Preserve the current login/session; reload only the app UI/data.
-    location.reload();
-  }catch(e){
-    try{ window.location.href=window.location.href; }catch(_){}
-  }
-}
-
-function exitApp(){
-  // Native Android WebView bridge: the APK can close itself cleanly.
-  try{
-    if(window.AndroidApp && typeof window.AndroidApp.exitApp==='function'){
-      window.AndroidApp.exitApp();
-      return;
-    }
-  }catch(e){ console.warn('AndroidApp.exitApp unavailable',e); }
-
-  try{
-    if(window.Android && typeof window.Android.exitApp==='function'){
-      window.Android.exitApp();
-      return;
-    }
-  }catch(e){ console.warn('Android.exitApp unavailable',e); }
-
-  // Browser fallback: browsers normally do not allow JS to close an ordinary tab.
-  try{
-    window.open('','_self');
-    window.close();
-  }catch(e){}
-
-  setTimeout(()=>{
-    alert('🚪 એપ બંધ કરવા માટે Android APKમાં Exit bridge જરૂરી છે. Browserમાં સુરક્ષા કારણે tab બંધ થઈ શકતું નથી.');
-  },250);
-}
-
-/* Ask the native APK to register this device for FCM, when the APK bridge exists. */
-async function registerNativePush(){
-  try{
-    if(window.AndroidNotification && typeof window.AndroidNotification.requestPushPermission==='function'){
-      await window.AndroidNotification.requestPushPermission();
-    }
-    if(window.AndroidNotification && typeof window.AndroidNotification.registerFCM==='function'){
-      await window.AndroidNotification.registerFCM();
-    }
-  }catch(e){
-    console.warn('Native push registration unavailable:',e);
-  }
-}
-
 function studentLogout(){
  clearStudentSession();
  try{ if(window.firebase && firebase.auth) firebase.auth().signOut(); }catch(e){}
@@ -1131,9 +1147,6 @@ function restoreStudentSession(){
     if(typeof studentSection==='function')studentSection('noticesSection');
     if(typeof renderStudent==='function')renderStudent();
     enableStudentNotifications();
-    registerNativePush();
-    initStudentNotifications();
-    pollStudentNotifications();
     return true;
   }catch(e){
     clearStudentSession();
@@ -1261,7 +1274,6 @@ async function addStudent(){
  const id='s_'+Date.now();
  try{
    await dataSet('students',id,{name,fatherName,schoolName,address,mobile,active:true,approved:true,approvalStatus:'approved',source:'teacher',registeredAt:new Date().toISOString()});
-   await createStudentNotification('student','👤 નવો Student Account તૈયાર','Teacherએ તમારું Student Account તૈયાર કર્યું છે.',id);
    ['newStudentName','newStudentFather','newStudentSchool','newStudentMobile','newStudentAddress'].forEach(x=>{const e=document.getElementById(x);if(e)e.value='';});
    alert('✅ Student સફળતાપૂર્વક ઉમેરાયો.');
    hideTeacherAddStudent();
@@ -1435,15 +1447,37 @@ async function sendTeacherNotification(){
  const body=(document.getElementById('notifyBody')?.value||'').trim();
  const target=(document.getElementById('notifyTarget')?.value||'all').trim();
  if(!title||!body){msg('notifyMsg','❌ Title અને Message બંને લખો.');return;}
+
  try{
+   // 1) Existing Firebase in-app notification record.
    await createStudentNotification('teacher',title,body,target);
+
+   // 2) Existing native Android/FCM bridge, when supplied by the APK builder.
    if(window.AndroidNotification && typeof window.AndroidNotification.sendFCM==='function'){
-     try{window.AndroidNotification.sendFCM(title,body,target);}catch(e){console.warn('Native FCM bridge unavailable',e);}
+     try{
+       window.AndroidNotification.sendFCM(title,body,target);
+     }catch(e){console.warn('Native FCM bridge unavailable',e);}
    }
+
+   // 3) OneSignal: initialize and keep the current target information on the user.
+   // IMPORTANT: Actual push sending must be done by OneSignal Dashboard or a
+   // secure server/Edge Function. Never put a OneSignal REST API key in HTML.
+   if(window.NirmalaOneSignal){
+     try{
+       await window.NirmalaOneSignal.init();
+       if(target !== 'all' && students && students[target]){
+         await window.NirmalaOneSignal.setStudentTags({...students[target],id:target});
+       }
+     }catch(e){console.warn('OneSignal notification setup failed:',e);}
+   }
+
    document.getElementById('notifyTitle').value='';
    document.getElementById('notifyBody').value='';
-   msg('notifyMsg','✅ Notification સફળતાપૂર્વક મોકલાઈ ગઈ.');
- }catch(e){console.error(e);msg('notifyMsg','❌ Notification મોકલી શકાઈ નથી.');}
+   msg('notifyMsg','✅ Notification record/push setup સફળ થયું.');
+ }catch(e){
+   console.error(e);
+   msg('notifyMsg','❌ Notification મોકલી શકાઈ નથી.');
+ }
 }
 function populateNotificationTargets(){
  const el=document.getElementById('notifyTarget'); if(!el)return;
@@ -1641,13 +1675,6 @@ async function setLessonRelease(id){
  }
  try{
    await dataSet('lessons',id,{...item,hidden:ts>0,releaseAt:ts});
-   if(ts>0){
-     await createStudentNotification('lesson_scheduled','⏰ નવી Lesson Scheduled',
-       String(item.title||'નવી Lesson')+' આપેલા સમયે વિદ્યાર્થીઓને દેખાશે.','all');
-   }else{
-     await createStudentNotification('lesson','📚 Lesson હવે ઉપલબ્ધ છે',
-       String(item.title||'નવી Lesson')+' હવે વિદ્યાર્થીઓ માટે ઉપલબ્ધ છે.','all');
-   }
    alert(ts?'✅ Lesson Hide રાખ્યું છે. આપેલા સમય પછી વિદ્યાર્થીને દેખાશે.':'✅ Lessonનો સમય દૂર કર્યો.');
    renderTeacher();
    if(currentStudent)renderStudent();
@@ -2229,5 +2256,10 @@ installPWAHelpers(); registerOfflineWorker(); initFirebase();
  document.addEventListener('DOMContentLoaded',hideTeacherReset);
  window.addEventListener('load',hideTeacherReset);
 })();
+</script>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  try{ loadOneSignalAppIdForm(); }catch(e){}
+});
 </script>
 </body></html>
