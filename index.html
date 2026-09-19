@@ -1897,6 +1897,7 @@ installPWAHelpers(); registerOfflineWorker(); initFirebase();
   <input id="nsl-teacher-pass" type="password" placeholder="Password" autocomplete="current-password">
   <div class="nsl-row">
    <button type="button" class="nsl-main" id="nsl-teacher-submit">🔐 Password Login</button>
+   <button type="button" class="nsl-main" id="nsl-teacher-bio" style="margin-top:8px;background:#2e7d32">🖐️ Fingerprint / Face Unlock</button>
    <button type="button" class="nsl-cancel" id="nsl-teacher-cancel">બંધ કરો</button>
   </div>
  </div>
@@ -1904,6 +1905,52 @@ installPWAHelpers(); registerOfflineWorker(); initFirebase();
 </div>
 
 
+<script id="nirmala-teacher-biometric-js">
+(function(){
+  const KEY='nirmala_teacher_biometric_credential';
+  function b64url(bytes){let s='';for(const b of new Uint8Array(bytes))s+=String.fromCharCode(b);return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
+  function fromB64url(str){str=str.replace(/-/g,'+').replace(/_/g,'/');while(str.length%4)str+='=';const s=atob(str);const a=new Uint8Array(s.length);for(let i=0;i<s.length;i++)a[i]=s.charCodeAt(i);return a;}
+  function supported(){return !!(window.PublicKeyCredential && navigator.credentials && window.isSecureContext);}
+  async function registerBiometric(){
+    if(!supported()){alert('આ APK/WebViewમાં Fingerprint/Face Unlock ઉપલબ્ધ નથી. AppMintમાં Fingerprint permission ON રાખો.');return;}
+    const c=JSON.parse(localStorage.getItem(KEY)||'null');
+    if(c){alert('Teacher biometric પહેલેથી સેટ છે.');return;}
+    const challenge=crypto.getRandomValues(new Uint8Array(32));
+    try{
+      const cred=await navigator.credentials.create({publicKey:{challenge,rp:{name:'NIRMLA STUDY ZON',id:location.hostname},user:{id:crypto.getRandomValues(new Uint8Array(16)),name:'teacher',displayName:'NIRMLA STUDY ZON Teacher'},pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required'},timeout:60000,attestation:'none'}});
+      if(!cred)throw new Error('No credential');
+      localStorage.setItem(KEY,JSON.stringify({id:b64url(cred.rawId),createdAt:Date.now()}));
+      alert('✅ Teacher Fingerprint/Face Unlock સેટ થઈ ગયું. હવે Teacher Loginમાં biometric button વાપરી શકો.');
+    }catch(e){console.error(e);alert('Fingerprint/Face setup રદ થયું અથવા આ APKમાં biometric WebAuthn સપોર્ટ નથી. Password Login ચાલુ રહેશે.');}
+  }
+  async function biometricLogin(){
+    if(!supported()){alert('આ APK/WebViewમાં Fingerprint/Face Unlock ઉપલબ્ધ નથી. Password Login વાપરો.');return;}
+    const c=JSON.parse(localStorage.getItem(KEY)||'null');
+    if(!c){alert('પહેલા Teacher Settingsમાં biometric setup કરવું પડશે. પહેલા Password Login કરો.');return;}
+    try{
+      const cred=await navigator.credentials.get({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),allowCredentials:[{type:'public-key',id:fromB64url(c.id)}],userVerification:'required',timeout:60000}});
+      if(cred){
+        const sl=document.getElementById('studentLogin');if(sl)sl.classList.add('hidden');
+        const th=document.getElementById('teacherHome');if(th){th.classList.remove('hidden');th.style.display='block';}
+        const hu=document.getElementById('headerUser');if(hu)hu.textContent='👨‍🏫 Teacher';
+        try{closeTeacherLogin();}catch(e){}
+        try{if(typeof teacherSection==='function')teacherSection('studentsSection')}catch(e){}
+        try{if(typeof renderTeacher==='function')renderTeacher()}catch(e){}
+      }
+    }catch(e){console.error(e);alert('Biometric verification નિષ્ફળ થયું. Password Login વાપરો.');}
+  }
+  function wire(){
+    const b=document.getElementById('nsl-teacher-bio');if(b)b.onclick=biometricLogin;
+    // Add setup button inside Teacher Settings, visible only after Teacher login.
+    const settings=document.getElementById('settingsTeacherSection');
+    if(settings && !document.getElementById('teacherBiometricSetup')){
+      const btn=document.createElement('button');btn.id='teacherBiometricSetup';btn.type='button';btn.textContent='🖐️ Teacher Fingerprint / Face Setup';btn.style.marginTop='10px';btn.onclick=registerBiometric;
+      settings.insertBefore(btn,settings.firstChild);
+    }
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wire);else wire();
+})();
+</script>
 <script id="nirmala-login-fix-js">
 (function(){
  function byId(x){return document.getElementById(x)}
