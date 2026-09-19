@@ -1907,21 +1907,22 @@ installPWAHelpers(); registerOfflineWorker(); initFirebase();
 
 <script id="nirmala-teacher-biometric-js">
 (function(){
-  const KEY='nirmala_teacher_biometric_enabled';
   const API=()=>window.WebToApk;
 
   function nativeReady(){
-    return !!(API() && typeof API().authenticateBiometric==='function');
+    return !!(API() && typeof API().authenticateBiometricEx==='function');
   }
 
   function availabilityMessage(status){
     const m={
       no_hardware:'આ ફોનમાં Fingerprint/Face biometric hardware નથી.',
-      not_enrolled:'ફોનમાં Fingerprint/Face સેટ થયેલ નથી. પહેલા Android Settings માં biometric ઉમેરો.',
-      none_enrolled:'ફોનમાં Fingerprint/Face સેટ થયેલ નથી. પહેલા Android Settings માં biometric ઉમેરો.',
-      unavailable:'AppMint biometric હાલમાં ઉપલબ્ધ નથી. AppMint માં Fingerprint permission ON કરીને APK ફરી Build કરો.',
+      not_enrolled:'ફોનમાં Fingerprint/Face સેટ થયેલ નથી. પહેલા ફોનની Android Settings માં biometric ઉમેરો.',
+      none_enrolled:'ફોનમાં Fingerprint/Face સેટ થયેલ નથી. પહેલા ફોનની Android Settings માં biometric ઉમેરો.',
+      unavailable:'આ APKમાં Native biometric હાલમાં ઉપલબ્ધ નથી. નવી APK AppMintમાંથી Build કરો.',
       hw_unavailable:'Biometric hardware હાલમાં ઉપલબ્ધ નથી.',
-      permission_missing:'AppMint APKમાં Fingerprint permission ચાલુ નથી. AppMint Settings → Fingerprint ON કરીને APK ફરી Build કરો.'
+      lockout:'Fingerprint/Face ઘણી વાર ખોટું હોવાથી biometric થોડા સમય માટે lock છે.',
+      lockout_permanent:'Biometric permanently lock છે. ફોનનું screen lock/password ઉપયોગ કરીને ફરી biometric સેટ કરો.',
+      permission_missing:'આ APKમાં biometric permission ઉપલબ્ધ નથી.'
     };
     return m[status] || ('Biometric ઉપલબ્ધ નથી. Status: '+status);
   }
@@ -1950,66 +1951,55 @@ installPWAHelpers(); registerOfflineWorker(); initFirebase();
     }catch(e){ console.error(e); }
   }
 
-  function runBiometric(callbackId,title,subtitle,description,onOk){
+  function biometricLogin(){
     if(!nativeReady()){
-      alert('આ APKમાં AppMint Native Fingerprint/Face bridge મળ્યો નથી. AppMint Settings → Fingerprint ON કરીને APK ફરી Build કરો.');
+      alert('આ APKમાં Native Fingerprint/Face support નથી. AppMintમાં biometric support ધરાવતી નવી APK Build કરો. Password Login ચાલુ રહેશે.');
       return;
     }
     checkAvailable(function(ok,status){
       if(!ok){ alert(availabilityMessage(status)); return; }
+
       window.__webToApkAuth=window.__webToApkAuth||{};
-      window.__webToApkAuth[callbackId]=function(json){
+      window.__webToApkAuth['teacherUnlock']=function(json){
         try{
           var r=JSON.parse(json);
-          if(r.ok){ onOk(); }
-          else{
+          if(r.ok){
+            openTeacherDashboard();
+          }else{
             var err=r.error||'user_cancel';
-            if(err!=='user_cancel') alert('Fingerprint/Face verification પૂર્ણ થયું નથી.
-કારણ: '+err+'
-
-Password Login ચાલુ રહેશે.');
+            if(err!=='user_cancel'){
+              alert('Fingerprint/Face verification પૂર્ણ થયું નથી.\nકારણ: '+err+'\n\nPassword Login ચાલુ રહેશે.');
+            }
           }
-        }catch(e){ alert('Biometric response સમજાઈ નથી. Password Login ચાલુ રહેશે.'); }
+        }catch(e){
+          alert('Biometric response સમજાઈ નથી. Password Login ચાલુ રહેશે.');
+        }
       };
+
       try{
-        API().authenticateBiometric(callbackId,title,subtitle);
+        API().authenticateBiometricEx('teacherUnlock', JSON.stringify({
+          title:'Teacher Login',
+          subtitle:'NIRMLA STUDY ZON',
+          description:'Fingerprint / Face થી Teacher Dashboard ખોલો',
+          negativeButtonText:'Password Login',
+          allowDeviceCredential:false,
+          strong:false
+        }));
       }catch(e){
         alert('Biometric શરૂ થઈ શક્યું નથી. Password Login ચાલુ રહેશે.');
       }
     });
   }
 
-  function enableBiometric(){
-    runBiometric('teacherSetup','Teacher Biometric Setup','NIRMLA STUDY ZON Teacher','Fingerprint / Face',function(){
-      localStorage.setItem(KEY,'1');
-      alert('✅ Teacher Fingerprint / Face Unlock સેટ થઈ ગયું. હવે Teacher Loginમાં biometric button વાપરી શકો.');
-    });
-  }
-
-  function biometricLogin(){
-    if(localStorage.getItem(KEY)!=='1'){
-      alert('પહેલા Teacher ID/Passwordથી Login કરો અને Teacher Settingsમાં Fingerprint / Face Setup કરો.');
-      return;
-    }
-    runBiometric('teacherUnlock','Teacher Login','NIRMLA STUDY ZON','Teacher Dashboard',function(){
-      openTeacherDashboard();
-    });
-  }
-
   function wire(){
     var b=document.getElementById('nsl-teacher-bio');
     if(b) b.onclick=biometricLogin;
-    var settings=document.getElementById('settingsTeacherSection');
-    if(settings && !document.getElementById('teacherBiometricSetup')){
-      var btn=document.createElement('button');
-      btn.id='teacherBiometricSetup';
-      btn.type='button';
-      btn.textContent='🖐️ Teacher Fingerprint / Face Setup';
-      btn.style.marginTop='10px';
-      btn.onclick=enableBiometric;
-      settings.insertBefore(btn,settings.firstChild);
-    }
+
+    // જૂનું Fingerprint/Face Setup button દૂર કરો — હવે setup કરવાની જરૂર નથી.
+    var old=document.getElementById('teacherBiometricSetup');
+    if(old) old.remove();
   }
+
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',wire); else wire();
 })();
 </script>
