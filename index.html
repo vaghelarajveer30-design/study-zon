@@ -366,6 +366,12 @@ Student Registration અને Login માટે એપમાં જ 4 અં�
 <button onclick="saveTeacherCredentials()">💾 ID / Password Save કરો</button>
 <div id="credentialMsg"></div>
 <hr style="border:0;border-top:1px solid #e5e7eb;margin:16px 0">
+<div id="teacherBiometricSettings" class="card" style="margin:14px 0;padding:16px;border:1px solid #dbe3ef;background:#f8fbff">
+<h3 style="margin-top:0">🖐️ Teacher Fingerprint / Face</h3>
+<p class="muted">Teacher માટે ફોનનું Fingerprint અથવા Face Unlock વાપરી શકાય છે. Student Login પર તેનો કોઈ અસર નહીં થાય.</p>
+<button type="button" onclick="window.nirmalaTeacherBiometricLogin && window.nirmalaTeacherBiometricLogin()">🖐️ Fingerprint / Face ચેક કરો</button>
+<div id="teacherBiometricStatus" class="sync-status" style="margin-top:8px"></div>
+</div>
 <h3>🔔 Notifications</h3>
 <p class="setting-note">Teacher અહીંથી notification મોકલી શકે છે. Firebaseમાં notification record સાચવાશે અને વિદ્યાર્થી એપ ખોલે/foregroundમાં આવે ત્યારે બતાવાશે. <b>એપ સંપૂર્ણ બંધ હોય ત્યારે સાચી push notification માટે Android APKમાં FCM native integration જરૂરી રહેશે.</b></p>
 <div class="grid">
@@ -1990,6 +1996,8 @@ installPWAHelpers(); registerOfflineWorker(); initFirebase();
       }
     });
   }
+
+  window.nirmalaTeacherBiometricLogin=biometricLogin;
 
   function wire(){
     var b=document.getElementById('nsl-teacher-bio');
