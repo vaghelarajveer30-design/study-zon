@@ -521,10 +521,24 @@ async function createStudentNotification(type,title,body,targetStudentId='all'){
   // 2) Native Android bridge: send an actual FCM/native notification.
   //    This is intentionally kept in the single HTML file. The Android APK
   //    must expose AndroidNotification.sendFCM(title, body, target).
+  // Native notification bridge compatibility:
+  // Older APK: AndroidNotification.sendFCM(...)
+  // Fingerprint/WebToApk APK: WebToApk.sendFCM(...) if exposed there.
   try{
-    const bridge=window.AndroidNotification;
-    if(bridge && typeof bridge.sendFCM==='function'){
-      await Promise.resolve(bridge.sendFCM(safeTitle,safeBody,target));
+    const candidates=[
+      window.AndroidNotification,
+      window.WebToApk
+    ];
+    let sent=false;
+    for(const bridge of candidates){
+      if(bridge && typeof bridge.sendFCM==='function'){
+        await Promise.resolve(bridge.sendFCM(safeTitle,safeBody,target));
+        sent=true;
+        break;
+      }
+    }
+    if(!sent){
+      console.warn('No native sendFCM bridge found. AndroidNotification/WebToApk બંનેમાં sendFCM નથી.');
     }
   }catch(e){
     console.warn('Native FCM bridge unavailable/failed:',e);
@@ -532,6 +546,36 @@ async function createStudentNotification(type,title,body,targetStudentId='all'){
 
   return record;
 }
+// Native notification diagnostic/test.
+// It supports both the old AndroidNotification bridge and the newer WebToApk bridge.
+async function testNativeNotification(){
+  const title='🔔 NIRMLA STUDY ZON Test';
+  const body='Fingerprint + Notification bridge ટેસ્ટ.';
+  const candidates=[
+    ['AndroidNotification',window.AndroidNotification],
+    ['WebToApk',window.WebToApk]
+  ];
+  let bridgeName='';
+  let bridge=null;
+  for(const item of candidates){
+    if(item[1] && typeof item[1].sendFCM==='function'){
+      bridgeName=item[0];
+      bridge=item[1];
+      break;
+    }
+  }
+  if(!bridge){
+    alert('❌ APKમાં sendFCM bridge મળ્યો નથી.\n\nFingerprint માટે WebToApk છે, પરંતુ Notification માટે sendFCM native APKમાં ઉમેરવું પડશે.');
+    return;
+  }
+  try{
+    await Promise.resolve(bridge.sendFCM(title,body,'all'));
+    alert('✅ Notification bridge મળ્યો: '+bridgeName+'\n\nTest notification મોકલવાનો call સફળ થયો.');
+  }catch(e){
+    alert('❌ '+bridgeName+'.sendFCM error:\\n'+(e?.message||e));
+  }
+}
+
 function pollStudentNotifications(){
   if(!cloudMode||!db||!currentStudent)return;
   const lastKey='nirmala_last_notification_'+String(currentStudent.id||'');
