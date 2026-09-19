@@ -48,6 +48,14 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #ccd5e2;border-ra
 .personal-list .item{margin-bottom:9px}
 .read-badge{font-size:11px;padding:3px 7px;border-radius:10px;background:#eaf7ea}
 .unread-badge{font-size:11px;padding:3px 7px;border-radius:10px;background:#fff2cc}
+
+.nirmala-secure-viewer{position:fixed;inset:0;background:#10151f;z-index:1000000;display:flex;flex-direction:column}
+.nirmala-secure-viewer.hidden{display:none!important}
+.nirmala-secure-head{height:56px;display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#173b72;color:#fff;gap:10px}
+.nirmala-secure-title{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nirmala-secure-close{background:#fff;color:#173b72;min-width:44px;padding:8px 12px}
+#nirmalaSecureFrame{width:100%;height:calc(100vh - 56px);border:0;background:#fff}
+#nirmalaSecureImage{max-width:100%;max-height:calc(100vh - 80px);object-fit:contain;margin:auto;display:none;user-select:none;-webkit-user-drag:none}
 </style></style>
 
 <style id="teacher-reset-visibility-fix">
@@ -69,65 +77,66 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #ccd5e2;border-ra
 </style>
 
 <script>
-/* NIRMLA STUDY ZON - Student PDF -> Chrome */
-function openInChromePDF(url){
-    if(!url){ alert('PDF ઉપલબ્ધ નથી.'); return; }
-    url=String(url);
+/* NIRMLA STUDY ZON - Secure in-app material viewer */
+function openSecureMaterial(url, type='pdf', title='Material'){
+  if(!url){ alert('ફાઇલ ઉપલબ્ધ નથી.'); return; }
+  url=String(url);
+  const modal=document.getElementById('nirmalaSecureViewer');
+  const frame=document.getElementById('nirmalaSecureFrame');
+  const image=document.getElementById('nirmalaSecureImage');
+  const label=document.getElementById('nirmalaSecureTitle');
+  if(!modal||!frame||!image){ alert('Secure viewer તૈયાર નથી.'); return; }
 
-    // WebView/Webinato: પહેલા external browser માટે normal URL ખોલો.
-    try{
-        const a=document.createElement('a');
-        a.href=url;
-        a.target='_blank';
-        a.rel='noopener noreferrer external';
-        a.style.display='none';
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(()=>{try{a.remove();}catch(e){}},800);
-        return;
-    }catch(e){ console.warn('External link failed',e); }
+  label.textContent='🔐 '+String(title||'Material');
+  frame.style.display='none';
+  image.style.display='none';
+  modal.classList.remove('hidden');
 
-    // WebViewમાં target=_blank support હોય તો.
-    try{
-        const w=window.open(url,'_blank');
-        if(w) return;
-    }catch(e){ console.warn('window.open failed',e); }
+  const isImage = type==='photo' || /^data:image\//i.test(url) || /\.(png|jpe?g|gif|webp)(\?|#|$)/i.test(url);
+  if(isImage){
+    image.onload=function(){ URL.revokeObjectURL(image.dataset.objectUrl||''); image.dataset.objectUrl=''; };
+    image.src=url;
+    image.style.display='block';
+    return;
+  }
 
-    // છેલ્લો fallback: Chrome scheme.
-    try{
-        window.location.href='googlechrome://navigate?url='+encodeURIComponent(url);
-        return;
-    }catch(e){ console.warn('Chrome scheme failed',e); }
-
-    try{ window.location.href=url; }
-    catch(e){ alert('PDF ખોલી શકાયું નથી. Webinatoમાં External Browser/Download ચાલુ કરવું જરૂરી છે.'); }
+  // PDF is opened inside the app in an iframe. No external browser/download fallback.
+  frame.src=url;
+  frame.style.display='block';
 }
-
-// Student PDF માટે સીધો download. WebView download block કરે તો external browser fallback.
+function closeSecureMaterial(){
+  const modal=document.getElementById('nirmalaSecureViewer');
+  const frame=document.getElementById('nirmalaSecureFrame');
+  const image=document.getElementById('nirmalaSecureImage');
+  if(frame) frame.src='about:blank';
+  if(image){ image.src=''; image.dataset.objectUrl=''; }
+  if(modal) modal.classList.add('hidden');
+}
+function openInChromePDF(url){
+  // Backward-compatible name: intentionally stays inside the app now.
+  openSecureMaterial(url,'pdf','PDF');
+}
 async function downloadPDFExternal(url,fileName='NIRMLA_STUDY_ZON.pdf'){
-    if(!url){ alert('PDF ઉપલબ્ધ નથી.'); return; }
-    url=String(url);
-    try{
-        const response=await fetch(url,{mode:'cors',credentials:'omit'});
-        if(response.ok){
-            const blob=await response.blob();
-            const blobUrl=URL.createObjectURL(blob);
-            const a=document.createElement('a');
-            a.href=blobUrl;
-            a.download=fileName || 'NIRMLA_STUDY_ZON.pdf';
-            a.style.display='none';
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(()=>{try{a.remove();URL.revokeObjectURL(blobUrl);}catch(e){}},2000);
-            return;
-        }
-    }catch(e){ console.warn('WebView direct PDF download failed',e); }
-    openInChromePDF(url);
+  // Download is intentionally disabled for student material.
+  openSecureMaterial(url,'pdf',fileName||'PDF');
 }
 </script>
 
 </head>
 <body>
+<div id="nirmalaSecureViewer" class="nirmala-secure-viewer hidden"
+     oncontextmenu="return false" ondragstart="return false">
+  <div class="nirmala-secure-head">
+    <div id="nirmalaSecureTitle" class="nirmala-secure-title">🔐 Material</div>
+    <button type="button" class="nirmala-secure-close" onclick="closeSecureMaterial()">✕ બંધ</button>
+  </div>
+  <iframe id="nirmalaSecureFrame" title="Secure PDF Viewer"
+          sandbox="allow-same-origin allow-scripts"
+          oncontextmenu="return false"></iframe>
+  <img id="nirmalaSecureImage" alt="Secure Material"
+       oncontextmenu="return false" ondragstart="return false">
+</div>
+
 <header><div><b>📚 NIRMLA STUDY ZON</b></div><div id="headerUser"></div></header>
 
 <button class="teacher-icon" title="Teacher Login" onclick="openTeacherLogin()">👨‍🏫</button>
@@ -405,7 +414,7 @@ Student Registration અને Login માટે એપમાં જ 4 અં�
 <button class="secondary" onclick="exportOfflineContent()">📦 Offline Data Export</button>
 </div>
 <input id="restoreFile" type="file" accept=".json,application/json" style="display:none" onchange="restoreBackup(this.files[0])">
-<div id="backupMsg" class="sync-status"></div><p class="setting-note">નોંધ: PDF Offline Save માટે PDF download browser દ્વારા મંજૂર હોવું જરૂરી છે. Firebase Storage પરથી મળેલી PDF સામાન્ય રીતે સારી રીતે cache થઈ શકે છે.</p>
+<div id="backupMsg" class="sync-status"></div><p class="setting-note">નોંધ: Student PDF/Photo હવે એપના Secure Viewerમાં જ ખૂલશે. External browser અથવા direct download button આપવામાં આવતો નથી.</p>
 
 </div>
 
@@ -668,23 +677,15 @@ function openOfflineOrOnlineLesson(id){
  if(!l)return;
  if(l.type==='text'){markViewed('lessons',id);return;}
  const url=l.content;
- if(!url){alert('આ Lesson માટે PDF ઉપલબ્ધ નથી.');return;}
+ if(!url){alert('આ Lesson માટે Material ઉપલબ્ધ નથી.');return;}
  markViewed('lessons',id);
- openInChromePDF(url);
+ openSecureMaterial(url,l.type==='photo'?'photo':'pdf',l.title||'Material');
 }
 async function downloadLessonFile(id){
  const l=lessons[id];
- if(!l || l.type!=='pdf' || !l.content){
-   alert('આ Lesson માટે PDF ઉપલબ્ધ નથી.');
-   return;
- }
+ if(!l || !l.content){ alert('આ Material ઉપલબ્ધ નથી.'); return; }
  markViewed('lessons',id);
-
- const url=String(l.content);
-
- // Open the ORIGINAL Firebase PDF URL in Chrome. Chrome will then provide
- // its normal PDF Download control.
- openInChromePDF(url);
+ openSecureMaterial(l.content,l.type==='photo'?'photo':'pdf',l.title||'Material');
 }
 async function saveAllLessonsOffline(){
  const list=Object.entries(lessons||{}).filter(([id,l])=>l && l.content && l.type!=='text');
@@ -1008,6 +1009,21 @@ function clearStudentSession(){
 }
 function restoreStudentSession(){
   try{
+    // Security rule: a browser/WebView refresh always returns to the login screen.
+    // The verified student session is not restored after a reload.
+    let navType='';
+    try{
+      const nav=performance.getEntriesByType && performance.getEntriesByType('navigation');
+      navType=nav && nav[0] ? String(nav[0].type||'') : '';
+    }catch(e){}
+    const legacyReload = !!(window.performance && window.performance.navigation && window.performance.navigation.type===1);
+    if(navType==='reload' || legacyReload){
+      clearStudentSession();
+      localStorage.removeItem('nirmala_current_student');
+      currentStudent=null;
+      return false;
+    }
+
     const raw=localStorage.getItem('nirmala_student_session');
     if(!raw)return false;
     const sdata=JSON.parse(raw);
@@ -1625,7 +1641,7 @@ function renderStudentPersonal(){
  const box=document.getElementById('studentPersonalList');
  if(!box)return;
  box.innerHTML=list.map(([id,p])=>{
-   const file=p.fileUrl?'<br>📎 <a href="'+esc(p.fileUrl)+'" target="_blank"><button type="button">📄 '+esc(p.fileName||'File')+'</button></a>':'';
+   const file=p.fileUrl?'<br>📎 <button type="button" class="secondary" data-url="'+esc(p.fileUrl)+'" data-title="'+esc(p.fileName||'File')+'" onclick="openSecureMaterial(this.dataset.url,/\.pdf$/i.test(this.dataset.title)?\'pdf\':\'photo\',this.dataset.title)">📄 '+esc(p.fileName||'File')+' એપમાં ખોલો</button>':'';
    const link=p.link?'<br>🔗 <a href="'+esc(p.link)+'" target="_blank"><button type="button">Link ખોલો</button></a>':'';
    const fresh=!p.read;
    return '<div class="item '+(fresh?'nsz-new':'')+'"><b>💬 '+esc(p.title||'Personal')+'</b> '+(fresh?'<span class="nsz-notify-dot">NEW</span>':'')+'<br>'+esc(p.message||'')+file+link+'<br><small>'+esc(p.date||'')+'</small></div>';
@@ -1798,9 +1814,9 @@ function renderStudentLessons(){
     const offline=localStorage.getItem('nirmala_lesson_offline_'+id)==='1';
     let body='';
     if(l.type==='photo'){
-      body='<img class="photo-preview" src="'+esc(l.content)+'" alt="Lesson">';
+      body='<button type="button" class="secondary" onclick="markViewed(\'lessons\',\''+id+'\');openSecureMaterial(this.dataset.url,\'photo\',this.dataset.title)" data-url="'+esc(l.content)+'" data-title="'+esc(l.title||activeTopic)+'">🖼️ Photo એપમાં જુઓ</button>';
     }else if(l.type==='pdf'){
-      body='<button type="button" onclick="downloadLessonFile(\''+id+'\')">📥 PDF Download</button> <button type="button" class="secondary" onclick="openOfflineOrOnlineLesson(\''+id+'\')">📄 PDF ખોલો</button>';
+      body='<button type="button" onclick="markViewed(\'lessons\',\''+id+'\');openSecureMaterial(this.dataset.url,\'pdf\',this.dataset.title)" data-url="'+esc(l.content)+'" data-title="'+esc(l.title||activeTopic)+'">📄 PDF એપમાં ખોલો</button>';
     }else if(l.type==='link'||l.type==='video'){
       body='<a href="'+esc(l.content)+'" target="_blank" onclick="markViewed(\'lessons\',\''+id+'\')"><button type="button">🔗 '+(l.type==='video'?'Video જુઓ':'Lesson ખોલો')+'</button></a>';
     }else{
@@ -2119,6 +2135,31 @@ installPWAHelpers(); registerOfflineWorker(); initFirebase();
  }
  document.addEventListener('DOMContentLoaded',hideTeacherReset);
  window.addEventListener('load',hideTeacherReset);
+})();
+</script>
+
+<script id="nirmala-content-security">
+(function(){
+  function viewerOpen(){
+    var v=document.getElementById('nirmalaSecureViewer');
+    return v && !v.classList.contains('hidden');
+  }
+  document.addEventListener('contextmenu',function(e){
+    if(viewerOpen()) e.preventDefault();
+  },true);
+  document.addEventListener('dragstart',function(e){
+    if(viewerOpen()) e.preventDefault();
+  },true);
+  document.addEventListener('keydown',function(e){
+    if(!viewerOpen()) return;
+    var k=String(e.key||'').toLowerCase();
+    if((e.ctrlKey||e.metaKey) && ['s','p','u','c'].includes(k)){
+      e.preventDefault(); e.stopPropagation();
+    }
+    if(k==='f12' || (e.ctrlKey && e.shiftKey && ['i','j'].includes(k))){
+      e.preventDefault(); e.stopPropagation();
+    }
+  },true);
 })();
 </script>
 </body></html>
