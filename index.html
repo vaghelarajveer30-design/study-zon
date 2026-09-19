@@ -48,14 +48,6 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #ccd5e2;border-ra
 .personal-list .item{margin-bottom:9px}
 .read-badge{font-size:11px;padding:3px 7px;border-radius:10px;background:#eaf7ea}
 .unread-badge{font-size:11px;padding:3px 7px;border-radius:10px;background:#fff2cc}
-
-.nirmala-secure-viewer{position:fixed;inset:0;background:#10151f;z-index:1000000;display:flex;flex-direction:column}
-.nirmala-secure-viewer.hidden{display:none!important}
-.nirmala-secure-head{height:56px;display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#173b72;color:#fff;gap:10px}
-.nirmala-secure-title{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.nirmala-secure-close{background:#fff;color:#173b72;min-width:44px;padding:8px 12px}
-#nirmalaSecureFrame{width:100%;height:calc(100vh - 56px);border:0;background:#fff}
-#nirmalaSecureImage{max-width:100%;max-height:calc(100vh - 80px);object-fit:contain;margin:auto;display:none;user-select:none;-webkit-user-drag:none}
 </style></style>
 
 <style id="teacher-reset-visibility-fix">
@@ -76,67 +68,60 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #ccd5e2;border-ra
 #nsl-teacher-login #nsl-forgot{display:none!important}
 </style>
 
+<style id="nirmala-secure-viewer-css">
+#nirmalaSecureViewer{position:fixed;inset:0;background:#fff;z-index:2000000;display:none;flex-direction:column}
+#nirmalaSecureViewer.show{display:flex!important}
+#nirmalaSecureViewer .nsz-viewer-head{height:58px;background:#173b72;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 10px;flex:0 0 auto}
+#nirmalaSecureViewer .nsz-viewer-title{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-right:8px}
+#nirmalaSecureViewer .nsz-viewer-close{background:#fff;color:#173b72;border-radius:10px;padding:9px 14px;font-weight:700}
+#nirmalaSecureViewer .nsz-viewer-body{position:relative;flex:1;overflow:auto;background:#e9edf3;padding:10px}
+#nirmalaSecureViewer .nsz-pdf-page{display:block;margin:0 auto 12px;background:#fff;box-shadow:0 1px 7px #0002;max-width:100%;height:auto}
+#nirmalaSecureViewer .nsz-viewer-msg{text-align:center;padding:35px 18px;font-weight:700;color:#334155}
+#nirmalaSecureViewer .nsz-viewer-loading{text-align:center;padding:35px 18px;color:#334155}
+</style>
 <script>
-/* NIRMLA STUDY ZON - Secure in-app material viewer */
-function openSecureMaterial(url, type='pdf', title='Material'){
-  if(!url){ alert('ફાઇલ ઉપલબ્ધ નથી.'); return; }
-  url=String(url);
-  const modal=document.getElementById('nirmalaSecureViewer');
-  const frame=document.getElementById('nirmalaSecureFrame');
-  const image=document.getElementById('nirmalaSecureImage');
-  const label=document.getElementById('nirmalaSecureTitle');
-  if(!modal||!frame||!image){ alert('Secure viewer તૈયાર નથી.'); return; }
-
-  label.textContent='🔐 '+String(title||'Material');
-  frame.style.display='none';
-  image.style.display='none';
-  modal.classList.remove('hidden');
-
-  const isImage = type==='photo' || /^data:image\//i.test(url) || /\.(png|jpe?g|gif|webp)(\?|#|$)/i.test(url);
-  if(isImage){
-    image.onload=function(){ URL.revokeObjectURL(image.dataset.objectUrl||''); image.dataset.objectUrl=''; };
-    image.src=url;
-    image.style.display='block';
-    return;
+/* Secure in-app PDF viewer: never opens Chrome and never creates a download link. */
+(function(){
+  let viewer=null,body=null,titleEl=null,pdfScriptPromise=null;
+  function ensureViewer(){
+    if(viewer)return;
+    viewer=document.createElement('div'); viewer.id='nirmalaSecureViewer';
+    viewer.innerHTML='<div class="nsz-viewer-head"><div class="nsz-viewer-title">📄 Material</div><button type="button" class="nsz-viewer-close">✕ બંધ</button></div><div class="nsz-viewer-body"><div class="nsz-viewer-loading">⏳ Material લોડ થઈ રહ્યું છે...</div></div>';
+    document.body.appendChild(viewer); body=viewer.querySelector('.nsz-viewer-body'); titleEl=viewer.querySelector('.nsz-viewer-title');
+    viewer.querySelector('.nsz-viewer-close').addEventListener('click',window.closeSecureViewer);
   }
-
-  // PDF is opened inside the app in an iframe. No external browser/download fallback.
-  frame.src=url;
-  frame.style.display='block';
-}
-function closeSecureMaterial(){
-  const modal=document.getElementById('nirmalaSecureViewer');
-  const frame=document.getElementById('nirmalaSecureFrame');
-  const image=document.getElementById('nirmalaSecureImage');
-  if(frame) frame.src='about:blank';
-  if(image){ image.src=''; image.dataset.objectUrl=''; }
-  if(modal) modal.classList.add('hidden');
-}
-function openInChromePDF(url){
-  // Backward-compatible name: intentionally stays inside the app now.
-  openSecureMaterial(url,'pdf','PDF');
-}
-async function downloadPDFExternal(url,fileName='NIRMLA_STUDY_ZON.pdf'){
-  // Download is intentionally disabled for student material.
-  openSecureMaterial(url,'pdf',fileName||'PDF');
-}
+  function loadPdfJs(){
+    if(window.pdfjsLib)return Promise.resolve(window.pdfjsLib);
+    if(pdfScriptPromise)return pdfScriptPromise;
+    pdfScriptPromise=new Promise((resolve,reject)=>{
+      const sc=document.createElement('script'); sc.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'; sc.async=true;
+      sc.onload=()=>{try{if(!window.pdfjsLib)throw new Error('PDF.js unavailable');window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';resolve(window.pdfjsLib);}catch(e){reject(e)}};
+      sc.onerror=()=>reject(new Error('PDF viewer library load failed')); document.head.appendChild(sc);
+    });
+    return pdfScriptPromise;
+  }
+  async function renderPdf(url,name){
+    ensureViewer(); viewer.classList.add('show'); titleEl.textContent='📄 '+(name||'PDF Material'); body.innerHTML='<div class="nsz-viewer-loading">⏳ PDF એપમાં લોડ થઈ રહ્યું છે...</div>';
+    try{
+      const pdfjs=await loadPdfJs(); const pdf=await pdfjs.getDocument({url:String(url),withCredentials:false}).promise; body.innerHTML='';
+      for(let pageNo=1;pageNo<=pdf.numPages;pageNo++){
+        const page=await pdf.getPage(pageNo); const base=page.getViewport({scale:1}); const maxWidth=Math.max(280,Math.min(window.innerWidth-20,900)); const scale=Math.max(.75,Math.min(2,maxWidth/base.width)); const viewport=page.getViewport({scale});
+        const canvas=document.createElement('canvas'); canvas.className='nsz-pdf-page'; canvas.width=Math.ceil(viewport.width); canvas.height=Math.ceil(viewport.height); body.appendChild(canvas);
+        await page.render({canvasContext:canvas.getContext('2d',{alpha:false}),viewport}).promise;
+      }
+    }catch(e){console.error('Secure PDF viewer error:',e);body.innerHTML='<div class="nsz-viewer-msg">❌ PDF એપમાં ખોલી શકાયું નથી.<br><br>Firebase Storage CORS/Internet permission તપાસો.</div>';}
+  }
+  window.openInChromePDF=function(url,fileName){if(!url){alert('PDF ઉપલબ્ધ નથી.');return;}renderPdf(url,fileName||'PDF Material');};
+  window.openInAppPDF=window.openInChromePDF;
+  window.downloadPDFExternal=function(){alert('🔒 Student માટે PDF Download બંધ છે. PDF માત્ર એપની અંદર જ જોઈ શકાય છે.');};
+  window.closeSecureViewer=function(){if(viewer){viewer.classList.remove('show');if(body)body.innerHTML='';}};
+  document.addEventListener('contextmenu',e=>{if(e.target.closest('#nirmalaSecureViewer'))e.preventDefault();},{capture:true});
+  document.addEventListener('dragstart',e=>{if(e.target.closest('#nirmalaSecureViewer'))e.preventDefault();},{capture:true});
+})();
 </script>
 
 </head>
 <body>
-<div id="nirmalaSecureViewer" class="nirmala-secure-viewer hidden"
-     oncontextmenu="return false" ondragstart="return false">
-  <div class="nirmala-secure-head">
-    <div id="nirmalaSecureTitle" class="nirmala-secure-title">🔐 Material</div>
-    <button type="button" class="nirmala-secure-close" onclick="closeSecureMaterial()">✕ બંધ</button>
-  </div>
-  <iframe id="nirmalaSecureFrame" title="Secure PDF Viewer"
-          sandbox="allow-same-origin allow-scripts"
-          oncontextmenu="return false"></iframe>
-  <img id="nirmalaSecureImage" alt="Secure Material"
-       oncontextmenu="return false" ondragstart="return false">
-</div>
-
 <header><div><b>📚 NIRMLA STUDY ZON</b></div><div id="headerUser"></div></header>
 
 <button class="teacher-icon" title="Teacher Login" onclick="openTeacherLogin()">👨‍🏫</button>
@@ -414,7 +399,7 @@ Student Registration અને Login માટે એપમાં જ 4 અં�
 <button class="secondary" onclick="exportOfflineContent()">📦 Offline Data Export</button>
 </div>
 <input id="restoreFile" type="file" accept=".json,application/json" style="display:none" onchange="restoreBackup(this.files[0])">
-<div id="backupMsg" class="sync-status"></div><p class="setting-note">નોંધ: Student PDF/Photo હવે એપના Secure Viewerમાં જ ખૂલશે. External browser અથવા direct download button આપવામાં આવતો નથી.</p>
+<div id="backupMsg" class="sync-status"></div><p class="setting-note">નોંધ: PDF Offline Save માટે PDF download browser દ્વારા મંજૂર હોવું જરૂરી છે. Firebase Storage પરથી મળેલી PDF સામાન્ય રીતે સારી રીતે cache થઈ શકે છે.</p>
 
 </div>
 
@@ -547,7 +532,7 @@ function updateConnectionStatus(){
  if(navigator.onLine) el.textContent='🟢 Online';
  else el.textContent='🔴 Offline';
 }
-window.addEventListener('online',()=>{updateConnectionStatus(); if(typeof initFirebase==='function') installPWAHelpers(); registerOfflineWorker(); initFirebase();});
+window.addEventListener('online',()=>{updateConnectionStatus(); if(typeof initFirebase==='function') initFirebase();});
 window.addEventListener('offline',updateConnectionStatus);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)pollStudentNotifications();});
 window.addEventListener('focus',()=>pollStudentNotifications());
@@ -677,15 +662,15 @@ function openOfflineOrOnlineLesson(id){
  if(!l)return;
  if(l.type==='text'){markViewed('lessons',id);return;}
  const url=l.content;
- if(!url){alert('આ Lesson માટે Material ઉપલબ્ધ નથી.');return;}
+ if(!url){alert('આ Lesson માટે PDF ઉપલબ્ધ નથી.');return;}
  markViewed('lessons',id);
- openSecureMaterial(url,l.type==='photo'?'photo':'pdf',l.title||'Material');
+ openInAppPDF(url,l.title||'PDF Material');
 }
 async function downloadLessonFile(id){
  const l=lessons[id];
- if(!l || !l.content){ alert('આ Material ઉપલબ્ધ નથી.'); return; }
+ if(!l || l.type!=='pdf' || !l.content){alert('આ Lesson માટે PDF ઉપલબ્ધ નથી.');return;}
  markViewed('lessons',id);
- openSecureMaterial(l.content,l.type==='photo'?'photo':'pdf',l.title||'Material');
+ openInAppPDF(String(l.content),l.title||'PDF Material');
 }
 async function saveAllLessonsOffline(){
  const list=Object.entries(lessons||{}).filter(([id,l])=>l && l.content && l.type!=='text');
@@ -1007,23 +992,18 @@ function saveStudentSession(student){
 function clearStudentSession(){
   localStorage.removeItem('nirmala_student_session');
 }
+function wasPageReload(){
+ try{const nav=performance.getEntriesByType('navigation')[0];return !!(nav && nav.type==='reload');}catch(e){return false;}
+}
+function lockStudentOnRefresh(){
+ if(wasPageReload()){
+   clearStudentSession();
+   try{localStorage.removeItem('nirmala_current_student');}catch(e){}
+ }
+}
+
 function restoreStudentSession(){
   try{
-    // Security rule: a browser/WebView refresh always returns to the login screen.
-    // The verified student session is not restored after a reload.
-    let navType='';
-    try{
-      const nav=performance.getEntriesByType && performance.getEntriesByType('navigation');
-      navType=nav && nav[0] ? String(nav[0].type||'') : '';
-    }catch(e){}
-    const legacyReload = !!(window.performance && window.performance.navigation && window.performance.navigation.type===1);
-    if(navType==='reload' || legacyReload){
-      clearStudentSession();
-      localStorage.removeItem('nirmala_current_student');
-      currentStudent=null;
-      return false;
-    }
-
     const raw=localStorage.getItem('nirmala_student_session');
     if(!raw)return false;
     const sdata=JSON.parse(raw);
@@ -1641,7 +1621,7 @@ function renderStudentPersonal(){
  const box=document.getElementById('studentPersonalList');
  if(!box)return;
  box.innerHTML=list.map(([id,p])=>{
-   const file=p.fileUrl?'<br>📎 <button type="button" class="secondary" data-url="'+esc(p.fileUrl)+'" data-title="'+esc(p.fileName||'File')+'" onclick="openSecureMaterial(this.dataset.url,/\.pdf$/i.test(this.dataset.title)?\'pdf\':\'photo\',this.dataset.title)">📄 '+esc(p.fileName||'File')+' એપમાં ખોલો</button>':'';
+   const file=p.fileUrl?'<br>📎 <a href="'+esc(p.fileUrl)+'" target="_blank"><button type="button">📄 '+esc(p.fileName||'File')+'</button></a>':'';
    const link=p.link?'<br>🔗 <a href="'+esc(p.link)+'" target="_blank"><button type="button">Link ખોલો</button></a>':'';
    const fresh=!p.read;
    return '<div class="item '+(fresh?'nsz-new':'')+'"><b>💬 '+esc(p.title||'Personal')+'</b> '+(fresh?'<span class="nsz-notify-dot">NEW</span>':'')+'<br>'+esc(p.message||'')+file+link+'<br><small>'+esc(p.date||'')+'</small></div>';
@@ -1814,16 +1794,15 @@ function renderStudentLessons(){
     const offline=localStorage.getItem('nirmala_lesson_offline_'+id)==='1';
     let body='';
     if(l.type==='photo'){
-      body='<button type="button" class="secondary" onclick="markViewed(\'lessons\',\''+id+'\');openSecureMaterial(this.dataset.url,\'photo\',this.dataset.title)" data-url="'+esc(l.content)+'" data-title="'+esc(l.title||activeTopic)+'">🖼️ Photo એપમાં જુઓ</button>';
+      body='<img class="photo-preview" src="'+esc(l.content)+'" alt="Lesson">';
     }else if(l.type==='pdf'){
-      body='<button type="button" onclick="markViewed(\'lessons\',\''+id+'\');openSecureMaterial(this.dataset.url,\'pdf\',this.dataset.title)" data-url="'+esc(l.content)+'" data-title="'+esc(l.title||activeTopic)+'">📄 PDF એપમાં ખોલો</button>';
+      body='<button type="button" onclick="openOfflineOrOnlineLesson(\''+id+'\')">📄 PDF એપમાં ખોલો</button>';
     }else if(l.type==='link'||l.type==='video'){
       body='<a href="'+esc(l.content)+'" target="_blank" onclick="markViewed(\'lessons\',\''+id+'\')"><button type="button">🔗 '+(l.type==='video'?'Video જુઓ':'Lesson ખોલો')+'</button></a>';
     }else{
       body='<div style="white-space:pre-wrap;line-height:1.7;margin-top:10px">'+esc(l.content)+'</div>';
     }
-    const offlineBtn=(l.type==='photo'||l.type==='pdf')?
-      '<button type="button" class="secondary" style="margin-top:8px" onclick="saveLessonOffline(\''+id+'\')">'+(offline?'✅ Offline Saved':'📥 Offline Save')+'</button>':'';
+    const offlineBtn='';
     return '<div class="item">'+
       '<button type="button" class="favorite-btn" onclick="toggleFavorite(\'lessons\',\''+id+'\')">'+(fav?'⭐':'☆')+'</button>'+
       '<h4>'+esc(l.title||activeTopic)+'</h4>'+
@@ -1883,7 +1862,7 @@ function renderProgress(){
  if(a)a.innerHTML='<div class="item"><h3>'+ach+'</h3><p class="muted">તમારી Progress આ device પર સાચવાય છે.</p></div>';
 }
 
-installPWAHelpers(); registerOfflineWorker(); initFirebase();
+installPWAHelpers(); registerOfflineWorker(); lockStudentOnRefresh(); initFirebase();
 </script>
 
 <style id="nirmala-login-fix-css">
@@ -2135,31 +2114,6 @@ installPWAHelpers(); registerOfflineWorker(); initFirebase();
  }
  document.addEventListener('DOMContentLoaded',hideTeacherReset);
  window.addEventListener('load',hideTeacherReset);
-})();
-</script>
-
-<script id="nirmala-content-security">
-(function(){
-  function viewerOpen(){
-    var v=document.getElementById('nirmalaSecureViewer');
-    return v && !v.classList.contains('hidden');
-  }
-  document.addEventListener('contextmenu',function(e){
-    if(viewerOpen()) e.preventDefault();
-  },true);
-  document.addEventListener('dragstart',function(e){
-    if(viewerOpen()) e.preventDefault();
-  },true);
-  document.addEventListener('keydown',function(e){
-    if(!viewerOpen()) return;
-    var k=String(e.key||'').toLowerCase();
-    if((e.ctrlKey||e.metaKey) && ['s','p','u','c'].includes(k)){
-      e.preventDefault(); e.stopPropagation();
-    }
-    if(k==='f12' || (e.ctrlKey && e.shiftKey && ['i','j'].includes(k))){
-      e.preventDefault(); e.stopPropagation();
-    }
-  },true);
 })();
 </script>
 </body></html>
