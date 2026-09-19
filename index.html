@@ -68,56 +68,62 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #ccd5e2;border-ra
 #nsl-teacher-login #nsl-forgot{display:none!important}
 </style>
 
-<style id="nirmala-secure-viewer-css">
-#nirmalaSecureViewer{position:fixed;inset:0;background:#fff;z-index:2000000;display:none;flex-direction:column}
-#nirmalaSecureViewer.show{display:flex!important}
-#nirmalaSecureViewer .nsz-viewer-head{height:58px;background:#173b72;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 10px;flex:0 0 auto}
-#nirmalaSecureViewer .nsz-viewer-title{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-right:8px}
-#nirmalaSecureViewer .nsz-viewer-close{background:#fff;color:#173b72;border-radius:10px;padding:9px 14px;font-weight:700}
-#nirmalaSecureViewer .nsz-viewer-body{position:relative;flex:1;overflow:auto;background:#e9edf3;padding:10px}
-#nirmalaSecureViewer .nsz-pdf-page{display:block;margin:0 auto 12px;background:#fff;box-shadow:0 1px 7px #0002;max-width:100%;height:auto}
-#nirmalaSecureViewer .nsz-viewer-msg{text-align:center;padding:35px 18px;font-weight:700;color:#334155}
-#nirmalaSecureViewer .nsz-viewer-loading{text-align:center;padding:35px 18px;color:#334155}
-</style>
 <script>
-/* Secure in-app PDF viewer: never opens Chrome and never creates a download link. */
-(function(){
-  let viewer=null,body=null,titleEl=null,pdfScriptPromise=null;
-  function ensureViewer(){
-    if(viewer)return;
-    viewer=document.createElement('div'); viewer.id='nirmalaSecureViewer';
-    viewer.innerHTML='<div class="nsz-viewer-head"><div class="nsz-viewer-title">📄 Material</div><button type="button" class="nsz-viewer-close">✕ બંધ</button></div><div class="nsz-viewer-body"><div class="nsz-viewer-loading">⏳ Material લોડ થઈ રહ્યું છે...</div></div>';
-    document.body.appendChild(viewer); body=viewer.querySelector('.nsz-viewer-body'); titleEl=viewer.querySelector('.nsz-viewer-title');
-    viewer.querySelector('.nsz-viewer-close').addEventListener('click',window.closeSecureViewer);
-  }
-  function loadPdfJs(){
-    if(window.pdfjsLib)return Promise.resolve(window.pdfjsLib);
-    if(pdfScriptPromise)return pdfScriptPromise;
-    pdfScriptPromise=new Promise((resolve,reject)=>{
-      const sc=document.createElement('script'); sc.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'; sc.async=true;
-      sc.onload=()=>{try{if(!window.pdfjsLib)throw new Error('PDF.js unavailable');window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';resolve(window.pdfjsLib);}catch(e){reject(e)}};
-      sc.onerror=()=>reject(new Error('PDF viewer library load failed')); document.head.appendChild(sc);
-    });
-    return pdfScriptPromise;
-  }
-  async function renderPdf(url,name){
-    ensureViewer(); viewer.classList.add('show'); titleEl.textContent='📄 '+(name||'PDF Material'); body.innerHTML='<div class="nsz-viewer-loading">⏳ PDF એપમાં લોડ થઈ રહ્યું છે...</div>';
+/* NIRMLA STUDY ZON - Student PDF -> Chrome */
+function openInChromePDF(url){
+    if(!url){ alert('PDF ઉપલબ્ધ નથી.'); return; }
+    url=String(url);
+
+    // WebView/Webinato: પહેલા external browser માટે normal URL ખોલો.
     try{
-      const pdfjs=await loadPdfJs(); const pdf=await pdfjs.getDocument({url:String(url),withCredentials:false}).promise; body.innerHTML='';
-      for(let pageNo=1;pageNo<=pdf.numPages;pageNo++){
-        const page=await pdf.getPage(pageNo); const base=page.getViewport({scale:1}); const maxWidth=Math.max(280,Math.min(window.innerWidth-20,900)); const scale=Math.max(.75,Math.min(2,maxWidth/base.width)); const viewport=page.getViewport({scale});
-        const canvas=document.createElement('canvas'); canvas.className='nsz-pdf-page'; canvas.width=Math.ceil(viewport.width); canvas.height=Math.ceil(viewport.height); body.appendChild(canvas);
-        await page.render({canvasContext:canvas.getContext('2d',{alpha:false}),viewport}).promise;
-      }
-    }catch(e){console.error('Secure PDF viewer error:',e);body.innerHTML='<div class="nsz-viewer-msg">❌ PDF એપમાં ખોલી શકાયું નથી.<br><br>Firebase Storage CORS/Internet permission તપાસો.</div>';}
-  }
-  window.openInChromePDF=function(url,fileName){if(!url){alert('PDF ઉપલબ્ધ નથી.');return;}renderPdf(url,fileName||'PDF Material');};
-  window.openInAppPDF=window.openInChromePDF;
-  window.downloadPDFExternal=function(){alert('🔒 Student માટે PDF Download બંધ છે. PDF માત્ર એપની અંદર જ જોઈ શકાય છે.');};
-  window.closeSecureViewer=function(){if(viewer){viewer.classList.remove('show');if(body)body.innerHTML='';}};
-  document.addEventListener('contextmenu',e=>{if(e.target.closest('#nirmalaSecureViewer'))e.preventDefault();},{capture:true});
-  document.addEventListener('dragstart',e=>{if(e.target.closest('#nirmalaSecureViewer'))e.preventDefault();},{capture:true});
-})();
+        const a=document.createElement('a');
+        a.href=url;
+        a.target='_blank';
+        a.rel='noopener noreferrer external';
+        a.style.display='none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(()=>{try{a.remove();}catch(e){}},800);
+        return;
+    }catch(e){ console.warn('External link failed',e); }
+
+    // WebViewમાં target=_blank support હોય તો.
+    try{
+        const w=window.open(url,'_blank');
+        if(w) return;
+    }catch(e){ console.warn('window.open failed',e); }
+
+    // છેલ્લો fallback: Chrome scheme.
+    try{
+        window.location.href='googlechrome://navigate?url='+encodeURIComponent(url);
+        return;
+    }catch(e){ console.warn('Chrome scheme failed',e); }
+
+    try{ window.location.href=url; }
+    catch(e){ alert('PDF ખોલી શકાયું નથી. Webinatoમાં External Browser/Download ચાલુ કરવું જરૂરી છે.'); }
+}
+
+// Student PDF માટે સીધો download. WebView download block કરે તો external browser fallback.
+async function downloadPDFExternal(url,fileName='NIRMLA_STUDY_ZON.pdf'){
+    if(!url){ alert('PDF ઉપલબ્ધ નથી.'); return; }
+    url=String(url);
+    try{
+        const response=await fetch(url,{mode:'cors',credentials:'omit'});
+        if(response.ok){
+            const blob=await response.blob();
+            const blobUrl=URL.createObjectURL(blob);
+            const a=document.createElement('a');
+            a.href=blobUrl;
+            a.download=fileName || 'NIRMLA_STUDY_ZON.pdf';
+            a.style.display='none';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(()=>{try{a.remove();URL.revokeObjectURL(blobUrl);}catch(e){}},2000);
+            return;
+        }
+    }catch(e){ console.warn('WebView direct PDF download failed',e); }
+    openInChromePDF(url);
+}
 </script>
 
 </head>
@@ -146,7 +152,7 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #ccd5e2;border-ra
   <button type="button" onclick="verifyStudentOTP()">✅ OTP Verify કરીને Login</button>
 </div>
 
-<div id="studentMsg"></div>
+<div id="studentMsg"></div><div class="muted" style="margin-top:8px">🔔 Notification માટે APKમાં FCM native bridge સેટ થયેલો હોવો જરૂરી છે.</div>
 <hr>
 <button type="button" class="secondary" onclick="openStudentRegistration()">📝 Student Registration</button>
 </section>
@@ -178,7 +184,7 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #ccd5e2;border-ra
 <section id="studentHome" class="hidden">
 <div class="card"><h2>👨‍🎓 Student Dashboard</h2><span id="studentWelcome" class="badge"></span>
 <span id="connectionStatus" class="offline-badge">📡 તપાસી રહ્યું છે...</span>
-<button class="secondary" style="float:right" onclick="studentLogout()">Logout</button></div>
+<div class="top-actions" style="float:right;display:flex;gap:6px;flex-wrap:wrap"><button class="secondary" type="button" onclick="refreshApp()">🔄 Refresh</button><button class="danger" type="button" onclick="exitApp()">🚪 Exit</button></div></div>
 
 <div class="section-buttons">
 <button onclick="studentSection('noticesSection')">📢 Notice Board <span id="noticeCountBadge"></span></button>
@@ -219,7 +225,7 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #ccd5e2;border-ra
 <section id="teacherHome" class="hidden">
 
 <div class="card"><h2>👨‍🏫 Teacher Dashboard</h2><span id="teacherWelcome" class="badge"></span>
-<button class="secondary" style="float:right" onclick="teacherLogout()">Logout</button></div>
+<div class="top-actions" style="float:right;display:flex;gap:6px;flex-wrap:wrap"><button class="secondary" type="button" onclick="refreshApp()">🔄 Refresh</button><button class="danger" type="button" onclick="exitApp()">🚪 Exit</button></div></div>
 
 <div class="section-buttons teacher-nav">
 <button onclick="teacherSection('studentsSection')">👨‍🎓 Students</button>
@@ -367,7 +373,7 @@ Student Registration અને Login માટે એપમાં જ 4 અં�
 <div id="teacherBiometricStatus" class="sync-status" style="margin-top:8px"></div>
 </div>
 <h3>🔔 Notifications</h3>
-<p class="setting-note">Teacher અહીંથી notification મોકલી શકે છે. Firebaseમાં notification record સાચવાશે અને વિદ્યાર્થી એપ ખોલે/foregroundમાં આવે ત્યારે બતાવાશે. <b>એપ સંપૂર્ણ બંધ હોય ત્યારે સાચી push notification માટે Android APKમાં FCM native integration જરૂરી રહેશે.</b></p>
+<p class="setting-note">Teacher અહીંથી notification મોકલી શકે છે. <b>દરેક Notice, Lesson, પ્રશ્ન બેંક અને Personal upload પછી notification record તરત Firebaseમાં લખાશે.</b> Firebaseમાં notification record સાચવાશે અને વિદ્યાર્થી એપ ખોલે/foregroundમાં આવે ત્યારે બતાવાશે. <b>એપ સંપૂર્ણ બંધ હોય ત્યારે સાચી push notification માટે Android APKમાં FCM native integration જરૂરી રહેશે.</b></p>
 <div class="grid">
 <input id="notifyTitle" placeholder="Notification Title">
 <input id="notifyBody" placeholder="Notification Message">
@@ -489,12 +495,40 @@ function showStudentNotification(title,body){
     }
   }catch(e){console.warn('Student notification failed',e);}
 }
-function createStudentNotification(type,title,body,targetStudentId='all'){
+async function createStudentNotification(type,title,body,targetStudentId='all'){
   const id='push_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
-  const record={type,title:String(title||'NIRMLA STUDY ZON'),body:String(body||''),targetStudentId:String(targetStudentId||'all'),createdAt:Date.now()};
-  if(cloudMode&&db) return db.ref('notifications/'+id).set(record).catch(e=>console.warn('Notification record save failed',e));
-  try{const d=localData('notifications');d[id]=record;saveLocalData('notifications',d);}catch(e){}
-  return Promise.resolve();
+  const record={
+    type,
+    title:String(title||'NIRMLA STUDY ZON'),
+    body:String(body||''),
+    targetStudentId:String(targetStudentId||'all'),
+    createdAt:Date.now(),
+    priority:'high'
+  };
+
+  // Always save locally first so notification is not lost if cloud is temporarily unavailable.
+  try{
+    const d=localData('notifications');
+    d[id]=record;
+    saveLocalData('notifications',d);
+  }catch(e){ console.warn('Local notification save failed',e); }
+
+  if(cloudMode&&db){
+    try{
+      await db.ref('notifications/'+id).set(record);
+    }catch(e){
+      console.warn('Cloud notification save failed',e);
+    }
+  }
+
+  // Native APK bridge can turn this into a real Android notification.
+  try{
+    if(window.AndroidNotification && typeof window.AndroidNotification.notify==='function'){
+      window.AndroidNotification.notify(record.title,record.body);
+    }
+  }catch(e){}
+
+  return record;
 }
 function pollStudentNotifications(){
   if(!cloudMode||!db||!currentStudent)return;
@@ -512,14 +546,32 @@ function pollStudentNotifications(){
 }
 
 function initStudentNotifications(){
-  if(notificationListenerReady||!cloudMode||!db)return;
+  if(!cloudMode||!db)return;
+  if(notificationListenerReady){
+    // Listener already exists; currentStudent is intentionally read dynamically.
+    pollStudentNotifications();
+    return;
+  }
   notificationListenerReady=true;
   notificationStartedAt=Date.now();
+
   db.ref('notifications').on('child_added',snap=>{
     const n=snap.val()||{};
-    if(Number(n.createdAt||0)<=notificationStartedAt)return;
-    if(studentCanReceiveNotification(n)){showStudentNotification(n.title,n.body); try{localStorage.setItem('nirmala_last_notification_'+String(currentStudent.id||''),String(Number(n.createdAt||Date.now())))}catch(e){}}
+    const created=Number(n.createdAt||0);
+    if(created<=notificationStartedAt)return;
+
+    if(studentCanReceiveNotification(n)){
+      showStudentNotification(n.title,n.body);
+      try{
+        localStorage.setItem(
+          'nirmala_last_notification_'+String(currentStudent.id||''),
+          String(created)
+        );
+      }catch(e){}
+    }
   });
+
+  pollStudentNotifications();
 }
 
 
@@ -532,7 +584,7 @@ function updateConnectionStatus(){
  if(navigator.onLine) el.textContent='🟢 Online';
  else el.textContent='🔴 Offline';
 }
-window.addEventListener('online',()=>{updateConnectionStatus(); if(typeof initFirebase==='function') initFirebase();});
+window.addEventListener('online',()=>{updateConnectionStatus(); if(typeof initFirebase==='function') installPWAHelpers(); registerOfflineWorker(); initFirebase();});
 window.addEventListener('offline',updateConnectionStatus);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)pollStudentNotifications();});
 window.addEventListener('focus',()=>pollStudentNotifications());
@@ -664,13 +716,21 @@ function openOfflineOrOnlineLesson(id){
  const url=l.content;
  if(!url){alert('આ Lesson માટે PDF ઉપલબ્ધ નથી.');return;}
  markViewed('lessons',id);
- openInAppPDF(url,l.title||'PDF Material');
+ openInChromePDF(url);
 }
 async function downloadLessonFile(id){
  const l=lessons[id];
- if(!l || l.type!=='pdf' || !l.content){alert('આ Lesson માટે PDF ઉપલબ્ધ નથી.');return;}
+ if(!l || l.type!=='pdf' || !l.content){
+   alert('આ Lesson માટે PDF ઉપલબ્ધ નથી.');
+   return;
+ }
  markViewed('lessons',id);
- openInAppPDF(String(l.content),l.title||'PDF Material');
+
+ const url=String(l.content);
+
+ // Open the ORIGINAL Firebase PDF URL in Chrome. Chrome will then provide
+ // its normal PDF Download control.
+ openInChromePDF(url);
 }
 async function saveAllLessonsOffline(){
  const list=Object.entries(lessons||{}).filter(([id,l])=>l && l.content && l.type!=='text');
@@ -960,6 +1020,58 @@ async function verifyRegistrationOTP(){
  }
 }
 
+
+/* ===== NIRMLA APP CONTROLS ===== */
+function refreshApp(){
+  try{
+    // Preserve the current login/session; reload only the app UI/data.
+    location.reload();
+  }catch(e){
+    try{ window.location.href=window.location.href; }catch(_){}
+  }
+}
+
+function exitApp(){
+  // Native Android WebView bridge: the APK can close itself cleanly.
+  try{
+    if(window.AndroidApp && typeof window.AndroidApp.exitApp==='function'){
+      window.AndroidApp.exitApp();
+      return;
+    }
+  }catch(e){ console.warn('AndroidApp.exitApp unavailable',e); }
+
+  try{
+    if(window.Android && typeof window.Android.exitApp==='function'){
+      window.Android.exitApp();
+      return;
+    }
+  }catch(e){ console.warn('Android.exitApp unavailable',e); }
+
+  // Browser fallback: browsers normally do not allow JS to close an ordinary tab.
+  try{
+    window.open('','_self');
+    window.close();
+  }catch(e){}
+
+  setTimeout(()=>{
+    alert('🚪 એપ બંધ કરવા માટે Android APKમાં Exit bridge જરૂરી છે. Browserમાં સુરક્ષા કારણે tab બંધ થઈ શકતું નથી.');
+  },250);
+}
+
+/* Ask the native APK to register this device for FCM, when the APK bridge exists. */
+async function registerNativePush(){
+  try{
+    if(window.AndroidNotification && typeof window.AndroidNotification.requestPushPermission==='function'){
+      await window.AndroidNotification.requestPushPermission();
+    }
+    if(window.AndroidNotification && typeof window.AndroidNotification.registerFCM==='function'){
+      await window.AndroidNotification.registerFCM();
+    }
+  }catch(e){
+    console.warn('Native push registration unavailable:',e);
+  }
+}
+
 function studentLogout(){
  clearStudentSession();
  try{ if(window.firebase && firebase.auth) firebase.auth().signOut(); }catch(e){}
@@ -992,16 +1104,6 @@ function saveStudentSession(student){
 function clearStudentSession(){
   localStorage.removeItem('nirmala_student_session');
 }
-function wasPageReload(){
- try{const nav=performance.getEntriesByType('navigation')[0];return !!(nav && nav.type==='reload');}catch(e){return false;}
-}
-function lockStudentOnRefresh(){
- if(wasPageReload()){
-   clearStudentSession();
-   try{localStorage.removeItem('nirmala_current_student');}catch(e){}
- }
-}
-
 function restoreStudentSession(){
   try{
     const raw=localStorage.getItem('nirmala_student_session');
@@ -1029,6 +1131,9 @@ function restoreStudentSession(){
     if(typeof studentSection==='function')studentSection('noticesSection');
     if(typeof renderStudent==='function')renderStudent();
     enableStudentNotifications();
+    registerNativePush();
+    initStudentNotifications();
+    pollStudentNotifications();
     return true;
   }catch(e){
     clearStudentSession();
@@ -1156,6 +1261,7 @@ async function addStudent(){
  const id='s_'+Date.now();
  try{
    await dataSet('students',id,{name,fatherName,schoolName,address,mobile,active:true,approved:true,approvalStatus:'approved',source:'teacher',registeredAt:new Date().toISOString()});
+   await createStudentNotification('student','👤 નવો Student Account તૈયાર','Teacherએ તમારું Student Account તૈયાર કર્યું છે.',id);
    ['newStudentName','newStudentFather','newStudentSchool','newStudentMobile','newStudentAddress'].forEach(x=>{const e=document.getElementById(x);if(e)e.value='';});
    alert('✅ Student સફળતાપૂર્વક ઉમેરાયો.');
    hideTeacherAddStudent();
@@ -1535,6 +1641,13 @@ async function setLessonRelease(id){
  }
  try{
    await dataSet('lessons',id,{...item,hidden:ts>0,releaseAt:ts});
+   if(ts>0){
+     await createStudentNotification('lesson_scheduled','⏰ નવી Lesson Scheduled',
+       String(item.title||'નવી Lesson')+' આપેલા સમયે વિદ્યાર્થીઓને દેખાશે.','all');
+   }else{
+     await createStudentNotification('lesson','📚 Lesson હવે ઉપલબ્ધ છે',
+       String(item.title||'નવી Lesson')+' હવે વિદ્યાર્થીઓ માટે ઉપલબ્ધ છે.','all');
+   }
    alert(ts?'✅ Lesson Hide રાખ્યું છે. આપેલા સમય પછી વિદ્યાર્થીને દેખાશે.':'✅ Lessonનો સમય દૂર કર્યો.');
    renderTeacher();
    if(currentStudent)renderStudent();
@@ -1796,13 +1909,14 @@ function renderStudentLessons(){
     if(l.type==='photo'){
       body='<img class="photo-preview" src="'+esc(l.content)+'" alt="Lesson">';
     }else if(l.type==='pdf'){
-      body='<button type="button" onclick="openOfflineOrOnlineLesson(\''+id+'\')">📄 PDF એપમાં ખોલો</button>';
+      body='<button type="button" onclick="downloadLessonFile(\''+id+'\')">📥 PDF Download</button> <button type="button" class="secondary" onclick="openOfflineOrOnlineLesson(\''+id+'\')">📄 PDF ખોલો</button>';
     }else if(l.type==='link'||l.type==='video'){
       body='<a href="'+esc(l.content)+'" target="_blank" onclick="markViewed(\'lessons\',\''+id+'\')"><button type="button">🔗 '+(l.type==='video'?'Video જુઓ':'Lesson ખોલો')+'</button></a>';
     }else{
       body='<div style="white-space:pre-wrap;line-height:1.7;margin-top:10px">'+esc(l.content)+'</div>';
     }
-    const offlineBtn='';
+    const offlineBtn=(l.type==='photo'||l.type==='pdf')?
+      '<button type="button" class="secondary" style="margin-top:8px" onclick="saveLessonOffline(\''+id+'\')">'+(offline?'✅ Offline Saved':'📥 Offline Save')+'</button>':'';
     return '<div class="item">'+
       '<button type="button" class="favorite-btn" onclick="toggleFavorite(\'lessons\',\''+id+'\')">'+(fav?'⭐':'☆')+'</button>'+
       '<h4>'+esc(l.title||activeTopic)+'</h4>'+
@@ -1862,7 +1976,7 @@ function renderProgress(){
  if(a)a.innerHTML='<div class="item"><h3>'+ach+'</h3><p class="muted">તમારી Progress આ device પર સાચવાય છે.</p></div>';
 }
 
-installPWAHelpers(); registerOfflineWorker(); lockStudentOnRefresh(); initFirebase();
+installPWAHelpers(); registerOfflineWorker(); initFirebase();
 </script>
 
 <style id="nirmala-login-fix-css">
