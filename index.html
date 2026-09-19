@@ -68,6 +68,7 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #ccd5e2;border-ra
 #nsl-teacher-login #nsl-forgot{display:none!important}
 </style>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 /* NIRMLA STUDY ZON - Student PDF -> Chrome */
 function openInChromePDF(url){
@@ -663,12 +664,83 @@ async function savePDFOffline(id){
   alert('❌ PDF Offline Save થઈ નથી. Firebase Storage/CORS અથવા browser permissionને કારણે થઈ શકે છે.');
  }
 }
+
+async function openPdfInApp(url,title='PDF'){
+  if(!url){alert('PDF ઉપલબ્ધ નથી.');return;}
+  let modal=document.getElementById('nirmalaPdfViewer');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='nirmalaPdfViewer';
+    modal.style.cssText='position:fixed;inset:0;background:#eef2f7;z-index:999999;display:flex;flex-direction:column;';
+    modal.innerHTML=
+      '<div style="height:54px;min-height:54px;background:#173b72;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 10px;gap:8px;">'+
+      '<b id="nirmalaPdfViewerTitle" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📄 PDF</b>'+
+      '<button type="button" onclick="closeLessonPDFInApp()" style="background:#fff;color:#173b72;padding:7px 12px;border-radius:8px;flex:none;">✕ બંધ</button>'+
+      '</div>'+
+      '<div id="nirmalaPdfStatus" style="padding:8px 12px;background:#fff;color:#667085;font-size:13px;">⏳ PDF ખોલાઈ રહ્યું છે...</div>'+
+      '<div id="nirmalaPdfPages" style="flex:1;overflow:auto;padding:8px;text-align:center;-webkit-overflow-scrolling:touch;"></div>';
+    document.body.appendChild(modal);
+  }
+  const titleEl=document.getElementById('nirmalaPdfViewerTitle');
+  const status=document.getElementById('nirmalaPdfStatus');
+  const pages=document.getElementById('nirmalaPdfPages');
+  if(titleEl)titleEl.textContent='📄 '+(title||'PDF');
+  if(status)status.textContent='⏳ PDF ખોલાઈ રહ્યું છે...';
+  if(pages)pages.innerHTML='';
+  modal.style.display='flex';
+
+  try{
+    if(!window.pdfjsLib) throw new Error('PDF Viewer લાઇબ્રેરી લોડ થઈ નથી.');
+    // Render the PDF directly inside this app. No Chrome, no Android PDF app,
+    // and no download/open chooser is used.
+    const loadingTask=window.pdfjsLib.getDocument({url:String(url),disableAutoFetch:false,disableStream:false});
+    const pdf=await loadingTask.promise;
+    if(status)status.textContent='📄 '+pdf.numPages+' પેજ • એપમાં જ દેખાય છે';
+    for(let pageNo=1;pageNo<=pdf.numPages;pageNo++){
+      const page=await pdf.getPage(pageNo);
+      const base=page.getViewport({scale:1});
+      const maxWidth=Math.max(280,Math.min((window.innerWidth||900)-20,900));
+      const scale=Math.max(1,Math.min(2.2,maxWidth/base.width));
+      const viewport=page.getViewport({scale});
+      const wrap=document.createElement('div');
+      wrap.style.cssText='background:#fff;margin:0 auto 10px;box-shadow:0 1px 5px #0002;max-width:100%;';
+      const canvas=document.createElement('canvas');
+      canvas.style.cssText='display:block;width:100%;height:auto;';
+      canvas.width=Math.ceil(viewport.width);
+      canvas.height=Math.ceil(viewport.height);
+      wrap.appendChild(canvas);
+      pages.appendChild(wrap);
+      await page.render({canvasContext:canvas.getContext('2d',{alpha:false}),viewport}).promise;
+    }
+  }catch(e){
+    console.error(e);
+    if(status)status.textContent='❌ PDF એપમાં દેખાડી શકાયું નથી.';
+    if(pages)pages.innerHTML='<div style="background:#fff;border-radius:12px;padding:18px;margin:10px;color:#b42318;text-align:left;">PDF એપમાં ખોલવામાં સમસ્યા આવી.<br><br><small>'+String(e?.message||e)+'</small></div>';
+  }
+}
+
+function openLessonPDFInApp(id){
+  const l=(lessons||{})[id];
+  if(!l || l.type!=='pdf' || !l.content){
+    alert('PDF ઉપલબ્ધ નથી.');
+    return;
+  }
+  markViewed('lessons',id);
+  openPdfInApp(String(l.content),l.title||'PDF');
+}
+function closeLessonPDFInApp(){
+  const modal=document.getElementById('nirmalaPdfViewer');
+  const pages=document.getElementById('nirmalaPdfPages');
+  if(pages)pages.innerHTML='';
+  if(modal)modal.style.display='none';
+}
+
 function openOfflineOrOnlinePDF(id){
  const t=tests[id];
  if(!t){alert('PDF ઉપલબ્ધ નથી.');return;}
  const url=t.url||t.pdfUrl;
  if(!url){alert('PDF URL ઉપલબ્ધ નથી.');return;}
- openInChromePDF(url);
+ openPdfInApp(String(url),t.title||t.name||'PDF');
 }
 async function saveLessonOffline(id, silent=false){
  const l=lessons[id]; if(!l || !l.content){if(!silent)alert('Lesson ફાઇલ ઉપલબ્ધ નથી.');return false}
@@ -696,8 +768,9 @@ function openOfflineOrOnlineLesson(id){
  const l=lessons[id];
  if(!l)return;
  if(l.type==='text'){markViewed('lessons',id);return;}
+ if(l.type==='pdf'){openLessonPDFInApp(id);return;}
  const url=l.content;
- if(!url){alert('આ Lesson માટે PDF ઉપલબ્ધ નથી.');return;}
+ if(!url){alert('આ Lesson માટે ફાઇલ ઉપલબ્ધ નથી.');return;}
  markViewed('lessons',id);
  openInChromePDF(url);
 }
@@ -708,12 +781,8 @@ async function downloadLessonFile(id){
    return;
  }
  markViewed('lessons',id);
-
- const url=String(l.content);
-
- // Open the ORIGINAL Firebase PDF URL in Chrome. Chrome will then provide
- // its normal PDF Download control.
- openInChromePDF(url);
+ // Legacy function kept for compatibility, but it NEVER downloads/open Chrome.
+ openLessonPDFInApp(id);
 }
 async function saveAllLessonsOffline(){
  const list=Object.entries(lessons||{}).filter(([id,l])=>l && l.content && l.type!=='text');
@@ -1826,7 +1895,7 @@ function renderStudentLessons(){
     if(l.type==='photo'){
       body='<img class="photo-preview" src="'+esc(l.content)+'" alt="Lesson">';
     }else if(l.type==='pdf'){
-      body='<button type="button" onclick="downloadLessonFile(\''+id+'\')">📥 PDF Download</button> <button type="button" class="secondary" onclick="openOfflineOrOnlineLesson(\''+id+'\')">📄 PDF ખોલો</button>';
+      body='<button type="button" onclick="openLessonPDFInApp(\''+id+'\')">📄 PDF એપમાં ખોલો</button>';
     }else if(l.type==='link'||l.type==='video'){
       body='<a href="'+esc(l.content)+'" target="_blank" onclick="markViewed(\'lessons\',\''+id+'\')"><button type="button">🔗 '+(l.type==='video'?'Video જુઓ':'Lesson ખોલો')+'</button></a>';
     }else{
