@@ -380,6 +380,7 @@ Student Registration અને Login માટે એપમાં જ 4 અં�
 <select id="notifyTarget"><option value="all">👥 બધા વિદ્યાર્થીઓ</option></select>
 </div>
 <button type="button" onclick="sendTeacherNotification()">📢 Notification મોકલો</button>
+<button type="button" class="secondary" onclick="testNativeNotification()">🧪 Native Test</button>
 <div id="notifyMsg"></div>
 <hr style="border:0;border-top:1px solid #e5e7eb;margin:16px 0">
 <h3>☁️ Firebase Cloud Setup</h3><p class="setting-note"><b>✅ NIRMLA STUDY ZON Firebase Project 3: study-zon</b><br>આ એપમાં Firebase configuration પહેલેથી સેટ છે.</p>
@@ -421,123 +422,6 @@ Student Registration અને Login માટે એપમાં જ 4 અં�
 <button class="secondary" onclick="closeTeacherLogin()">બંધ કરો</button>
 <div id="teacherMsg"></div>
 </div></div>
-
-<!-- =========================================================
-     NIRMLA STUDY ZON - OneSignal Push Notification Integration
-     IMPORTANT: Replace 3327926e-5056-47f4-8c6e-b1b17f41e34e with your
-     OneSignal App ID. Do NOT put a OneSignal REST API key here.
-     ========================================================= -->
-<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-<script>
-window.NIRMLA_ONESIGNAL_APP_ID = localStorage.getItem('nirmala_onesignal_app_id') || '3327926e-5056-47f4-8c6e-b1b17f41e34e';
-
-window.NirmalaOneSignal = {
-  initialized: false,
-
-  async init() {
-    try {
-      const appId = '3327926e-5056-47f4-8c6e-b1b17f41e34e';
-      if (!window.OneSignalDeferred) window.OneSignalDeferred = [];
-
-      return await new Promise((resolve) => {
-        window.OneSignalDeferred.push(async function(OneSignal) {
-          try {
-            if (!OneSignal.__NIRMALA_INITIALIZED__) {
-              await OneSignal.init({
-                appId: appId,
-                notifyButton: { enable: false },
-                allowLocalhostAsSecureOrigin: true
-              });
-              OneSignal.__NIRMALA_INITIALIZED__ = true;
-            }
-
-            window.NirmalaOneSignal.initialized = true;
-
-            // Explicitly opt-in the current device/subscription where supported.
-            try {
-              if (OneSignal.User &&
-                  OneSignal.User.PushSubscription &&
-                  typeof OneSignal.User.PushSubscription.optIn === 'function') {
-                await OneSignal.User.PushSubscription.optIn();
-              }
-            } catch (e) {
-              console.warn('OneSignal push opt-in:', e);
-            }
-
-            resolve(true);
-          } catch (e) {
-            console.warn('OneSignal init failed:', e);
-            resolve(false);
-          }
-        });
-      });
-    } catch (e) {
-      console.warn('OneSignal unavailable:', e);
-      return false;
-    }
-  },
-
-  async requestPermission() {
-    try {
-      await this.init();
-      return await new Promise((resolve) => {
-        window.OneSignalDeferred.push(async function(OneSignal) {
-          try {
-            await OneSignal.Notifications.requestPermission();
-            resolve(true);
-          } catch(e) { resolve(false); }
-        });
-      });
-    } catch(e) {
-      return false;
-    }
-  },
-
-  async setStudentTags(student) {
-    if (!student) return;
-    try {
-      const id = String(student.id || '');
-      const mobile = String(student.mobile || '');
-      const course = String(student.course || student.courseName || '');
-
-      window.OneSignalDeferred.push(async function(OneSignal) {
-        try {
-          await OneSignal.User.addTags({
-            role: 'student',
-            student_id: id,
-            mobile: mobile,
-            course: course
-          });
-        } catch(e) {
-          console.warn('OneSignal tags failed:', e);
-        }
-      });
-    } catch(e) {}
-  },
-
-  async getSubscriptionId() {
-    try {
-      await this.init();
-      return await new Promise((resolve) => {
-        window.OneSignalDeferred.push(async function(OneSignal) {
-          try {
-            const id = OneSignal.User?.PushSubscription?.id || '';
-            resolve(id);
-          } catch(e) { resolve(''); }
-        });
-      });
-    } catch(e) {
-      return '';
-    }
-  }
-};
-
-window.addEventListener('load', function() {
-  setTimeout(function() {
-    if (window.NirmalaOneSignal) window.NirmalaOneSignal.init();
-  }, 1200);
-});
-</script>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js">
 document.addEventListener('DOMContentLoaded',function(){
@@ -591,26 +475,6 @@ async function enableStudentNotifications(){
       await Notification.requestPermission();
     }
   }catch(e){console.warn('Notification permission unavailable',e);}
-
-  try{
-    if(window.NirmalaOneSignal){
-      await window.NirmalaOneSignal.init();
-      if(currentStudent) await window.NirmalaOneSignal.setStudentTags(currentStudent);
-
-      const subId = await window.NirmalaOneSignal.getSubscriptionId();
-      if(subId && currentStudent){
-        try{
-          const sid=String(currentStudent.id||'');
-          if(cloudMode && db && sid){
-            await db.ref('studentPushSubscriptions/'+sid).set({
-              oneSignalSubscriptionId: subId,
-              updatedAt: Date.now()
-            });
-          }
-        }catch(e){console.warn('Subscription ID save failed:',e);}
-      }
-    }
-  }catch(e){console.warn('OneSignal student setup failed:',e);}
 }
 function studentCanReceiveNotification(n){
   if(!currentStudent||!n)return false;
@@ -632,12 +496,40 @@ function showStudentNotification(title,body){
     }
   }catch(e){console.warn('Student notification failed',e);}
 }
-function createStudentNotification(type,title,body,targetStudentId='all'){
+async function createStudentNotification(type,title,body,targetStudentId='all'){
+  const safeTitle=String(title||'NIRMLA STUDY ZON');
+  const safeBody=String(body||'');
+  const target=String(targetStudentId||'all');
   const id='push_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
-  const record={type,title:String(title||'NIRMLA STUDY ZON'),body:String(body||''),targetStudentId:String(targetStudentId||'all'),createdAt:Date.now()};
-  if(cloudMode&&db) return db.ref('notifications/'+id).set(record).catch(e=>console.warn('Notification record save failed',e));
-  try{const d=localData('notifications');d[id]=record;saveLocalData('notifications',d);}catch(e){}
-  return Promise.resolve();
+  const record={type,title:safeTitle,body:safeBody,targetStudentId:target,createdAt:Date.now()};
+
+  // 1) Save the notification record so students can receive it from Firebase
+  //    when they open/return to the app.
+  try{
+    if(cloudMode&&db){
+      await db.ref('notifications/'+id).set(record);
+    }else{
+      const d=localData('notifications');
+      d[id]=record;
+      saveLocalData('notifications',d);
+    }
+  }catch(e){
+    console.warn('Notification record save failed',e);
+  }
+
+  // 2) Native Android bridge: send an actual FCM/native notification.
+  //    This is intentionally kept in the single HTML file. The Android APK
+  //    must expose AndroidNotification.sendFCM(title, body, target).
+  try{
+    const bridge=window.AndroidNotification;
+    if(bridge && typeof bridge.sendFCM==='function'){
+      await Promise.resolve(bridge.sendFCM(safeTitle,safeBody,target));
+    }
+  }catch(e){
+    console.warn('Native FCM bridge unavailable/failed:',e);
+  }
+
+  return record;
 }
 function pollStudentNotifications(){
   if(!cloudMode||!db||!currentStudent)return;
@@ -903,23 +795,6 @@ function isFavorite(type,id){
  const key='nirmala_favorites_'+String(currentStudent?.name||'').toLowerCase();
  try{const f=JSON.parse(localStorage.getItem(key)||'{}');return !!(f[type]&&f[type][id])}catch(e){return false}
 }
-function saveOneSignalAppId(){
-  const el=document.getElementById('oneSignalAppIdInput');
-  const id=(el?.value||'').trim();
-  if(!id){
-    msg('oneSignalMsg','❌ OneSignal App ID નાખો.');
-    return;
-  }
-  localStorage.setItem('nirmala_onesignal_app_id',id);
-  window.NIRMLA_ONESIGNAL_APP_ID=id;
-  msg('oneSignalMsg','✅ OneSignal App ID સેવ થઈ. App reload થઈ રહી છે...');
-  setTimeout(()=>location.reload(),700);
-}
-function loadOneSignalAppIdForm(){
-  const el=document.getElementById('oneSignalAppIdInput');
-  if(el) el.value=localStorage.getItem('nirmala_onesignal_app_id') || '';
-}
-
 function saveFirebaseConfig(){
  const c={
   apiKey:document.getElementById('fbApiKey').value.trim(),
@@ -1482,49 +1357,17 @@ function showQuestionTopic(topic){
    ).join('')||'<p class="muted">આ Topic માટે પ્રશ્નોની માહિતી નથી.</p>';
 }
 
-async function nirmalaPushStatus(){
-  const hasOneSignal = !!(window.NirmalaOneSignal && window.NirmalaOneSignal.initialized);
-  const hasNativeOneSignal = !!(window.AndroidNotification && typeof window.AndroidNotification.sendOneSignal==='function');
-  const hasNativeFCM = !!(window.AndroidNotification && typeof window.AndroidNotification.sendFCM==='function');
-  return {oneSignal:hasOneSignal,nativeOneSignal:hasNativeOneSignal,nativeFCM:hasNativeFCM};
-}
-
-function sendTeacherNotification(){
+async function sendTeacherNotification(){
  const title=(document.getElementById('notifyTitle')?.value||'').trim();
  const body=(document.getElementById('notifyBody')?.value||'').trim();
  const target=(document.getElementById('notifyTarget')?.value||'all').trim();
  if(!title||!body){msg('notifyMsg','❌ Title અને Message બંને લખો.');return;}
-
  try{
-   // 1) Existing Firebase in-app notification record.
    await createStudentNotification('teacher',title,body,target);
-
-   // 2) Existing native Android/FCM bridge, when supplied by the APK builder.
-   if(window.AndroidNotification && typeof window.AndroidNotification.sendFCM==='function'){
-     try{
-       window.AndroidNotification.sendFCM(title,body,target);
-     }catch(e){console.warn('Native FCM bridge unavailable',e);}
-   }
-
-   // 3) OneSignal: initialize and keep the current target information on the user.
-   // IMPORTANT: Actual push sending must be done by OneSignal Dashboard or a
-   // secure server/Edge Function. Never put a OneSignal REST API key in HTML.
-   if(window.NirmalaOneSignal){
-     try{
-       await window.NirmalaOneSignal.init();
-       if(target !== 'all' && students && students[target]){
-         await window.NirmalaOneSignal.setStudentTags({...students[target],id:target});
-       }
-     }catch(e){console.warn('OneSignal notification setup failed:',e);}
-   }
-
    document.getElementById('notifyTitle').value='';
    document.getElementById('notifyBody').value='';
-   msg('notifyMsg','✅ Notification record/push setup સફળ થયું.');
- }catch(e){
-   console.error(e);
-   msg('notifyMsg','❌ Notification મોકલી શકાઈ નથી.');
- }
+   msg('notifyMsg','✅ Notification સફળતાપૂર્વક મોકલાઈ ગઈ.');
+ }catch(e){console.error(e);msg('notifyMsg','❌ Notification મોકલી શકાઈ નથી.');}
 }
 function populateNotificationTargets(){
  const el=document.getElementById('notifyTarget'); if(!el)return;
@@ -1534,42 +1377,10 @@ function populateNotificationTargets(){
 
 async function notifyTeacherUpload(type,title,body,target='all'){
   try{
-    // Always keep the in-app/Firebase notification record.
     await createStudentNotification(type,title,body,target);
-
-    // If the AppMint native bridge provides a secure OneSignal/FCM sender,
-    // use it automatically for background push notifications.
-    if(window.AndroidNotification){
-      try{
-        if(typeof window.AndroidNotification.sendOneSignal==='function'){
-          await window.AndroidNotification.sendOneSignal(
-            String(title||'NIRMLA STUDY ZON'),
-            String(body||''),
-            String(target||'all')
-          );
-        }else if(typeof window.AndroidNotification.sendFCM==='function'){
-          window.AndroidNotification.sendFCM(
-            String(title||'NIRMLA STUDY ZON'),
-            String(body||''),
-            String(target||'all')
-          );
-        }
-      }catch(e){
-        console.warn('Native push sender unavailable:',e);
-      }
-    }
-  }catch(e){
-    console.warn('Upload notification failed:',e);
-  }
+  }catch(e){console.warn('Upload notification failed:',e);}
 }
-function addNotice(){
- const text=document.getElementById('noticeText').value.trim();
- if(!text)return;
- const id='n_'+Date.now();
- dataSet('notices',id,{text,date:new Date().toLocaleString('gu-IN'),important:true})
-   .then(()=>notifyTeacherUpload('notice','📢 નવી માહિતી / Notice',text,'all'));
- document.getElementById('noticeText').value='';
-}
+function addNotice(){const text=document.getElementById('noticeText').value.trim();if(!text)return;const id='n_'+Date.now();dataSet('notices',id,{text,date:new Date().toLocaleString('gu-IN'),important:true}).then(()=>createStudentNotification('notice','📢 નવી માહિતી / Notice',text,'all'));document.getElementById('noticeText').value='';}
 function toggleLessonUpload(){
  const type=document.getElementById('lessonType')?.value||'text';
  const wrap=document.getElementById('lessonFileWrap');
@@ -2335,10 +2146,5 @@ installPWAHelpers(); registerOfflineWorker(); initFirebase();
  document.addEventListener('DOMContentLoaded',hideTeacherReset);
  window.addEventListener('load',hideTeacherReset);
 })();
-</script>
-<script>
-document.addEventListener('DOMContentLoaded',function(){
-  try{ loadOneSignalAppIdForm(); }catch(e){}
-});
 </script>
 </body></html>
