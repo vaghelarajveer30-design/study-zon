@@ -262,30 +262,32 @@ function loadPushEndpoint(){ const el=document.getElementById('pushEndpoint'); i
 async function sendSecureRequest(payload){
   const endpoint=getPushEndpoint();
   if(!endpoint) return {ok:false,skipped:true,error:'Secure Push URL સેટ નથી.'};
+
+  // Google Apps Script web-app redirects can cause "Failed to fetch" in an
+  // Android WebView. For push notifications, a simple beacon POST avoids
+  // the CORS response-reading problem; the Apps Script doPost(e) still
+  // receives the JSON body and sends it to OneSignal.
+  if(String(payload?.action||'')==='push' && navigator.sendBeacon){
+    try{
+      const blob=new Blob([JSON.stringify(payload)],{type:'text/plain;charset=UTF-8'});
+      if(navigator.sendBeacon(endpoint,blob)){
+        return {ok:true,queued:true,data:{ok:true,queued:true}};
+      }
+    }catch(e){
+      console.warn('Push beacon failed; trying fetch:',e);
+    }
+  }
+
   const body=JSON.stringify(payload);
   try{
-    const res=await fetch(endpoint,{
-      method:'POST',
-      headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body:body,
-      redirect:'follow'
-    });
+    const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:body,redirect:'follow'});
     const text=await res.text();
     let data={};
     try{data=JSON.parse(text);}catch(e){data={raw:text};}
     const backendOk=!(data && data.ok===false && !data.success);
-    return {
-      ok:res.ok && backendOk,
-      status:res.status,
-      data:data,
-      error:(res.ok && backendOk)?'':(data?.error||data?.message||('HTTP '+res.status))
-    };
+    return {ok:res.ok && backendOk,status:res.status,data:data,error:(res.ok&&backendOk)?'':(data?.error||data?.message||('HTTP '+res.status))};
   }catch(e){
-    return {
-      ok:false,
-      error:String(e?.message||e),
-      hint:'Google Apps Script Web App / CORS / Secure Push URL તપાસો.'
-    };
+    return {ok:false,error:String(e?.message||e),hint:'Google Apps Script Web App / CORS / Secure Push URL તપાસો.'};
   }
 }
 async function sendRemotePush(title,body,targetStudentId='all'){
