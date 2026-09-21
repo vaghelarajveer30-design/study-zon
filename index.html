@@ -1458,8 +1458,8 @@ async function compressLessonPDF(file,maxBytes=5*1024*1024){
       await page.render({canvasContext:ctx,viewport}).promise;
       const jpg=canvas.toDataURL('image/jpeg',cfg.q);
       out.addImage(jpg,'JPEG',0,0,pageW,pageH,undefined,'FAST');
-      if(n===1) document.getElementById('lessonUploadStatus')?.textContent='📄 PDF compress થઈ રહ્યું છે... 1/'+pdf.numPages;
-      else document.getElementById('lessonUploadStatus')?.textContent='📄 PDF compress થઈ રહ્યું છે... '+n+'/'+pdf.numPages;
+      if(n===1){const st=document.getElementById('lessonUploadStatus');if(st)st.textContent='📄 PDF compress થઈ રહ્યું છે... 1/'+pdf.numPages;}
+      else {const st=document.getElementById('lessonUploadStatus');if(st)st.textContent='📄 PDF compress થઈ રહ્યું છે... '+n+'/'+pdf.numPages;}
     }
     const arr=out.output('arraybuffer');
     const blob=new Blob([arr],{type:'application/pdf'});
