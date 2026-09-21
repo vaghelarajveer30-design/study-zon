@@ -1368,23 +1368,95 @@ async function uploadLessonFile(file){
   return uploadFileFast(file,'lessons/'+Date.now()+'_'+name,'lessonUploadStatus',file.type.startsWith('image/'));
 }
 
-function compressLessonImage(file,maxSide=1000,quality=0.62){
-  return new Promise((resolve,reject)=>{
-    const img=new Image(); const url=URL.createObjectURL(file);
-    img.onload=()=>{
-      try{
-        let w=img.naturalWidth,h=img.naturalHeight;
-        const scale=Math.min(1,maxSide/Math.max(w,h)); w=Math.max(1,Math.round(w*scale)); h=Math.max(1,Math.round(h*scale));
-        const canvas=document.createElement('canvas'); canvas.width=w; canvas.height=h;
-        canvas.getContext('2d',{alpha:false}).drawImage(img,0,0,w,h);
-        canvas.toBlob(blob=>{
-          URL.revokeObjectURL(url); if(!blob)return reject(new Error('Image compression failed'));
-          resolve(new File([blob],(file.name||'photo').replace(/\.[^.]+$/i,'')+'.jpg',{type:'image/jpeg',lastModified:Date.now()}));
-        },'image/jpeg',quality);
-      }catch(e){URL.revokeObjectURL(url);reject(e)}
-    };
-    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Invalid image'))}; img.src=url;
+async function compressLessonImage(file,maxBytes=2*1024*1024){
+  if(!file || !file.type.startsWith('image/')) return file;
+  if(file.size<=maxBytes) return file;
+  const img=await new Promise((resolve,reject)=>{
+    const im=new Image(); const url=URL.createObjectURL(file);
+    im.onload=()=>{URL.revokeObjectURL(url);resolve(im)};
+    im.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Photo વાંચી શકાઈ નથી.'))};
+    im.src=url;
   });
+  let maxSide=Math.min(1800,Math.max(img.naturalWidth,img.naturalHeight));
+  let quality=0.78;
+  let best=null;
+  for(let attempt=0;attempt<8;attempt++){
+    const scale=Math.min(1,maxSide/Math.max(img.naturalWidth,img.naturalHeight));
+    const w=Math.max(1,Math.round(img.naturalWidth*scale));
+    const h=Math.max(1,Math.round(img.naturalHeight*scale));
+    const canvas=document.createElement('canvas'); canvas.width=w; canvas.height=h;
+    const ctx=canvas.getContext('2d',{alpha:false});
+    ctx.fillStyle='#fff'; ctx.fillRect(0,0,w,h); ctx.drawImage(img,0,0,w,h);
+    const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',quality));
+    if(!blob) throw new Error('Photo compression failed');
+    best=blob;
+    if(blob.size<=maxBytes){
+      return new File([blob],(file.name||'photo').replace(/\.[^.]+$/i,'')+'.jpg',{type:'image/jpeg',lastModified:Date.now()});
+    }
+    if(quality>0.48) quality-=0.07; else maxSide=Math.max(700,Math.round(maxSide*0.78));
+  }
+  if(best && best.size<=maxBytes) return new File([best],(file.name||'photo').replace(/\.[^.]+$/i,'')+'.jpg',{type:'image/jpeg',lastModified:Date.now()});
+  throw new Error('Photoને 2 MB સુધી ઘટાડવામાં આવી નથી.');
+}
+
+async function loadJsPDF(){
+  if(window.jspdf && window.jspdf.jsPDF) return window.jspdf.jsPDF;
+  await new Promise((resolve,reject)=>{
+    const sc=document.createElement('script');
+    sc.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    sc.onload=resolve; sc.onerror=()=>reject(new Error('PDF compression library load થઈ નથી. Internet ચાલુ રાખો.'));
+    document.head.appendChild(sc);
+  });
+  if(!window.jspdf || !window.jspdf.jsPDF) throw new Error('PDF compressor ઉપલબ્ધ નથી.');
+  return window.jspdf.jsPDF;
+}
+
+async function compressLessonPDF(file,maxBytes=5*1024*1024){
+  if(!file || file.type!=='application/pdf') return file;
+  if(file.size<=maxBytes) return file;
+  if(!window.pdfjsLib) throw new Error('PDF Viewer લાઇબ્રેરી લોડ થઈ નથી.');
+  const jsPDF=await loadJsPDF();
+  const source=await file.arrayBuffer();
+  const pdf=await window.pdfjsLib.getDocument({data:source}).promise;
+  let bestBlob=null;
+  const attempts=[
+    {scale:1.15,q:0.62},
+    {scale:1.00,q:0.56},
+    {scale:0.88,q:0.52},
+    {scale:0.76,q:0.48},
+    {scale:0.65,q:0.44}
+  ];
+  for(const cfg of attempts){
+    let out=null;
+    for(let n=1;n<=pdf.numPages;n++){
+      const page=await pdf.getPage(n);
+      const base=page.getViewport({scale:1});
+      const landscape=base.width>base.height;
+      const orientation=landscape?'landscape':'portrait';
+      const unit='pt';
+      const pageW=base.width*cfg.scale, pageH=base.height*cfg.scale;
+      if(n===1) out=new jsPDF({orientation,unit,format:[pageW,pageH],compress:true});
+      else out.addPage([pageW,pageH],orientation);
+      const viewport=page.getViewport({scale:cfg.scale});
+      const canvas=document.createElement('canvas');
+      canvas.width=Math.max(1,Math.ceil(viewport.width)); canvas.height=Math.max(1,Math.ceil(viewport.height));
+      const ctx=canvas.getContext('2d',{alpha:false});
+      ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+      await page.render({canvasContext:ctx,viewport}).promise;
+      const jpg=canvas.toDataURL('image/jpeg',cfg.q);
+      out.addImage(jpg,'JPEG',0,0,pageW,pageH,undefined,'FAST');
+      if(n===1) document.getElementById('lessonUploadStatus')?.textContent='📄 PDF compress થઈ રહ્યું છે... 1/'+pdf.numPages;
+      else document.getElementById('lessonUploadStatus')?.textContent='📄 PDF compress થઈ રહ્યું છે... '+n+'/'+pdf.numPages;
+    }
+    const arr=out.output('arraybuffer');
+    const blob=new Blob([arr],{type:'application/pdf'});
+    bestBlob=blob;
+    if(blob.size<=maxBytes){
+      return new File([blob],(file.name||'lesson').replace(/\.[^.]+$/i,'')+'_compressed.pdf',{type:'application/pdf',lastModified:Date.now()});
+    }
+  }
+  if(bestBlob && bestBlob.size<=maxBytes) return new File([bestBlob],(file.name||'lesson').replace(/\.[^.]+$/i,'')+'_compressed.pdf',{type:'application/pdf',lastModified:Date.now()});
+  throw new Error('PDFને 5 MB સુધી ઘટાડવામાં આવી નથી. PDFમાં બહુ વધારે/મોટા pages છે.');
 }
 
 async function addLesson(){
@@ -1404,16 +1476,27 @@ async function addLesson(){
  if(type==='photo' && !file.type.startsWith('image/'))return alert('માત્ર Photo/Image ફાઇલ અપલોડ કરો.');
  if(type==='pdf' && file.type!=='application/pdf')return alert('માત્ર PDF ફાઇલ અપલોડ કરો.');
  const max=type==='pdf'?5*1024*1024:2*1024*1024;
- if(file&&file.size>max)return alert((type==='pdf'?'PDF':'Photo')+' ફાઇલ '+(type==='pdf'?'5':'2')+' MB કરતાં નાની રાખો.');
+ let uploadFile=file;
+ if(file && file.size>max){
+   const status=document.getElementById('lessonUploadStatus');
+   try{
+     if(status)status.textContent=type==='pdf'?'📄 PDF 5 MB સુધી compress થઈ રહ્યું છે...':'📷 Photo 2 MB સુધી compress થઈ રહ્યો છે...';
+     uploadFile=type==='pdf'?await compressLessonPDF(file,max):await compressLessonImage(file,max);
+     if(status)status.textContent='✅ Size reduce થઈ ગઈ: '+(uploadFile.size/1024/1024).toFixed(2)+' MB';
+   }catch(e){
+     if(status)status.textContent='❌ Compression નિષ્ફળ';
+     return alert('❌ '+(e?.message||'ફાઇલ compress થઈ શકી નથી.'));
+   }
+ }
  const id='l_'+Date.now();
  const createdAt=Date.now();
  const status=document.getElementById('lessonUploadStatus');
  try{
    if(type==='photo'||type==='pdf'){
      if(!cloudMode||!storage)throw new Error('Firebase Storage ઉપલબ્ધ નથી.');
-     content=await uploadLessonFile(file);
+     content=await uploadLessonFile(uploadFile);
    }
-   await dataSet('lessons',id,{title,subject,chapter,course,type,category,content,fileName:file?file.name:'',allStudents:document.getElementById('lessonAll').checked,hidden,releaseAt:releaseInput?new Date(releaseInput).getTime():0,createdAt,date:new Date().toLocaleString('gu-IN')});
+   await dataSet('lessons',id,{title,subject,chapter,course,type,category,content,fileName:uploadFile?uploadFile.name:'',allStudents:document.getElementById('lessonAll').checked,hidden,releaseAt:releaseInput?new Date(releaseInput).getTime():0,createdAt,date:new Date().toLocaleString('gu-IN')});
    if(!hidden){
      const uploadLabel = type==='pdf' ? 'નવી PDF Lesson' : (type==='photo' ? 'નવો Photo Lesson' : 'નવી Lesson');
      const lessonNotifTitle = '📚 '+course+' • '+subject+' • '+title;
