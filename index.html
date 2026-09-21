@@ -827,6 +827,7 @@ function verifyStudentOTP(){
  currentStudent=s;
  localStorage.setItem('nirmala_current_student',sid);
  saveStudentSession(s);
+ markCurrentGuestLessonsSeen();
  studentDemoOtp='';
  studentOtpExpiresAt=0;
  document.getElementById('studentLogin')?.classList.add('hidden');
@@ -964,6 +965,7 @@ function restoreStudentSession(){
     if(String(restored.source||'registration')!=='teacher' && (restored.active===false || (restored.approved!==true && restored.approvalStatus!=='approved'))){clearStudentSession();return false;}
     currentStudent=restored;
     localStorage.setItem('nirmala_current_student',pair[0]);
+    markCurrentGuestLessonsSeen();
     document.getElementById('studentLogin')?.classList.add('hidden');
     document.getElementById('studentRegistration')?.classList.add('hidden');
     document.getElementById('studentHome')?.classList.remove('hidden');
@@ -1690,6 +1692,18 @@ function renderProfile(){
 function guestViewedKey(){return 'nirmala_guest_viewed_lessons';}
 function getGuestViewed(){try{return JSON.parse(localStorage.getItem(guestViewedKey())||'{}')||{};}catch(e){return {};}}
 function saveGuestViewed(v){localStorage.setItem(guestViewedKey(),JSON.stringify(v||{}));}
+function markCurrentGuestLessonsSeen(){
+  try{
+    const viewed=getGuestViewed();
+    Object.entries(window.lessons||{}).forEach(([id,l])=>{
+      if(l && l.active!==false && guestLessonReleased(l)) viewed[String(id)]=Date.now();
+    });
+    saveGuestViewed(viewed);
+    updateGuestLessonButton();
+    const panel=document.getElementById('guestLessonPanel');
+    if(panel)panel.classList.add('hidden');
+  }catch(e){console.warn('Guest lesson badge reset failed',e);}
+}
 function guestLessonReleased(l){const now=Date.now();return l&&!l.hidden || (l&&Number(l.releaseAt||0)>0&&Number(l.releaseAt||0)<=now);}
 function getGuestNewLessons(){
  const viewed=getGuestViewed();
