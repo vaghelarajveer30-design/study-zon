@@ -150,7 +150,57 @@ window.OneSignalDeferred.push(async function(OneSignal){
   <div id="teacherLessonSubjectButtons" class="teacher-filter-row" style="margin-top:4px"></div>
   <div id="teacherLessonSummary" class="teacher-lesson-summary"></div>
 </div>
-<div id="teacherLessons"></div></div><div id="questionTeacherSection" class="card teacher-section hidden"><h3>📝 Course → વિષય → Topic પ્રશ્ન બેંક</h3><p class="muted">પહેલા Course પસંદ કરો → પછી વિષય → પછી Topic આપો → પછી પ્રશ્નો Copy-Paste કરો. વિદ્યાર્થીઓને પણ આ જ ક્રમમાં પ્રશ્નો દેખાશે.</p><div class="grid"><select id="questionCourse"><option value="">Course પસંદ કરો</option><option value="નવોદય">🎯 નવોદય</option><option value="CET">🎓 CET</option><option value="જ્ઞાન સાધના">📘 જ્ઞાન સાધના</option><option value="સામાન્ય">📚 સામાન્ય</option><option value="આકૃતિ">📖 આકૃતિ</option><option value="Ganit">📖 Ganit</option></select><input id="questionSubject" placeholder="વિષય (જેમ કે ગણિત)"><input id="questionTitle" placeholder="Topic / પ્રકરણનું નામ"></div><textarea id="questionText" rows="12" placeholder="અહીં પ્રશ્નો Copy-Paste કરો...&#10;&#10;1. 25 + 35 = ?&#10;A) 50&#10;B) 60&#10;C) 70&#10;D) 80"></textarea><button onclick="saveQuestionBank()">📝 પ્રશ્નો Save / Publish</button><div id="questionMsg" class="sync-status"></div><hr style="border:0;border-top:1px solid #e5e7eb;margin:15px 0"><h4>📚 સેવ થયેલા વિષયો</h4><div id="teacherQuestionBanks"></div></div><div id="personalTeacherSection" class="card teacher-section hidden personal-card"><h3>💬 Personal Message / Document</h3><p class="muted">કોઈ એક વિદ્યાર્થીને વ્યક્તિગત રીતે Message, Fee Receipt, PDF અથવા કોઈ Link મોકલી શકો.</p><div class="grid"><select id="personalStudent"></select><input id="personalTitle" placeholder="શીર્ષક — જેમ કે Fee Receipt September"></div><textarea id="personalMessage" placeholder="વિદ્યાર્થી માટે વ્યક્તિગત Message"></textarea><div class="grid"><input id="personalLink" placeholder="Optional Link (જેમ કે Fee Receipt / Google Drive)"><input id="personalFile" type="file" accept=".pdf,image/*" ></div><button id="personalSendBtn" onclick="sendPersonalMessage()">📤 Personal મોકલો</button><div id="personalMsg" class="sync-status"></div><hr style="border:0;border-top:1px solid #e5e7eb;margin:15px 0"><h4>📨 મોકલેલા Personal Messages</h4><div id="teacherPersonalList" class="personal-list"></div></div><div id="settingsTeacherSection" class="card teacher-section hidden"><div class="card" style="margin-bottom:12px"><b>📱 Student OTP Login</b><div class="muted" style="margin-top:6px"> Student Registration અને Login માટે એપમાં જ 4 અંકનો Free OTP દેખાશે. SMSની જરૂર નથી. </div></div><h3>⚙️ Teacher Login ID / Password</h3><p class="muted">Login થયા પછી જ અહીંથી ID અને Password બદલી શકાશે.</p><div class="grid"><input id="setTeacherId" placeholder="નવું Teacher ID"><input id="setTeacherPass" type="password" placeholder="નવો Password"></div><button onclick="saveTeacherCredentials()">💾 ID / Password Save કરો</button><div id="credentialMsg"></div><hr style="border:0;border-top:1px solid #e5e7eb;margin:16px 0"><h3>🔔 Notifications</h3><p class="setting-note">Teacher અહીંથી notification મોકલી શકે છે. Firebaseમાં notification record સાચવાશે અને વિદ્યાર્થી એપ ખોલે/foregroundમાં આવે ત્યારે બતાવાશે. <b>OneSignal Push ON હોય તો notification OneSignal દ્વારા મોકલાશે.</b></p><div class="grid"><input id="notifyTitle" placeholder="Notification Title"><input id="notifyBody" placeholder="Notification Message"><select id="notifyTarget"><option value="all">👥 બધા વિદ્યાર્થીઓ</option></select></div><button type="button" onclick="sendTeacherNotification()">📢 Notification મોકલો</button><button type="button" class="secondary" onclick="testNativeNotification()">🧪 Native Test</button><div id="notifyMsg"></div><div class="card" style="margin-top:12px;border:1px solid #dbe3ef;background:#f8fbff"><h4 style="margin-top:0">🔔 OneSignal Push</h4><p class="setting-note">OneSignal App ID APKમાં OneSignal integration સાથે match હોવો જોઈએ. REST/API Key HTMLમાં ન નાખશો. Secure Push URL મારફતે PDF/Photo Google Driveમાં પણ સેવ કરી શકાય છે.</p><input id="oneSignalAppId" placeholder="OneSignal App ID"><input id="pushEndpoint" placeholder="Secure Push + Google Drive Web App URL"><button type="button" class="secondary" onclick="savePushEndpoint()">🔐 Secure URL Save</button><button type="button" onclick="saveOneSignalSettings()">💾 OneSignal Save</button><button type="button" class="secondary" onclick="requestOneSignalPermission()">🔔 Student Notification ON</button><div id="oneSignalMsg" class="sync-status"></div></div><hr style="border:0;border-top:1px solid #e5e7eb;margin:16px 0"><h3>☁️ Firebase Cloud Setup</h3><p class="setting-note"><b>✅ NIRMLA STUDY ZON Firebase Project 3: study-zon</b><br>આ એપમાં Firebase configuration પહેલેથી સેટ છે.</p><p class="setting-note">Project 3 ની Firebase Web App configuration અહીં એક વખત નાખો. ત્યારબાદ Students, Notices, Lessons અને પ્રશ્ન બેંકની માહિતી બધા devices પર cloudમાં sync થઈ શકશે.</p><div class="grid"><input id="fbApiKey" placeholder="apiKey"><input id="fbAuthDomain" placeholder="authDomain"><input id="fbDatabaseURL" placeholder="databaseURL"><input id="fbProjectId" placeholder="projectId"><input id="fbStorageBucket" placeholder="storageBucket"><input id="fbMessagingSenderId" placeholder="messagingSenderId"><input id="fbAppId" placeholder="appId"></div><button onclick="saveFirebaseConfig()">☁️ Firebase Config Save & Reload</button><div id="firebaseMsg"></div><hr style="border:0;border-top:1px solid #e5e7eb;margin:16px 0"><h3>💾 Backup & Restore</h3><p class="setting-note">Appના Students, Notices, Lessons, Tests, Personal Messages અને પ્રશ્ન બેંકનો backup મોબાઇલમાં JSON તરીકે અથવા <b>Google Cloud (Firebase)</b>માં સાચવી શકાય છે.</p><div class="cloud-backup-card"><h4 style="margin:0 0 6px">☁️ Google Cloud Backup</h4><p class="setting-note" style="margin:0 0 10px">Cloud Backup તમારા હાલના Firebase Realtime Database Project <b>study-zon</b>માં <b>cloudBackups/latest</b> તરીકે સાચવશે.</p><div class="cloud-backup-grid"><button type="button" onclick="saveCloudBackup(true)">☁️ Cloud Backup લો</button><button type="button" onclick="restoreLatestCloudBackup()">♻️ Cloud Restore કરો</button></div><div id="cloudBackupStatus" class="cloud-backup-status">⏱️ Automatic Cloud Backup: દર 5 કલાકે (Teacher Dashboard ખુલ્લું હોય ત્યારે).</div><div id="cloudBackupLast" class="cloud-backup-status muted"></div></div><div class="backup-grid"><button type="button" onclick="downloadBackup()">💾 Backup Download</button><button type="button" onclick="document.getElementById('restoreFile').click()">♻️ Restore Backup</button><button type="button" class="secondary" onclick="exportOfflineContent()">📦 Offline Data Export</button></div><input id="restoreFile" type="file" accept=".json,application/json" style="display:none" onchange="restoreBackup(this.files[0])"><div id="backupMsg" class="sync-status"></div><p class="setting-note">નોંધ: PDF/Photoની actual file જો Firebase Storage અથવા Google Driveમાં હોય તો backupમાં તેનો URL/record સાચવાશે; મોટી binary file JSONમાં copy થતી નથી.</p></div></section></main><div id="teacherModal" class="hidden" style="position:fixed;inset:0;background:#0008;z-index:2000;align-items:center;justify-content:center;padding:16px"><div class="card" style="width:min(400px,100%)"><h3>👨‍🏫 Teacher Login</h3><label>Teacher ID</label><input id="teacherId"><label>Password</label><input id="teacherPass" type="password"><button onclick="teacherLogin()">🔐 Login</button><button class="secondary" onclick="closeTeacherLogin()">બંધ કરો</button><div id="teacherMsg"></div></div></div> <style id="guest-lesson-ui-css">
+<div id="teacherLessons"></div></div><div id="questionTeacherSection" class="card teacher-section hidden"><h3>📝 Course → વિષય → Topic પ્રશ્ન બેંક</h3><p class="muted">પહેલા Course પસંદ કરો → પછી વિષય → પછી Topic આપો → પછી પ્રશ્નો Copy-Paste કરો. વિદ્યાર્થીઓને પણ આ જ ક્રમમાં પ્રશ્નો દેખાશે.</p><div class="grid"><select id="questionCourse"><option value="">Course પસંદ કરો</option><option value="નવોદય">🎯 નવોદય</option><option value="CET">🎓 CET</option><option value="જ્ઞાન સાધના">📘 જ્ઞાન સાધના</option><option value="સામાન્ય">📚 સામાન્ય</option><option value="આકૃતિ">📖 આકૃતિ</option><option value="Ganit">📖 Ganit</option></select><input id="questionSubject" placeholder="વિષય (જેમ કે ગણિત)"><input id="questionTitle" placeholder="Topic / પ્રકરણનું નામ"></div><textarea id="questionText" rows="12" placeholder="અહીં પ્રશ્નો Copy-Paste કરો...&#10;&#10;1. 25 + 35 = ?&#10;A) 50&#10;B) 60&#10;C) 70&#10;D) 80"></textarea><button onclick="saveQuestionBank()">📝 પ્રશ્નો Save / Publish</button><div id="questionMsg" class="sync-status"></div><hr style="border:0;border-top:1px solid #e5e7eb;margin:15px 0"><h4>📚 સેવ થયેલા વિષયો</h4><div id="teacherQuestionBanks"></div></div><div id="personalTeacherSection" class="card teacher-section hidden personal-card"><h3>💬 Personal Message / Document</h3><p class="muted">કોઈ એક વિદ્યાર્થીને વ્યક્તિગત રીતે Message, Fee Receipt, PDF અથવા કોઈ Link મોકલી શકો.</p><div class="grid"><select id="personalStudent"></select><input id="personalTitle" placeholder="શીર્ષક — જેમ કે Fee Receipt September"></div><textarea id="personalMessage" placeholder="વિદ્યાર્થી માટે વ્યક્તિગત Message"></textarea><div class="grid"><input id="personalLink" placeholder="Optional Link (જેમ કે Fee Receipt / Google Drive)"><input id="personalFile" type="file" accept=".pdf,image/*" ></div><button id="personalSendBtn" onclick="sendPersonalMessage()">📤 Personal મોકલો</button><div id="personalMsg" class="sync-status"></div><hr style="border:0;border-top:1px solid #e5e7eb;margin:15px 0"><h4>📨 મોકલેલા Personal Messages</h4><div id="teacherPersonalList" class="personal-list"></div></div><div id="settingsTeacherSection" class="card teacher-section hidden"><div class="card" style="margin-bottom:12px"><b>📱 Student OTP Login</b><div class="muted" style="margin-top:6px"> Student Registration અને Login માટે એપમાં જ 4 અંકનો Free OTP દેખાશે. SMSની જરૂર નથી. </div></div><h3>⚙️ Teacher Login ID / Password</h3><p class="muted">Login થયા પછી જ અહીંથી ID અને Password બદલી શકાશે.</p><div class="grid"><input id="setTeacherId" placeholder="નવું Teacher ID"><input id="setTeacherPass" type="password" placeholder="નવો Password"></div><button onclick="saveTeacherCredentials()">💾 ID / Password Save કરો</button><div id="credentialMsg"></div><hr style="border:0;border-top:1px solid #e5e7eb;margin:16px 0"><h3>🔔 Notifications</h3><p class="setting-note">Teacher અહીંથી notification મોકલી શકે છે. Firebaseમાં notification record સાચવાશે અને વિદ્યાર્થી એપ ખોલે/foregroundમાં આવે ત્યારે બતાવાશે. <b>OneSignal Push ON હોય તો notification OneSignal દ્વારા મોકલાશે.</b></p><div class="grid"><input id="notifyTitle" placeholder="Notification Title"><input id="notifyBody" placeholder="Notification Message"><select id="notifyTarget"><option value="all">👥 બધા વિદ્યાર્થીઓ</option></select></div><button type="button" onclick="sendTeacherNotification()">📢 Notification મોકલો</button><button type="button" class="secondary" onclick="testNativeNotification()">🧪 Native Test</button><div id="notifyMsg"></div><div class="card" style="margin-top:12px;border:1px solid #dbe3ef;background:#f8fbff"><h4 style="margin-top:0">🔔 OneSignal Push</h4><p class="setting-note">OneSignal App ID APKમાં OneSignal integration સાથે match હોવો જોઈએ. REST/API Key HTMLમાં ન નાખશો. Secure Push URL મારફતે PDF/Photo Google Driveમાં પણ સેવ કરી શકાય છે.</p><input id="oneSignalAppId" placeholder="OneSignal App ID"><input id="pushEndpoint" placeholder="Secure Push + Google Drive Web App URL"><button type="button" class="secondary" onclick="savePushEndpoint()">🔐 Secure URL Save</button><button type="button" onclick="saveOneSignalSettings()">💾 OneSignal Save</button><button type="button" class="secondary" onclick="requestOneSignalPermission()">🔔 Student Notification ON</button><div id="oneSignalMsg" class="sync-status"></div></div><hr style="border:0;border-top:1px solid #e5e7eb;margin:16px 0"><h3>☁️ Firebase Cloud Setup</h3><p class="setting-note"><b>✅ NIRMLA STUDY ZON Firebase Project 3: study-zon</b><br>આ એપમાં Firebase configuration પહેલેથી સેટ છે.</p><p class="setting-note">Project 3 ની Firebase Web App configuration અહીં એક વખત નાખો. ત્યારબાદ Students, Notices, Lessons અને પ્રશ્ન બેંકની માહિતી બધા devices પર cloudમાં sync થઈ શકશે.</p><div class="grid"><input id="fbApiKey" placeholder="apiKey"><input id="fbAuthDomain" placeholder="authDomain"><input id="fbDatabaseURL" placeholder="databaseURL"><input id="fbProjectId" placeholder="projectId"><input id="fbStorageBucket" placeholder="storageBucket"><input id="fbMessagingSenderId" placeholder="messagingSenderId"><input id="fbAppId" placeholder="appId"></div><button onclick="saveFirebaseConfig()">☁️ Firebase Config Save & Reload</button><div id="firebaseMsg"></div><hr style="border:0;border-top:1px solid #e5e7eb;margin:16px 0"><h3>💾 Backup & Restore</h3><p class="setting-note">Appના Students, Notices, Lessons, Tests, Personal Messages અને પ્રશ્ન બેંકનો backup મોબાઇલમાં JSON તરીકે અથવા <b>Google Cloud (Firebase)</b>માં સાચવી શકાય છે.</p><div class="cloud-backup-card"><h4 style="margin:0 0 6px">☁️ Google Cloud Backup</h4><p class="setting-note" style="margin:0 0 10px">Cloud Backup તમારા હાલના Firebase Realtime Database Project <b>study-zon</b>માં <b>cloudBackups/latest</b> તરીકે સાચવશે.</p><div class="cloud-backup-grid"><button type="button" onclick="saveCloudBackup(true)">☁️ Cloud Backup લો</button><button type="button" onclick="restoreLatestCloudBackup()">♻️ Cloud Restore કરો</button></div><div id="cloudBackupStatus" class="cloud-backup-status">⏱️ Automatic Cloud Backup: દર 5 કલાકે (Teacher Dashboard ખુલ્લું હોય ત્યારે).</div><div id="cloudBackupLast" class="cloud-backup-status muted"></div></div><div class="backup-grid"><button type="button" onclick="downloadBackup()">💾 Backup Download</button><button type="button" onclick="document.getElementById('restoreFile').click()">♻️ Restore Backup</button><button type="button" class="secondary" onclick="exportOfflineContent()">📦 Offline Data Export</button></div><input id="restoreFile" type="file" accept=".json,application/json" style="display:none" onchange="restoreBackup(this.files[0])"><div id="backupMsg" class="sync-status"></div><p class="setting-note">નોંધ: PDF/Photoની actual file જો Firebase Storage અથવા Google Driveમાં હોય તો backupમાં તેનો URL/record સાચવાશે; મોટી binary file JSONમાં copy થતી નથી.</p></div></section></main><div id="teacherLessonMediaModal" class="lesson-edit-modal" onclick="if(event.target===this)closeTeacherLessonMedia()">
+  <div class="lesson-edit-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+      <h3 id="teacherLessonMediaTitle" style="margin:0">📚 Lesson</h3>
+      <button type="button" class="secondary" onclick="closeTeacherLessonMedia()">✖️ બંધ</button>
+    </div>
+    <div id="teacherLessonMediaBody" class="lesson-edit-preview-wrap">લોડ થઈ રહ્યું છે...</div>
+    <div id="teacherLessonMediaActions" class="teacher-lesson-media-actions"></div>
+  </div>
+</div>
+<div id="teacherLessonEditModal" class="lesson-edit-modal" onclick="if(event.target===this)closeTeacherLessonEdit()">
+  <div class="lesson-edit-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+      <h3 style="margin:0">✏️ Lesson સુધારો</h3>
+      <button type="button" class="secondary" onclick="closeTeacherLessonEdit()">✖️ બંધ</button>
+    </div>
+    <input type="hidden" id="editLessonId">
+    <div class="grid">
+      <input id="editLessonTitle" placeholder="Lesson Title">
+      <input id="editLessonSubject" placeholder="વિષય">
+      <input id="editLessonChapter" placeholder="પ્રકરણ / Topic">
+      <select id="editLessonCourse"><option value="">Course પસંદ કરો</option><option value="નવોદય">🎯 નવોદય</option><option value="CET">🎓 CET</option><option value="જ્ઞાન સાધના">📘 જ્ઞાન સાધના</option><option value="સામાન્ય">📚 સામાન્ય</option><option value="આકૃતિ">📖 આકૃતિ</option><option value="Ganit">📖 Ganit</option></select>
+    </div>
+    <div id="editLessonTextWrap"><textarea id="editLessonContent" rows="9" placeholder="Lesson content"></textarea></div>
+    <div id="editLessonFileWrap" style="display:none;margin-top:8px">
+      <label style="font-weight:700;display:block;margin-bottom:5px">📁 સુધારેલ Photo/PDF (Optional)</label>
+      <input id="editLessonFile" type="file" accept="image/*,application/pdf" style="width:100%;padding:10px;border:1px dashed #9aa7b8;border-radius:10px">
+      <div id="editLessonFileStatus" class="muted" style="margin-top:6px">જૂની ફાઇલ ચાલુ રહેશે જો નવી ફાઇલ પસંદ નહીં કરો.</div>
+    </div>
+    <label style="display:block;margin-top:10px"><input type="checkbox" id="editLessonHidden"> 👁️ વિદ્યાર્થીઓથી Hide</label>
+    <label style="display:block;margin-top:8px">⏰ દેખાવાનો સમય (Optional)</label>
+    <input id="editLessonReleaseAt" type="datetime-local" style="width:100%;padding:10px;border:1px solid #ccd5e2;border-radius:8px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+      <button type="button" onclick="saveEditedLesson()">💾 સુધારો Save કરો</button>
+      <button type="button" class="secondary" onclick="closeTeacherLessonEdit()">રદ કરો</button>
+    </div>
+    <div id="editLessonMsg" class="sync-status"></div>
+  </div>
+</div>
+<div id="teacherModal" class="hidden" style="position:fixed;inset:0;background:#0008;z-index:2000;align-items:center;justify-content:center;padding:16px"><div class="card" style="width:min(400px,100%)"><h3>👨‍🏫 Teacher Login</h3><label>Teacher ID</label><input id="teacherId"><label>Password</label><input id="teacherPass" type="password"><button onclick="teacherLogin()">🔐 Login</button><button class="secondary" onclick="closeTeacherLogin()">બંધ કરો</button><div id="teacherMsg"></div></div></div> <style id="teacher-lesson-media-ui-css">
+.teacher-lesson-media-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
+.teacher-lesson-media-actions button{min-height:42px}
+.lesson-edit-modal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:1000000;display:none;align-items:center;justify-content:center;padding:12px}
+.lesson-edit-modal.show{display:flex!important}
+.lesson-edit-card{width:min(760px,100%);max-height:94vh;overflow:auto;background:#fff;border-radius:16px;padding:16px;box-shadow:0 10px 40px #0006}
+.lesson-media-preview{max-width:100%;max-height:58vh;display:block;margin:10px auto;border-radius:10px;background:#f3f5f8}
+.lesson-edit-preview-wrap{background:#f5f7fb;border-radius:12px;padding:10px;margin:10px 0}
+.lesson-edit-preview-wrap iframe{width:100%;height:60vh;border:0;border-radius:10px;background:#fff}
+.lesson-edit-preview-wrap canvas{max-width:100%;height:auto}
+</style>
+<style id="guest-lesson-ui-css">
 #guestLessonBtn{position:relative;font-weight:700;border:1px solid #dbe3ef}#guestLessonBtn .badge{background:#dc2626;color:#fff}#guestLessonList .guest-lesson-item{background:#fff;border:1px solid #dbe3ef;border-radius:12px;padding:12px;margin:8px 0;cursor:pointer}#guestLessonList .guest-lesson-item:hover{box-shadow:0 4px 14px rgba(0,0,0,.08)}#guestLessonList .guest-new{display:inline-block;background:#dc2626;color:#fff;border-radius:999px;padding:2px 8px;font-size:12px;font-weight:700;margin-left:5px}.guest-lesson-view{margin-top:8px;padding:10px;border-radius:9px;background:#f3f6fb}.guest-lesson-view img{max-width:100%;height:auto;border-radius:8px}.guest-lesson-view iframe{width:100%;min-height:420px;border:0;border-radius:8px}.guest-lesson-view a{word-break:break-all}</style>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js">
 document.addEventListener('DOMContentLoaded',function(){
@@ -1802,6 +1852,147 @@ function selectTeacherLessonSubject(subject){
  renderTeacher();
 }
 
+
+function lessonTypeIcon(type){
+  return type==='pdf'?'📄':(type==='photo'?'🖼️':'📚');
+}
+function lessonTypeName(type){
+  return type==='pdf'?'PDF':(type==='photo'?'Photo':'Text');
+}
+function closeTeacherLessonMedia(){
+  const m=document.getElementById('teacherLessonMediaModal');
+  if(m)m.classList.remove('show');
+  const b=document.getElementById('teacherLessonMediaBody');
+  if(b)b.innerHTML='';
+}
+function openTeacherLessonMedia(id){
+  const l=(window.lessons||{})[id];
+  if(!l){alert('Lesson ઉપલબ્ધ નથી.');return;}
+  const m=document.getElementById('teacherLessonMediaModal');
+  const title=document.getElementById('teacherLessonMediaTitle');
+  const body=document.getElementById('teacherLessonMediaBody');
+  const actions=document.getElementById('teacherLessonMediaActions');
+  if(!m||!body)return;
+  if(title)title.textContent=lessonTypeIcon(l.type)+' '+(l.title||'Lesson')+' — '+lessonTypeName(l.type);
+  actions.innerHTML='<button type="button" onclick="editTeacherLesson(\''+esc(String(id))+'\')">✏️ સુધારો</button><button type="button" class="secondary" onclick="downloadTeacherLessonFile(\''+esc(String(id))+'\')">📥 Download</button>';
+  if(l.type==='photo' && l.content){
+    body.innerHTML='<img class="lesson-media-preview" src="'+esc(l.content)+'" alt="Lesson Photo">';
+  }else if(l.type==='pdf' && l.content){
+    body.innerHTML='<div class="muted" style="margin-bottom:8px">📄 PDF Preview — '+esc(l.fileName||'PDF')+'</div><button type="button" onclick="openTeacherLessonPDF(\''+esc(String(id))+'\')">📄 PDF એપમાં વાંચો</button>';
+  }else{
+    body.innerHTML='<div style="white-space:pre-wrap;line-height:1.75;font-size:16px">'+esc(l.content||'')+'</div>';
+  }
+  m.classList.add('show');
+}
+function openTeacherLessonPDF(id){
+  const l=(window.lessons||{})[id];
+  if(!l||!l.content){alert('PDF ઉપલબ્ધ નથી.');return;}
+  openPdfInApp(String(l.content),l.title||'PDF');
+}
+async function downloadTeacherLessonFile(id){
+  const l=(window.lessons||{})[id];
+  if(!l){alert('Lesson ઉપલબ્ધ નથી.');return;}
+  if(l.type==='text'){
+    const blob=new Blob([String(l.content||'')],{type:'text/plain;charset=utf-8'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(l.title||'NIRMLA_LESSON')+'.txt';document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1500);return;
+  }
+  const url=String(l.content||'');
+  if(!url){alert('ફાઇલ URL ઉપલબ્ધ નથી.');return;}
+  const ext=l.type==='pdf'?'.pdf':'.jpg';
+  const safeName=String(l.fileName||((l.title||'NIRMLA_LESSON').replace(/[^a-zA-Z0-9\u0A80-\u0AFF._-]+/g,'_')+ext));
+  try{
+    const res=await fetch(url,{mode:'cors',credentials:'omit'});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const blob=await res.blob();
+    const objectUrl=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=objectUrl;a.download=safeName;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(objectUrl),3000);
+    return;
+  }catch(e){
+    console.warn('Teacher download fetch failed:',e);
+    try{
+      const a=document.createElement('a');a.href=url;a.download=safeName;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove();
+      alert('📥 Download શરૂ કરવામાં આવ્યું. જો browserમાં ખૂલે તો ત્યાંથી Save/Download કરો.');
+    }catch(err){openInChromePDF(url);}
+  }
+}
+function closeTeacherLessonEdit(){
+  const m=document.getElementById('teacherLessonEditModal');if(m)m.classList.remove('show');
+}
+function toDatetimeLocal(ts){
+  if(!ts)return '';
+  const d=new Date(Number(ts));if(isNaN(d.getTime()))return '';
+  const pad=n=>String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
+}
+function editTeacherLesson(id){
+  const l=(window.lessons||{})[id];
+  if(!l){alert('Lesson ઉપલબ્ધ નથી.');return;}
+  closeTeacherLessonMedia();
+  document.getElementById('editLessonId').value=id;
+  document.getElementById('editLessonTitle').value=l.title||'';
+  document.getElementById('editLessonSubject').value=l.subject||'';
+  document.getElementById('editLessonChapter').value=l.chapter||'';
+  document.getElementById('editLessonCourse').value=l.course||'સામાન્ય';
+  document.getElementById('editLessonContent').value=l.type==='text'?(l.content||''):'';
+  document.getElementById('editLessonHidden').checked=!!l.hidden;
+  document.getElementById('editLessonReleaseAt').value=toDatetimeLocal(l.releaseAt);
+  document.getElementById('editLessonFile').value='';
+  document.getElementById('editLessonFile').accept=l.type==='photo'?'image/*':'application/pdf';
+  document.getElementById('editLessonTextWrap').style.display=l.type==='text'?'block':'none';
+  document.getElementById('editLessonFileWrap').style.display=l.type==='text'?'none':'block';
+  document.getElementById('editLessonFileStatus').textContent=l.type==='photo'?'જૂનો Photo ચાલુ રહેશે; નવો Photo પસંદ કરશો તો Replace થશે.':'જૂની PDF ચાલુ રહેશે; નવી PDF પસંદ કરશો તો Replace થશે.';
+  document.getElementById('editLessonMsg').textContent='';
+  document.getElementById('teacherLessonEditModal').classList.add('show');
+}
+async function saveEditedLesson(){
+  const id=document.getElementById('editLessonId')?.value||'';
+  const old=(window.lessons||{})[id];
+  if(!old){alert('Lesson મળ્યો નથી.');return;}
+  const title=document.getElementById('editLessonTitle').value.trim();
+  const subject=document.getElementById('editLessonSubject').value.trim();
+  const chapter=document.getElementById('editLessonChapter').value.trim();
+  const course=document.getElementById('editLessonCourse').value.trim()||'સામાન્ય';
+  const hidden=!!document.getElementById('editLessonHidden').checked;
+  const releaseInput=document.getElementById('editLessonReleaseAt').value||'';
+  const newFile=document.getElementById('editLessonFile')?.files?.[0]||null;
+  if(!title||!subject){alert('Lesson Title અને વિષય જરૂરી છે.');return;}
+  const msgEl=document.getElementById('editLessonMsg');
+  try{
+    let content=old.content||'';
+    let fileName=old.fileName||'';
+    if(old.type==='text'){
+      content=document.getElementById('editLessonContent').value.trim();
+      if(!content){alert('Lesson content નાખો.');return;}
+    }else if(newFile){
+      const valid=old.type==='pdf'?newFile.type==='application/pdf':newFile.type.startsWith('image/');
+      if(!valid){alert(old.type==='pdf'?'માત્ર PDF પસંદ કરો.':'માત્ર Image/Photo પસંદ કરો.');return;}
+      const max=old.type==='pdf'?5*1024*1024:2*1024*1024;
+      let uploadFile=newFile;
+      if(newFile.size>max){
+        if(msgEl)msgEl.textContent='⏳ નવી ફાઇલ compress થઈ રહી છે...';
+        uploadFile=old.type==='pdf'?await compressLessonPDF(newFile,max):await compressLessonImage(newFile,max);
+      }
+      if(msgEl)msgEl.textContent='☁️ નવી ફાઇલ upload થઈ રહી છે...';
+      content=await uploadLessonFile(uploadFile);
+      fileName=uploadFile.name||newFile.name||fileName;
+    }
+    const updated={...old,title,subject,chapter,course,content,fileName,hidden,releaseAt:releaseInput?new Date(releaseInput).getTime():0,updatedAt:Date.now()};
+    await dataSet('lessons',id,updated);
+    if(!hidden){
+      await createStudentNotification('lesson','✏️ Lesson Updated: '+course+' • '+subject,course+' → '+subject+' → '+title+' માં Lesson update કરવામાં આવ્યું છે.','all');
+    }
+    closeTeacherLessonEdit();
+    renderTeacher();
+    if(currentStudent)renderStudent();
+    alert('✅ Lessonમાં સુધારો સફળતાપૂર્વક Save થયો.');
+  }catch(e){
+    console.error(e);
+    if(msgEl)msgEl.textContent='❌ '+(e?.message||'Save નિષ્ફળ ગયું.');
+    alert('❌ Lesson સુધારી શકાયું નથી.\n'+(e?.message||e));
+  }
+}
 function renderTeacher(){
  populateNotificationTargets();
  const box=document.getElementById('teacherStudents');
@@ -1824,7 +2015,7 @@ function renderTeacher(){
      const release=Number(l.releaseAt||0);
      const releaseText=release?new Date(release).toLocaleString('gu-IN'):'';
      const status=hidden?(release&&release>Date.now()?'⏳ સમય સુધી Hidden':'👁️ Hidden'):'👁️ Visible';
-     return `<div class="item"><b>📚 ${esc(l.title||'')}</b> — ${esc(l.subject||'')} ${l.chapter?`— 📖 ${esc(l.chapter)}`:''} ${l.course?`— 📚 ${esc(l.course)}`:''} ${l.category==='swadhyay'?'<span class="badge">📝 સ્વાધ્યાય</span>':''}<br><span class="badge">📚 ${esc(l.course||'સામાન્ય')}</span> <span class="badge">📖 ${esc(l.subject||'સામાન્ય')}</span><br><small>${esc(l.date||'')}</small><br><span class="badge">${status}</span>${releaseText?` <span class="badge">⏰ ${esc(releaseText)}</span>`:''}<br><button type="button" onclick="toggleLessonVisibility('${esc(id)}')">${hidden?'👁️ Show':'🙈 Hide'}</button> <button type="button" onclick="setLessonRelease('${esc(id)}')">⏰ સમય સેટ</button> <button class="danger" type="button" onclick="deleteTeacherItem('lessons','${esc(id)}')">🗑️ Delete Lesson</button></div>`;
+     return `<div class="item"><b>📚 ${esc(l.title||'')}</b> — ${esc(l.subject||'')} ${l.chapter?`— 📖 ${esc(l.chapter)}`:''} ${l.course?`— 📚 ${esc(l.course)}`:''} ${l.category==='swadhyay'?'<span class="badge">📝 સ્વાધ્યાય</span>':''}<br><span class="badge">📚 ${esc(l.course||'સામાન્ય')}</span> <span class="badge">📖 ${esc(l.subject||'સામાન્ય')}</span><br><small>${esc(l.date||'')}</small><br><span class="badge">${status}</span>${releaseText?` <span class="badge">⏰ ${esc(releaseText)}</span>`:''}<br><div class="teacher-lesson-media-actions"><button type="button" onclick="openTeacherLessonMedia('${esc(id)}')">${lessonTypeIcon(l.type)} ${l.type==='text'?'વાંચો':'જુઓ'}</button><button type="button" onclick="editTeacherLesson('${esc(id)}')">✏️ સુધારો</button>${l.type!=='text'?`<button type="button" class="secondary" onclick="downloadTeacherLessonFile('${esc(id)}')">📥 Download</button>`:''}<button type="button" onclick="toggleLessonVisibility('${esc(id)}')">${hidden?'👁️ Show':'🙈 Hide'}</button><button type="button" onclick="setLessonRelease('${esc(id)}')">⏰ સમય સેટ</button><button class="danger" type="button" onclick="deleteTeacherItem('lessons','${esc(id)}')">🗑️ Delete Lesson</button></div></div>`;
    }).join('')||'<p class="muted">આ પસંદગી પ્રમાણે Lesson નથી.</p>';
  }
  const qb=document.getElementById('teacherQuestionBanks');
