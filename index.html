@@ -15,6 +15,15 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #ccd5e2;border-ra
 .top-actions{display:flex;gap:8px;align-items:center}.teacher-icon{position:fixed;right:10px;top:8px;z-index:1000;width:36px;height:36px;padding:0;border-radius:50%;background:#fff;color:#173b72;font-size:18px}
 .badge{display:inline-block;padding:4px 8px;border-radius:20px;background:#eaf1ff;color:#173b72;font-size:12px;font-weight:700}
 @media(max-width:600px){header{padding-right:55px}}
+/* Student Login / Registration buttons - compact */
+#studentLogin button,#studentRegistration button{
+  padding:8px 11px!important;
+  min-height:38px!important;
+  font-size:13px!important;
+}
+#guestLessonArea{gap:6px!important}
+#guestLessonArea button{padding:7px 10px!important;min-height:36px!important;font-size:13px!important}
+
 
 .section-buttons button.active{outline:3px solid #8fb3ff;transform:translateY(-1px)}
 .search-box{position:relative;margin:10px 0}
@@ -825,10 +834,34 @@ function localData(key){
  try{return JSON.parse(localStorage.getItem('nirmala_'+key)||'{}')||{};}catch(e){return {};}
 }
 function saveLocalData(key,data){localStorage.setItem('nirmala_'+key,JSON.stringify(data||{}));}
-function dataSet(key,id,value){
- if(cloudMode && db) return db.ref(key+'/'+id).set(value);
- const d=localData(key); d[id]=value; saveLocalData(key,d); window[key]=d; if(key==='personalMessages')personalMessages=d; if(key==='questionBanks')questionBanks=d; if(key==='students')students=d; if(key==='notices')notices=d; if(key==='lessons')lessons=d; if(key==='tests')tests=d; if(currentStudent)renderStudent(); renderGuestLessons(); renderTeacher(); cacheCurrentData();
- return Promise.resolve();
+async function dataSet(key,id,value){
+ // Offline-first: local copy is ALWAYS saved first, so Registration/Login
+ // continues to work even when Firebase/Internet is unavailable.
+ const d=localData(key);
+ d[id]=value;
+ saveLocalData(key,d);
+ window[key]=d;
+ if(key==='personalMessages')personalMessages=d;
+ if(key==='questionBanks')questionBanks=d;
+ if(key==='students')students=d;
+ if(key==='notices')notices=d;
+ if(key==='lessons')lessons=d;
+ if(key==='tests')tests=d;
+ if(currentStudent)renderStudent();
+ renderGuestLessons();
+ renderTeacher();
+ cacheCurrentData();
+
+ // Cloud sync is best-effort. A network/Firebase failure must NOT cancel
+ // the local operation.
+ if(cloudMode && db){
+   try{
+     await db.ref(key+'/'+id).set(value);
+   }catch(e){
+     console.warn('Offline/local save; cloud sync pending:',key,id,e);
+   }
+ }
+ return true;
 }
 function dataRemove(key,id){
  if(cloudMode && db) return db.ref(key+'/'+id).remove();
@@ -951,7 +984,9 @@ function digits10(id){
 }
 function findStudentByMobile(mobile){
  const digits=String(mobile||'').replace(/\D/g,'');
- return Object.entries(students||{}).find(([id,s])=>{
+ // Prefer the latest in-memory data, but also check local offline data.
+ const source={...(localData('students')||{}),...(students||{})};
+ return Object.entries(source).find(([id,s])=>{
    const sm=String(s.mobile||'').replace(/\D/g,'');
    return sm===digits && s.active!==false;
  });
@@ -1093,7 +1128,7 @@ async function verifyRegistrationOTP(){
    registrationOtpExpiresAt=0;
    document.getElementById('studentRegistration')?.classList.add('hidden');
    document.getElementById('studentLogin')?.classList.remove('hidden');
-   if(msgEl)msgEl.textContent='✅ Registration સફળ થઈ ગઈ. હવે Teacher Approval આપશે. Approval મળ્યા પછી જ Student Login કરી શકશે.';
+   if(msgEl)msgEl.textContent=(navigator.onLine?'✅ Registration સફળ થઈ ગઈ.':'✅ Registration Offlineમાં પણ સેવ થઈ ગઈ છે. Internet મળતાં Cloudમાં Sync થશે.')+' હવે Teacher Approval આપશે. Approval મળ્યા પછી Student Login કરી શકશે.';
    const sm=document.getElementById('studentMobile');if(sm)sm.value=mobile;
  }catch(e){
    console.error(e);
@@ -1221,6 +1256,38 @@ function showStudentLogin(){
  if(h){h.classList.add('hidden');h.style.display='none';}
  const n=document.getElementById('studentName'); if(n){n.focus();}
 }
+async function syncLocalDataToCloud(){
+ if(!cloudMode || !db || !navigator.onLine)return;
+ const keys=['students','notices','lessons','tests','personalMessages','questionBanks','notifications'];
+ for(const key of keys){
+   try{
+     const local=localData(key);
+     if(local && Object.keys(local).length){
+       const snap=await db.ref(key).once('value');
+       const cloud=snap.val()||{};
+       const merged={...local,...cloud};
+       // Local-only records (for example offline registrations) are pushed.
+       const updates={};
+       Object.entries(local).forEach(([id,val])=>{
+         if(!Object.prototype.hasOwnProperty.call(cloud,id)) updates[key+'/'+id]=val;
+       });
+       if(Object.keys(updates).length) await db.ref().update(updates);
+       window[key]=merged;
+       if(key==='students')students=merged;
+       if(key==='notices')notices=merged;
+       if(key==='lessons')lessons=merged;
+       if(key==='tests')tests=merged;
+       if(key==='personalMessages')personalMessages=merged;
+       if(key==='questionBanks')questionBanks=merged;
+       if(key==='notifications')window.notifications=merged;
+       saveLocalData(key,merged);
+     }
+   }catch(e){console.warn('Local-to-cloud sync skipped for',key,e);}
+ }
+ renderTeacher();
+ if(currentStudent)renderStudent();
+}
+
 function initFirebase(){
  restoreOfflineCache();
  const localKeys=['students','notices','lessons','tests','personalMessages','questionBanks','notifications'];
@@ -1234,11 +1301,25 @@ function initFirebase(){
   db=firebase.database(); storage=firebase.storage(); cloudMode=true;
   initStudentNotifications();
   localKeys.forEach(k=>db.ref(k).on('value',s=>{
-    window[k]=s.val()||{}; if(k==='students')students=window[k];
-    if(k==='notices')notices=window[k]; if(k==='lessons')lessons=window[k]; if(k==='tests')tests=window[k]; if(k==='personalMessages')personalMessages=window[k]; if(k==='questionBanks')questionBanks=window[k]; if(k==='notifications')window.notifications=window[k];
+    const cloud=s.val()||{};
+    const local=localData(k);
+    const merged={...local,...cloud};
+    window[k]=merged;
+    if(k==='students')students=merged;
+    if(k==='notices')notices=merged;
+    if(k==='lessons')lessons=merged;
+    if(k==='tests')tests=merged;
+    if(k==='personalMessages')personalMessages=merged;
+    if(k==='questionBanks')questionBanks=merged;
+    if(k==='notifications')window.notifications=merged;
+    saveLocalData(k,merged);
     if(currentStudent)renderStudent(); renderGuestLessons(); renderTeacher(); cacheCurrentData();
   }));
-  setTimeout(()=>{ if(!currentStudent) restoreStudentSession(); pollStudentNotifications(); }, 350);
+  setTimeout(async()=>{
+    await syncLocalDataToCloud();
+    if(!currentStudent) restoreStudentSession();
+    pollStudentNotifications();
+  },350);
  }catch(e){cloudMode=false;console.log(e); setTimeout(()=>{ if(!currentStudent) restoreStudentSession(); },350);}
 }
 let teacherStudentView='registered';
@@ -1269,7 +1350,9 @@ function studentApprovalStatus(s){
 function renderTeacherStudents(){
  const box=document.getElementById('teacherStudents');if(!box)return;
  const all=Object.entries(students||{}).reverse();
- const arr=teacherStudentView==='registered'?all.filter(([id,s])=>String(s.source||'registration')!=='teacher'):all;
+ const arr=teacherStudentView==='registered'
+  ? all.filter(([id,s])=>String(s.source||'registration')==='registration')
+  : all;
  const total=document.getElementById('studentTotalBadge');if(total)total.textContent='કુલ: '+all.length;
  if(!arr.length){box.innerHTML='<p class="muted">આ વિભાગમાં કોઈ Student નથી.</p>';return;}
  box.innerHTML=`<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;min-width:850px;background:#fff"><thead><tr style="background:#173b72;color:#fff"><th style="padding:9px;border:1px solid #dbe3ef">#</th><th style="padding:9px;border:1px solid #dbe3ef">વિદ્યાર્થી</th><th style="padding:9px;border:1px solid #dbe3ef">પપ્પાનું નામ</th><th style="padding:9px;border:1px solid #dbe3ef">શાળા</th><th style="padding:9px;border:1px solid #dbe3ef">મોબાઇલ</th><th style="padding:9px;border:1px solid #dbe3ef">એડ્રેસ</th><th style="padding:9px;border:1px solid #dbe3ef">Course</th><th style="padding:9px;border:1px solid #dbe3ef">Status</th><th style="padding:9px;border:1px solid #dbe3ef">Action</th></tr></thead><tbody>${arr.map(([id,s],i)=>{
@@ -1279,7 +1362,7 @@ function renderTeacherStudents(){
   else if(type==='approved'){badge='<span class="badge" style="background:#eaf7ea;color:#18733a">🟢 Approved</span>';actions=`<button type="button" class="danger" onclick="setStudentApproval('${esc(id)}','rejected')">❌ Reject</button>`;}
   else if(type==='rejected'){badge='<span class="badge" style="background:#ffeaea;color:#b42318">🔴 Rejected</span>';actions=`<button type="button" onclick="setStudentApproval('${esc(id)}','approved')">✅ Approve</button>`;}
   else {badge='<span class="badge" style="background:#fff4d6;color:#8a5a00">🟡 Pending</span>';actions=`<button type="button" onclick="setStudentApproval('${esc(id)}','approved')">✅ Approve</button> <button type="button" class="danger" onclick="setStudentApproval('${esc(id)}','rejected')">❌ Reject</button>`;}
-  return `<tr><td style="padding:8px;border:1px solid #dbe3ef">${i+1}</td><td style="padding:8px;border:1px solid #dbe3ef"><b>${esc(s.name||'')}</b></td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.fatherName||'')}</td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.schoolName||'')}</td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.mobile||'')}</td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.address||'')}</td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.course||s.batch||'-')}</td><td style="padding:8px;border:1px solid #dbe3ef">${badge}</td><td style="padding:8px;border:1px solid #dbe3ef;white-space:nowrap">${actions}<br><button class="danger" type="button" onclick="deleteTeacherItem('students','${esc(id)}')">🗑️ Delete</button></td></tr>`;
+  return `<tr><td style="padding:8px;border:1px solid #dbe3ef">${i+1}</td><td style="padding:8px;border:1px solid #dbe3ef"><b>${esc(s.name||'')}</b></td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.fatherName||'')}</td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.schoolName||'')}</td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.mobile||'')}</td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.address||'')}</td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.course||s.batch||'-')}</td><td style="padding:8px;border:1px solid #dbe3ef">${badge}<br><span class="badge" style="margin-top:4px;background:#eef7ff;color:#175cd3">📝 Self Registration</span></td><td style="padding:8px;border:1px solid #dbe3ef;white-space:nowrap">${actions}<br><button class="danger" type="button" onclick="deleteTeacherItem('students','${esc(id)}')">🗑️ Delete</button></td></tr>`;
  }).join('')}</tbody></table></div>`;
 }
 async function addStudent(){
