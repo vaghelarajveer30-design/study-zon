@@ -1,4 +1,4 @@
-ng="gu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NIRMLA STUDY ZON</title> <style>
+<!doctype html><html lang="gu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NIRMLA STUDY ZON</title> <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f4f7fb;color:#172033}
 header{background:#173b72;color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center}
 button{border:0;border-radius:9px;padding:10px 14px;background:#173b72;color:white;font-weight:700;cursor:pointer}
@@ -15,15 +15,6 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #ccd5e2;border-ra
 .top-actions{display:flex;gap:8px;align-items:center}.teacher-icon{position:fixed;right:10px;top:8px;z-index:1000;width:36px;height:36px;padding:0;border-radius:50%;background:#fff;color:#173b72;font-size:18px}
 .badge{display:inline-block;padding:4px 8px;border-radius:20px;background:#eaf1ff;color:#173b72;font-size:12px;font-weight:700}
 @media(max-width:600px){header{padding-right:55px}}
-/* Student Login / Registration buttons - compact */
-#studentLogin button,#studentRegistration button{
-  padding:8px 11px!important;
-  min-height:38px!important;
-  font-size:13px!important;
-}
-#guestLessonArea{gap:6px!important}
-#guestLessonArea button{padding:7px 10px!important;min-height:36px!important;font-size:13px!important}
-
 
 .section-buttons button.active{outline:3px solid #8fb3ff;transform:translateY(-1px)}
 .search-box{position:relative;margin:10px 0}
@@ -161,7 +152,7 @@ window.OneSignalDeferred.push(async function(OneSignal){
 .teacher-lesson-stat b{font-size:20px;display:block;color:#173b72}
 .teacher-filter-note{font-size:12px;color:#667085;margin-top:6px}
 </style>
-</head><body><header><div><b>📚 NIRMLA STUDY ZON</b></div><div id="headerUser"></div></header><button class="teacher-icon" title="Teacher Login" onclick="openTeacherLogin()">👨‍🏫</button><main class="wrap"><section id="studentLogin" class="card"><h2>👨‍🎓 Student Login</h2><p class="muted">મોબાઇલ નંબર અને એપમાં દેખાતા 4 અંકના OTP દ્વારા Login કરો.</p><div id="studentLoginBox"><label>મોબાઇલ નંબર</label><input id="studentMobile" type="tel" inputmode="numeric" maxlength="10" placeholder="10 અંકનો મોબાઇલ નંબર"><div id="studentRecaptcha"></div><button type="button" onclick="sendStudentOTP()">📱 OTP મોકલો</button></div><div id="studentOtpArea" style="display:none;margin-top:12px"><div id="studentDemoOtp" class="badge" style="font-size:20px;margin:8px 0"></div><label>4 અંકનો OTP</label><input id="studentOTP" type="tel" inputmode="numeric" maxlength="4" placeholder="ઉપર દેખાતો 4 અંકનો OTP"><button type="button" onclick="verifyStudentOTP()">✅ OTP Verify કરીને Login</button></div><div id="studentMsg"></div><hr><div id="guestLessonArea" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px"><button id="guestLessonBtn" type="button" class="secondary" style="display:none" onclick="openGuestLessons()">🆕 Lessons <span id="guestLessonCount" class="badge" style="margin-left:4px"></span></button><button id="loginOnlineTestBtn" type="button" class="secondary" style="display:none" onclick="openPendingOnlineTestsFromLogin()">📝 Online Test <span id="loginOnlineTestCount" class="badge" style="margin-left:4px"></span></button><button type="button" class="secondary" onclick="openStudentRegistration()">📝 Student Registration</button></div><div id="loginOnlineTestPanel" class="card hidden" style="margin-top:12px;padding:15px;background:#f8fbff"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><h3 style="margin:0">📝 બાકી Online Tests</h3><button type="button" class="secondary" onclick="closePendingOnlineTestsFromLogin()">✖️ બંધ</button></div><p class="muted">Login કર્યા પછી બાકી રહેલી Online Tests અહીંથી ભરી શકો છો.</p><div id="loginOnlineTestList"></div></div><div id="guestLessonPanel" class="card hidden" style="margin-top:12px;padding:15px;background:#f8fbff"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><h3 style="margin:0">🆕 નવા Lessons</h3><button type="button" class="secondary" onclick="closeGuestLessons()">✖️ બંધ</button></div><p class="muted" style="margin-bottom:10px">Teacher દ્વારા upload થયેલા નવા Lessons અહીં દેખાશે.</p><div id="guestLessonList"></div></div></section><div id="studentRegistration" class="card hidden" style="max-width:520px;margin:15px auto"><h2>📝 Student Registration</h2><p class="muted">વિદ્યાર્થીની માહિતી ભરો. Registration OTP એપમાં જ 4 અંકમાં દેખાશે.</p><label>વિદ્યાર્થીનું નામ</label><input id="regStudentName" placeholder="વિદ્યાર્થીનું નામ"><label>પપ્પાનું નામ</label><input id="regFatherName" placeholder="પપ્પાનું નામ"><label>શાળાનું નામ</label><input id="regSchoolName" placeholder="શાળાનું નામ"><label>એડ્રેસ</label><textarea id="regAddress" rows="3" placeholder="રહેઠાણનું સરનામું"></textarea><label>મોબાઇલ નંબર</label><input id="regStudentMobile" type="tel" inputmode="numeric" maxlength="10" placeholder="10 અંકનો મોબાઇલ નંબર"><button type="button" onclick="sendRegistrationOTP()">📱 Registration OTP મોકલો</button><div id="regOtpArea" style="display:none;margin-top:12px"><div id="regDemoOtp" class="badge" style="font-size:20px;margin:8px 0"></div><label>4 અંકનો OTP</label><input id="regStudentOTP" type="tel" inputmode="numeric" maxlength="4" placeholder="ઉપર દેખાતો 4 અંકનો OTP"><button type="button" onclick="verifyRegistrationOTP()">✅ OTP Verify & Register</button></div><div id="regMsg"></div><button type="button" class="secondary" onclick="closeStudentRegistration()">⬅️ પાછા Login પર</button></div><section id="studentHome" class="hidden"><div class="card"><h2>👨‍🎓 Student Dashboard</h2><span id="studentWelcome" class="badge"></span><span id="connectionStatus" class="offline-badge">📡 તપાસી રહ્યું છે...</span><div style="float:right;display:flex;gap:6px;align-items:center"><button class="secondary" type="button" onclick="studentLogout()">Logout</button><button type="button" style="background:#b91c1c;color:#fff" onclick="exitNirmalaApp()">🚪 Exit</button></div></div><div class="section-buttons"><button onclick="studentSection('noticesSection')">📢 Notice Board <span id="noticeCountBadge"></span></button><button onclick="studentSection('lessonsSection')">📚 Lessons <span id="lessonCountBadge"></span></button><button onclick="studentSection('onlineTestStudentSection')">📝 Online Test <span id="onlineTestCountBadge"></span></button><button onclick="studentSection('questionStudentSection')">📝 વિષયવાર પ્રશ્નો</button><button onclick="studentSection('personalStudentSection')">💬 My Messages <span id="personalCountBadge"></span></button><button onclick="studentSection('profileSection')">👤 My Profile</button><button onclick="studentSection('progressSection')">📈 My Progress</button></div><div id="profileSection" class="card app-section hidden personal-card"><h3>👤 My Profile</h3><p class="muted">Registration સમયે વિદ્યાર્થીએ આપેલી માહિતી અહીં દેખાશે.</p><div class="grid"><div class="item"><b>👨‍🎓 વિદ્યાર્થીનું નામ</b><div id="profileName">-</div></div><div class="item"><b>👨 પપ્પાનું નામ</b><div id="profileFather">-</div></div><div class="item"><b>🏫 શાળાનું નામ</b><div id="profileSchool">-</div></div><div class="item"><b>📱 મોબાઇલ નંબર</b><div id="profileMobile">-</div></div><div class="item"><b>📚 Course</b><div id="profileCourse">-</div></div><div class="item"><b>🏠 એડ્રેસ</b><div id="profileAddress">-</div></div><div class="item"><b>🟢 Registration Status</b><div id="profileRegistrationStatus">-</div></div><div class="item"><b>📅 Registration Date</b><div id="profileRegistrationDate">-</div></div></div></div><div id="noticesSection" class="card app-section hidden"><h3>📢 Notice Board</h3><div id="studentNotices">લોડ થઈ રહ્યું છે...</div></div><div id="lessonsSection" class="card app-section hidden"><h3>📚 Course-wise Lessons</h3><p class="muted">પહેલા Course → પછી વિષય → પછી Topic પસંદ કરો. Teacher જે Topic નામ લખશે તેનું બટન આપમેળે બનશે.</p><div id="lessonCourseButtons" class="subject-grid"></div><div id="lessonSubjects" class="subject-grid" style="margin-top:10px"></div><div id="lessonChapters" class="subject-grid" style="margin-top:10px"></div><div class="search-box"><span class="search-icon">🔍</span><input id="lessonSearch" oninput="renderStudentLessons()" placeholder="Course, વિષય અથવા Topic શોધો..."></div><div id="studentLessons">પહેલા Course પસંદ કરો.</div></div><div id="onlineTestStudentSection" class="card app-section hidden"><h3>📝 Online Test</h3><p class="muted">Teacher દ્વારા મુકેલી Online Test અહીંથી સીધી એપમાં ખોલી અને ભરી શકો છો.</p><div id="studentOnlineTestCourses" class="online-test-filter-row"></div><div id="studentOnlineTestSubjects" class="online-test-filter-row"></div><div id="studentOnlineTests">Online Test લોડ થઈ રહી છે...</div></div><div id="questionStudentSection" class="card app-section hidden"><h3>📝 Course → વિષય → Topic પ્રશ્નો</h3><p class="muted">પહેલા Course પસંદ કરો → પછી વિષય → પછી Topic પસંદ કરો. પસંદ કરેલા Topicની બધી માહિતી અહીં ખુલશે.</p><div id="studentQuestionCourses" class="subject-grid"></div><div id="studentQuestionSubjects" class="subject-grid" style="margin-top:10px"></div><div id="studentQuestionTopics" class="subject-grid" style="margin-top:10px"></div><div id="studentQuestionResults" style="margin-top:12px"></div></div></section><section id="teacherHome" class="hidden"><div class="card"><h2>👨‍🏫 Teacher Dashboard</h2><span id="teacherWelcome" class="badge"></span><div style="float:right;display:flex;gap:6px;align-items:center"><button class="secondary" type="button" onclick="teacherLogout()">Logout</button><button type="button" style="background:#b91c1c;color:#fff" onclick="exitNirmalaApp()">🚪 Exit</button></div></div><div class="section-buttons teacher-nav"><button onclick="teacherSection('studentsSection')">👨‍🎓 Students</button><button onclick="teacherSection('noticesTeacherSection')">📢 Notices</button><button onclick="teacherSection('lessonsTeacherSection')">📚 Lessons</button><button onclick="teacherSection('questionTeacherSection')">📝 પ્રશ્ન બેંક</button><button onclick="teacherSection('onlineTestTeacherSection')">🧪 Online Test</button><button onclick="teacherSection('personalTeacherSection')">💬 Personal</button><button onclick="teacherSection('settingsTeacherSection')">⚙️ Settings</button></div><div id="studentsSection" class="card teacher-section"><h3>👨‍🎓 Students</h3><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px"><button type="button" onclick="showRegisteredStudents()">🟢 Registered Students</button><button type="button" class="secondary" onclick="showAllStudents()">👥 બધા Students</button><button type="button" onclick="showTeacherAddStudent()">➕ New Student</button><span id="studentTotalBadge" class="badge">કુલ: 0</span></div><div id="studentViewTitle" class="badge" style="margin-bottom:8px">🟢 Registered Students</div><div id="teacherAddStudentBox" class="card" style="display:none;margin:10px 0;padding:15px"><h4>➕ નવો વિદ્યાર્થી ઉમેરો</h4><div class="grid"><input id="newStudentName" placeholder="વિદ્યાર્થીનું નામ"><input id="newStudentFather" placeholder="પપ્પાનું નામ"><input id="newStudentSchool" placeholder="શાળાનું નામ"><input id="newStudentMobile" type="tel" inputmode="numeric" maxlength="10" placeholder="મોબાઇલ નંબર (10 અંક)"></div><textarea id="newStudentAddress" rows="2" placeholder="એડ્રેસ"></textarea><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" onclick="addStudent()">💾 Student Save</button><button type="button" class="secondary" onclick="hideTeacherAddStudent()">✖️ બંધ</button></div></div><div class="muted" style="margin:8px 0">🟢 Registered = વિદ્યાર્થીએ પોતે Registration કર્યું છે. 🟡 Pending = Approval બાકી. 🟢 Approved = Login કરી શકે. 🔴 Rejected = Login નહીં કરી શકે. 👥 બધા = Registered + Teacher દ્વારા ઉમેરેલા બધા વિદ્યાર્થીઓ.</div><div id="teacherStudents"></div></div><div id="noticesTeacherSection" class="card teacher-section hidden"><h3>📢 Notice Board</h3><textarea id="noticeText" placeholder="બધા વિદ્યાર્થીઓ માટે Notice"></textarea><button onclick="addNotice()">📢 Notice Publish</button><div id="teacherNotices"></div></div><div id="lessonsTeacherSection" class="card teacher-section hidden"><h3>📚 Lesson ઉમેરો</h3><div class="grid"><input id="lessonTitle" placeholder="Lesson Title"><input id="lessonSubject" placeholder="વિષય (જેમ કે ગણિત)"><input id="lessonChapter" placeholder="પ્રકરણ / Chapter (જેમ કે પ્રકરણ 1)"><select id="lessonCourse"><option value="">Course પસંદ કરો</option><option value="નવોદય">🎯 નવોદય</option><option value="CET">🎓 CET</option><option value="જ્ઞાન સાધના">📘 જ્ઞાન સાધના</option><option value="સામાન્ય">📚 સામાન્ય</option></select></div><select id="lessonType" onchange="toggleLessonUpload()"><option value="text">Text</option><option value="photo">Photo Upload</option><option value="pdf">PDF Upload</option></select><select id="lessonCategory"><option value="lesson">📚 સામાન્ય Lesson</option><option value="swadhyay">📝 સ્વાધ્યાય</option></select><textarea id="lessonContent" placeholder="Lesson content"></textarea><div id="lessonFileWrap" style="display:none;margin-top:10px"><label style="display:block;margin-bottom:6px;font-weight:600">📁 Photo અથવા PDF પસંદ કરો</label><input id="lessonFile" type="file" accept="image/*,application/pdf" style="padding:12px;border:1px dashed #9aa7b8;border-radius:10px;width:100%;box-sizing:border-box"><div id="lessonUploadStatus" class="muted" style="margin-top:8px">કોઈ ફાઇલ પસંદ કરેલ નથી.</div></div><label><input type="checkbox" id="lessonAll" checked> આ Courseના બધા વિદ્યાર્થીઓ માટે</label><br><label style="display:block;margin-top:10px"><input type="checkbox" id="lessonHidden"> 👁️ હમણાં વિદ્યાર્થીઓથી Hide રાખો</label><label style="display:block;margin-top:8px">⏰ વિદ્યાર્થીઓને દેખાવાનો સમય (Optional)</label><input id="lessonReleaseAt" type="datetime-local" style="width:100%;padding:12px;border:1px solid #ccd3df;border-radius:10px;box-sizing:border-box;margin-top:5px"><div class="muted" style="margin-top:5px">Hide ચાલુ હોય અને સમય આપ્યો હોય તો તે સમય આવ્યા પછી Lesson આપમેળે દેખાશે.</div><button onclick="addLesson()">📚 Lesson Publish</button>
+</head><body><header><div><b>📚 NIRMLA STUDY ZON</b></div><div id="headerUser"></div></header><button class="teacher-icon" title="Teacher Login" onclick="openTeacherLogin()">👨‍🏫</button><main class="wrap"><section id="studentLogin" class="card"><h2>👨‍🎓 Student Login</h2><p class="muted">મોબાઇલ નંબર અને એપમાં દેખાતા 4 અંકના OTP દ્વારા Login કરો. Internet ન હોય ત્યારે પણ અગાઉ સેવ થયેલી માહિતીથી Login થઈ શકે છે.</p><div id="studentLoginBox"><label>📱 મોબાઇલ નંબર</label><input id="studentMobile" type="tel" inputmode="numeric" maxlength="10" autocomplete="tel" placeholder="10 અંકનો મોબાઇલ નંબર"><div class="muted" style="margin:6px 0 10px">Student Login ફક્ત મોબાઇલ નંબરથી થશે. Internet ન હોય ત્યારે પણ અગાઉ એપમાં સેવ થયેલી વિદ્યાર્થી માહિતીથી Login ચાલુ રહેશે.</div><div id="studentRecaptcha"></div><button type="button" onclick="sendStudentOTP()">📱 OTP મોકલો</button></div><div id="studentOtpArea" style="display:none;margin-top:12px"><div id="studentDemoOtp" class="badge" style="font-size:20px;margin:8px 0"></div><label>4 અંકનો OTP</label><input id="studentOTP" type="tel" inputmode="numeric" maxlength="4" placeholder="ઉપર દેખાતો 4 અંકનો OTP"><button type="button" onclick="verifyStudentOTP()">✅ OTP Verify કરીને Login</button></div><div id="studentMsg"></div><hr><div id="guestLessonArea" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px"><button id="guestLessonBtn" type="button" class="secondary" style="display:none" onclick="openGuestLessons()">🆕 Lessons <span id="guestLessonCount" class="badge" style="margin-left:4px"></span></button><button id="loginOnlineTestBtn" type="button" class="secondary" style="display:none" onclick="openPendingOnlineTestsFromLogin()">📝 Online Test <span id="loginOnlineTestCount" class="badge" style="margin-left:4px"></span></button><button type="button" class="secondary" onclick="openStudentRegistration()">📝 Student Registration</button></div><div id="loginOnlineTestPanel" class="card hidden" style="margin-top:12px;padding:15px;background:#f8fbff"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><h3 style="margin:0">📝 બાકી Online Tests</h3><button type="button" class="secondary" onclick="closePendingOnlineTestsFromLogin()">✖️ બંધ</button></div><p class="muted">Login કર્યા પછી બાકી રહેલી Online Tests અહીંથી ભરી શકો છો.</p><div id="loginOnlineTestList"></div></div><div id="guestLessonPanel" class="card hidden" style="margin-top:12px;padding:15px;background:#f8fbff"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><h3 style="margin:0">🆕 નવા Lessons</h3><button type="button" class="secondary" onclick="closeGuestLessons()">✖️ બંધ</button></div><p class="muted" style="margin-bottom:10px">Teacher દ્વારા upload થયેલા નવા Lessons અહીં દેખાશે.</p><div id="guestLessonList"></div></div></section><div id="studentRegistration" class="card hidden" style="max-width:520px;margin:15px auto"><h2>📝 Student Registration</h2><p class="muted">વિદ્યાર્થીની માહિતી ભરો. Registration OTP એપમાં જ 4 અંકમાં દેખાશે.</p><label>વિદ્યાર્થીનું નામ</label><input id="regStudentName" placeholder="વિદ્યાર્થીનું નામ"><label>પપ્પાનું નામ</label><input id="regFatherName" placeholder="પપ્પાનું નામ"><label>શાળાનું નામ</label><input id="regSchoolName" placeholder="શાળાનું નામ"><label>એડ્રેસ</label><textarea id="regAddress" rows="3" placeholder="રહેઠાણનું સરનામું"></textarea><label>મોબાઇલ નંબર</label><input id="regStudentMobile" type="tel" inputmode="numeric" maxlength="10" placeholder="10 અંકનો મોબાઇલ નંબર"><button type="button" onclick="sendRegistrationOTP()">📱 Registration OTP મોકલો</button><div id="regOtpArea" style="display:none;margin-top:12px"><div id="regDemoOtp" class="badge" style="font-size:20px;margin:8px 0"></div><label>4 અંકનો OTP</label><input id="regStudentOTP" type="tel" inputmode="numeric" maxlength="4" placeholder="ઉપર દેખાતો 4 અંકનો OTP"><button type="button" onclick="verifyRegistrationOTP()">✅ OTP Verify & Register</button></div><div id="regMsg"></div><button type="button" class="secondary" onclick="closeStudentRegistration()">⬅️ પાછા Login પર</button></div><section id="studentHome" class="hidden"><div class="card"><h2>👨‍🎓 Student Dashboard</h2><span id="studentWelcome" class="badge"></span><span id="connectionStatus" class="offline-badge">📡 તપાસી રહ્યું છે...</span><div style="float:right;display:flex;gap:6px;align-items:center"><button class="secondary" type="button" onclick="studentLogout()">Logout</button><button type="button" style="background:#b91c1c;color:#fff" onclick="exitNirmalaApp()">🚪 Exit</button></div></div><div class="section-buttons"><button onclick="studentSection('noticesSection')">📢 Notice Board <span id="noticeCountBadge"></span></button><button onclick="studentSection('lessonsSection')">📚 Lessons <span id="lessonCountBadge"></span></button><button onclick="studentSection('onlineTestStudentSection')">📝 Online Test <span id="onlineTestCountBadge"></span></button><button onclick="studentSection('questionStudentSection')">📝 વિષયવાર પ્રશ્નો</button><button onclick="studentSection('personalStudentSection')">💬 My Messages <span id="personalCountBadge"></span></button><button onclick="studentSection('profileSection')">👤 My Profile</button><button onclick="studentSection('progressSection')">📈 My Progress</button><button onclick="openConnectedStudentPortal()">💰 મારી Fee માહિતી <span id="connectedFeeBadge"></span></button></div><div id="profileSection" class="card app-section hidden personal-card"><h3>👤 My Profile</h3><p class="muted">Registration સમયે વિદ્યાર્થીએ આપેલી માહિતી અહીં દેખાશે.</p><div class="grid"><div class="item"><b>👨‍🎓 વિદ્યાર્થીનું નામ</b><div id="profileName">-</div></div><div class="item"><b>👨 પપ્પાનું નામ</b><div id="profileFather">-</div></div><div class="item"><b>🏫 શાળાનું નામ</b><div id="profileSchool">-</div></div><div class="item"><b>🆔 વિદ્યાર્થી ID</b><div id="profileStudentId">-</div></div><div class="item"><b>📱 મોબાઇલ નંબર</b><div id="profileMobile">-</div></div><div class="item"><b>📚 Course</b><div id="profileCourse">-</div></div><div class="item"><b>🏠 એડ્રેસ</b><div id="profileAddress">-</div></div><div class="item"><b>🟢 Registration Status</b><div id="profileRegistrationStatus">-</div></div><div class="item"><b>📅 Registration Date</b><div id="profileRegistrationDate">-</div></div></div></div><div id="noticesSection" class="card app-section hidden"><h3>📢 Notice Board</h3><div id="studentNotices">લોડ થઈ રહ્યું છે...</div></div><div id="lessonsSection" class="card app-section hidden"><h3>📚 Course-wise Lessons</h3><p class="muted">પહેલા Course → પછી વિષય → પછી Topic પસંદ કરો. Teacher જે Topic નામ લખશે તેનું બટન આપમેળે બનશે.</p><div id="lessonCourseButtons" class="subject-grid"></div><div id="lessonSubjects" class="subject-grid" style="margin-top:10px"></div><div id="lessonChapters" class="subject-grid" style="margin-top:10px"></div><div class="search-box"><span class="search-icon">🔍</span><input id="lessonSearch" oninput="renderStudentLessons()" placeholder="Course, વિષય અથવા Topic શોધો..."></div><div id="studentLessons">પહેલા Course પસંદ કરો.</div></div><div id="onlineTestStudentSection" class="card app-section hidden"><h3>📝 Online Test</h3><p class="muted">Teacher દ્વારા મુકેલી Online Test અહીંથી સીધી એપમાં ખોલી અને ભરી શકો છો.</p><div id="studentOnlineTestCourses" class="online-test-filter-row"></div><div id="studentOnlineTestSubjects" class="online-test-filter-row"></div><div id="studentOnlineTests">Online Test લોડ થઈ રહી છે...</div></div><div id="questionStudentSection" class="card app-section hidden"><h3>📝 Course → વિષય → Topic પ્રશ્નો</h3><p class="muted">પહેલા Course પસંદ કરો → પછી વિષય → પછી Topic પસંદ કરો. પસંદ કરેલા Topicની બધી માહિતી અહીં ખુલશે.</p><div id="studentQuestionCourses" class="subject-grid"></div><div id="studentQuestionSubjects" class="subject-grid" style="margin-top:10px"></div><div id="studentQuestionTopics" class="subject-grid" style="margin-top:10px"></div><div id="studentQuestionResults" style="margin-top:12px"></div></div></section><section id="teacherHome" class="hidden"><div class="card"><h2>👨‍🏫 Teacher Dashboard</h2><span id="teacherWelcome" class="badge"></span><div style="float:right;display:flex;gap:6px;align-items:center"><button class="secondary" type="button" onclick="teacherLogout()">Logout</button><button type="button" style="background:#b91c1c;color:#fff" onclick="exitNirmalaApp()">🚪 Exit</button></div></div><div class="section-buttons teacher-nav"><button onclick="teacherSection('studentsSection')">👨‍🎓 Students</button><button onclick="teacherSection('noticesTeacherSection')">📢 Notices</button><button onclick="teacherSection('lessonsTeacherSection')">📚 Lessons</button><button onclick="teacherSection('questionTeacherSection')">📝 પ્રશ્ન બેંક</button><button onclick="teacherSection('onlineTestTeacherSection')">🧪 Online Test</button><button onclick="teacherSection('personalTeacherSection')">💬 Personal</button><button onclick="teacherSection('settingsTeacherSection')">⚙️ Settings</button><button onclick="openConnectedModule('fee')">💰 Fee Management</button><button onclick="openConnectedModule('test')">🧪 Online Test Admin</button></div><div id="studentsSection" class="card teacher-section"><h3>👨‍🎓 Students</h3><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px"><button type="button" onclick="showRegisteredStudents()">🟢 Registered Students</button><button type="button" class="secondary" onclick="showAllStudents()">👥 બધા Students</button><button type="button" onclick="showTeacherAddStudent()">➕ New Student</button><span id="studentTotalBadge" class="badge">કુલ: 0</span></div><div id="studentViewTitle" class="badge" style="margin-bottom:8px">🟢 Registered Students</div><div id="teacherAddStudentBox" class="card" style="display:none;margin:10px 0;padding:15px"><h4>➕ નવો વિદ્યાર્થી ઉમેરો</h4><div class="grid"><input id="newStudentName" placeholder="વિદ્યાર્થીનું નામ"><input id="newStudentFather" placeholder="પપ્પાનું નામ"><input id="newStudentSchool" placeholder="શાળાનું નામ"><input id="newStudentMobile" type="tel" inputmode="numeric" maxlength="10" placeholder="મોબાઇલ નંબર (10 અંક)"></div><textarea id="newStudentAddress" rows="2" placeholder="એડ્રેસ"></textarea><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" onclick="addStudent()">💾 Student Save</button><button type="button" class="secondary" onclick="hideTeacherAddStudent()">✖️ બંધ</button></div></div><div class="muted" style="margin:8px 0">🟢 Registered = વિદ્યાર્થીએ પોતે Registration કર્યું છે. 🟡 Pending = Approval બાકી. 🟢 Approved = Login કરી શકે. 🔴 Rejected = Login નહીં કરી શકે. 👥 બધા = Registered + Teacher દ્વારા ઉમેરેલા બધા વિદ્યાર્થીઓ.</div><div id="teacherStudents"></div></div><div id="noticesTeacherSection" class="card teacher-section hidden"><h3>📢 Notice Board</h3><textarea id="noticeText" placeholder="બધા વિદ્યાર્થીઓ માટે Notice"></textarea><button onclick="addNotice()">📢 Notice Publish</button><div id="teacherNotices"></div></div><div id="lessonsTeacherSection" class="card teacher-section hidden"><h3>📚 Lesson ઉમેરો</h3><div class="grid"><input id="lessonTitle" placeholder="Lesson Title"><input id="lessonSubject" placeholder="વિષય (જેમ કે ગણિત)"><input id="lessonChapter" placeholder="પ્રકરણ / Chapter (જેમ કે પ્રકરણ 1)"><select id="lessonCourse"><option value="">Course પસંદ કરો</option><option value="નવોદય">🎯 નવોદય</option><option value="CET">🎓 CET</option><option value="જ્ઞાન સાધના">📘 જ્ઞાન સાધના</option><option value="સામાન્ય">📚 સામાન્ય</option></select></div><select id="lessonType" onchange="toggleLessonUpload()"><option value="text">Text</option><option value="photo">Photo Upload</option><option value="pdf">PDF Upload</option></select><select id="lessonCategory"><option value="lesson">📚 સામાન્ય Lesson</option><option value="swadhyay">📝 સ્વાધ્યાય</option></select><textarea id="lessonContent" placeholder="Lesson content"></textarea><div id="lessonFileWrap" style="display:none;margin-top:10px"><label style="display:block;margin-bottom:6px;font-weight:600">📁 Photo અથવા PDF પસંદ કરો</label><input id="lessonFile" type="file" accept="image/*,application/pdf" style="padding:12px;border:1px dashed #9aa7b8;border-radius:10px;width:100%;box-sizing:border-box"><div id="lessonUploadStatus" class="muted" style="margin-top:8px">કોઈ ફાઇલ પસંદ કરેલ નથી.</div></div><label><input type="checkbox" id="lessonAll" checked> આ Courseના બધા વિદ્યાર્થીઓ માટે</label><br><label style="display:block;margin-top:10px"><input type="checkbox" id="lessonHidden"> 👁️ હમણાં વિદ્યાર્થીઓથી Hide રાખો</label><label style="display:block;margin-top:8px">⏰ વિદ્યાર્થીઓને દેખાવાનો સમય (Optional)</label><input id="lessonReleaseAt" type="datetime-local" style="width:100%;padding:12px;border:1px solid #ccd3df;border-radius:10px;box-sizing:border-box;margin-top:5px"><div class="muted" style="margin-top:5px">Hide ચાલુ હોય અને સમય આપ્યો હોય તો તે સમય આવ્યા પછી Lesson આપમેળે દેખાશે.</div><button onclick="addLesson()">📚 Lesson Publish</button>
 <div class="teacher-lesson-filter-card">
   <div class="teacher-filter-title">📊 Lesson Course → વિષય પ્રમાણે</div>
   <div class="teacher-filter-note">પહેલા Course પસંદ કરો. પછી તે Courseના વિષય પ્રમાણે Lessonની સંખ્યા જુઓ. નીચેનું list પણ એ પ્રમાણે જ filter થશે.</div>
@@ -257,7 +248,7 @@ const defaultFirebaseConfig = {
   appId: "1:419936963635:web:7bfbc258bce9c3507bee36"
 };
 let firebaseConfig = JSON.parse(localStorage.getItem('nirmala_firebase_config') || 'null') || defaultFirebaseConfig;
-let db=null, storage=null, students={}, notices={}, lessons={}, tests={}, personalMessages={}, questionBanks={}, testResults={};
+let db=null, storage=null, students={}, notices={}, lessons={}, tests={}, personalMessages={}, questionBanks={};
 let cloudMode=false;
 window.firebaseConfig=firebaseConfig;
 window.NIRMLA_FIREBASE_PROJECT='study-zon';
@@ -659,7 +650,7 @@ function restoreOfflineCache(){
   const raw=localStorage.getItem(OFFLINE_CACHE_KEY);
   if(!raw)return;
   const d=JSON.parse(raw);
-  if(d.students){window.students=d.students;students=d.students}
+  if(d.students){window.students=d.students;students=d.students; ensureAllLearningStudentIds();}
   if(d.notices){window.notices=d.notices;notices=d.notices}
   if(d.lessons){window.lessons=d.lessons;lessons=d.lessons}
   if(d.tests){window.tests=d.tests;tests=d.tests}
@@ -834,45 +825,72 @@ function localData(key){
  try{return JSON.parse(localStorage.getItem('nirmala_'+key)||'{}')||{};}catch(e){return {};}
 }
 function saveLocalData(key,data){localStorage.setItem('nirmala_'+key,JSON.stringify(data||{}));}
-async function dataSet(key,id,value){
- // Offline-first: local copy is ALWAYS saved first, so Registration/Login
- // continues to work even when Firebase/Internet is unavailable.
- const d=localData(key);
- d[id]=value;
- saveLocalData(key,d);
- window[key]=d;
- if(key==='personalMessages')personalMessages=d;
- if(key==='questionBanks')questionBanks=d;
- if(key==='students')students=d;
- if(key==='notices')notices=d;
- if(key==='lessons')lessons=d;
- if(key==='tests')tests=d;
- if(currentStudent)renderStudent();
- renderGuestLessons();
- renderTeacher();
- cacheCurrentData();
 
- // Cloud sync is best-effort. A network/Firebase failure must NOT cancel
- // the local operation.
- if(cloudMode && db){
+// Offline-first Student Registration Sync.
+// Registration થયેલા વિદ્યાર્થીઓને Firebase listener ક્યારેય overwrite ન કરે;
+// પહેલા local/pending record સાચવાય અને Internet મળતાં cloudમાં merge થાય.
+function getPendingStudentSync(){
+ try{return JSON.parse(localStorage.getItem('nirmala_pending_student_sync')||'{}')||{};}catch(e){return {};}
+}
+function savePendingStudentSync(data){
+ try{localStorage.setItem('nirmala_pending_student_sync',JSON.stringify(data||{}));}catch(e){}
+}
+function markStudentPendingSync(id,value){
+ const p=getPendingStudentSync(); p[String(id)]=value; savePendingStudentSync(p);
+}
+function clearStudentPendingSync(id){
+ const p=getPendingStudentSync(); delete p[String(id)]; savePendingStudentSync(p);
+}
+function mergePendingStudentsWithCloud(cloudStudents){
+ const merged={...(cloudStudents||{})};
+ const pending=getPendingStudentSync();
+ Object.entries(pending).forEach(([id,st])=>{ if(st && !merged[id]) merged[id]=st; });
+ return merged;
+}
+async function syncPendingStudentsToCloud(){
+ if(!cloudMode || !db || !navigator.onLine)return;
+ const pending=getPendingStudentSync();
+ for(const [id,st] of Object.entries(pending)){
+   if(!st) { clearStudentPendingSync(id); continue; }
    try{
-     await db.ref(key+'/'+id).set(value);
-   }catch(e){
-     console.warn('Offline/local save; cloud sync pending:',key,id,e);
-   }
+     const snap=await db.ref('students/'+id).once('value');
+     if(!snap.exists()) await db.ref('students/'+id).set(st);
+     else {
+       const remote=snap.val()||{};
+       // Remote record wins only for fields that exist remotely; preserve the local registration fields.
+       await db.ref('students/'+id).update(st);
+     }
+     clearStudentPendingSync(id);
+   }catch(e){ console.warn('Pending student sync failed:',id,e); }
  }
- return true;
+ const merged=mergePendingStudentsWithCloud(localData('students'));
+ window.students=merged; students=merged; ensureAllLearningStudentIds(); cacheCurrentData();
+}
+
+function dataSet(key,id,value){
+ // Always keep a local copy first. This is what makes Registration survive offline/online transitions.
+ const d=localData(key); d[id]=value; saveLocalData(key,d);
+ if(key==='students'){
+   window.students=d; students=d;
+   if(!cloudMode || !db || !navigator.onLine) markStudentPendingSync(id,value);
+ }
+ if(key==='personalMessages')personalMessages=d; if(key==='questionBanks')questionBanks=d; if(key==='notices')notices=d; if(key==='lessons')lessons=d; if(key==='tests')tests=d;
+ if(currentStudent)renderStudent(); renderGuestLessons(); renderTeacher(); cacheCurrentData();
+ if(cloudMode && db && navigator.onLine){
+   return db.ref(key+'/'+id).set(value).then(()=>{
+     if(key==='students')clearStudentPendingSync(id);
+   }).catch(err=>{
+     if(key==='students')markStudentPendingSync(id,value);
+     throw err;
+   });
+ }
+ return Promise.resolve();
 }
 async function dataRemove(key,id){
- // Always remove the local copy as well. Otherwise Firebase listeners can
- // merge the old local record back into the list after a successful delete.
- try{
-   if(cloudMode && db){
-     await db.ref(key+'/'+id).remove();
-   }
- }catch(e){
-   console.warn('Cloud delete failed:',key,id,e);
-   // Keep working offline: remove the local copy so the UI/count updates.
+ // Cloud delete AND local delete. Never leave the old local record behind.
+ let cloudError=null;
+ if(cloudMode && db){
+   try{ await db.ref(key+'/'+id).remove(); }catch(e){ cloudError=e; console.warn('Cloud delete failed; local delete applied:',key,id,e); }
  }
  const d=localData(key);
  delete d[id];
@@ -885,11 +903,12 @@ async function dataRemove(key,id){
  if(key==='lessons')lessons=d;
  if(key==='tests')tests=d;
  if(key==='testResults')testResults=d;
+ if(key==='students')clearStudentPendingSync(id);
  if(currentStudent)renderStudent();
  renderGuestLessons();
  renderTeacher();
  cacheCurrentData();
- return true;
+ return {ok:!cloudError,cloudError};
 }
 
 async function deleteTeacherItem(key,id){
@@ -910,7 +929,6 @@ async function deleteTeacherItem(key,id){
      try{ await storage.refFromURL(fileUrl).delete(); }catch(storageErr){ console.warn('Storage file could not be deleted:',storageErr); }
    }
    alert('✅ '+label+' Delete થઈ ગયું.');
-   if(typeof renderTeacherStudents==='function')renderTeacherStudents();
    if(typeof renderTeacher==='function')renderTeacher();
    if(typeof renderStudent==='function' && currentStudent)renderStudent();
  }catch(e){
@@ -1008,13 +1026,138 @@ function digits10(id){
 }
 function findStudentByMobile(mobile){
  const digits=String(mobile||'').replace(/\D/g,'');
- // Prefer the latest in-memory data, but also check local offline data.
- const source={...(localData('students')||{}),...(students||{})};
- return Object.entries(source).find(([id,s])=>{
-   const sm=String(s.mobile||'').replace(/\D/g,'');
-   return sm===digits && s.active!==false;
- });
+ if(!digits)return null;
+ const live=Object.entries(window.students||{}).find(([id,s])=>String(s?.mobile||'').replace(/\D/g,'')===digits && s?.active!==false);
+ if(live)return live;
+ return getOfflineStudentByMobile(digits);
 }
+function normalizeStudentCode(v){
+ return String(v||'').replace(/\D/g,'').slice(-3).padStart(3,'0');
+}
+function collectUsedStudentCodes(){
+ const used=new Set();
+ Object.values(window.students||{}).forEach(st=>{const c=normalizeStudentCode(st?.studentId||st?.studentCode);if(c&&c!=='000')used.add(c);});
+ try{const arr=JSON.parse(localStorage.getItem('NNC_students')||'[]');if(Array.isArray(arr))arr.forEach(st=>{const c=normalizeStudentCode(st?.studentId||st?.studentCode);if(c&&c!=='000')used.add(c);});}catch(e){}
+ return used;
+}
+function nextThreeDigitStudentId(){
+ const used=collectUsedStudentCodes();
+ let start=Number(localStorage.getItem('nirmala_next_student_id')||1);
+ if(!Number.isFinite(start)||start<1||start>999)start=1;
+ for(let n=start;n<=999;n++){
+   const code=String(n).padStart(3,'0');
+   if(!used.has(code)){localStorage.setItem('nirmala_next_student_id',String(n+1));return code;}
+ }
+ for(let n=1;n<start;n++){
+   const code=String(n).padStart(3,'0');
+   if(!used.has(code)){localStorage.setItem('nirmala_next_student_id',String(n+1));return code;}
+ }
+ throw new Error('999 વિદ્યાર્થી ID સુધી મર્યાદા પહોંચી ગઈ છે.');
+}
+function findStudentByStudentId(code){
+ const c=normalizeStudentCode(code);
+ if(!c||c==='000')return null;
+ return Object.entries(window.students||{}).find(([id,s])=>normalizeStudentCode(s?.studentId||s?.studentCode)===c && s?.active!==false);
+}
+function ensureAllLearningStudentIds(){
+ try{
+   const entries=Object.entries(window.students||{});
+   let changed=false;
+   entries.forEach(([id,st])=>{
+     if(!st)return;
+     const c=normalizeStudentCode(st.studentId||st.studentCode);
+     if(!c||c==='000'){
+       const code=nextThreeDigitStudentId();
+       st.studentId=code; st.studentCode=code; changed=true;
+       if(cloudMode && db) db.ref('students/'+id+'/studentId').set(code);
+       if(cloudMode && db) db.ref('students/'+id+'/studentCode').set(code);
+     } else if(st.studentId!==c || st.studentCode!==c){
+       st.studentId=c; st.studentCode=c; changed=true;
+     }
+   });
+   if(changed){
+     students=window.students;
+     if(!cloudMode) saveLocalData('students',students);
+     cacheCurrentData();
+   }
+ }catch(e){console.warn('Learning student ID assignment failed:',e);}
+}
+
+function syncFeeStudentIds(){
+ try{
+   const arr=JSON.parse(localStorage.getItem('NNC_students')||'[]');
+   if(!Array.isArray(arr))return;
+   const parentStudents=Object.entries(window.students||{});
+   let changed=false;
+   const byMobile=new Map();
+   parentStudents.forEach(([id,st])=>{
+     const mob=String(st?.mobile||'').replace(/\D/g,'');
+     if(mob)byMobile.set(mob,{id,st});
+   });
+   arr.forEach(st=>{
+     const mob=String(st?.phone||st?.mobile||'').replace(/\D/g,'');
+     const match=mob?byMobile.get(mob):null;
+     const existing=normalizeStudentCode(st?.studentId||st?.studentCode);
+     if(!existing || existing==='000'){
+       if(match && match.st?.studentId){st.studentId=normalizeStudentCode(match.st.studentId);st.studentCode=st.studentId;changed=true;}
+       else {st.studentId=nextThreeDigitStudentId();st.studentCode=st.studentId;changed=true;}
+     }
+   });
+   if(changed)localStorage.setItem('NNC_students',JSON.stringify(arr));
+ }catch(e){console.warn('Fee student ID sync failed',e);}
+}
+function syncLearningStudentToFee(student){
+ try{
+   if(!student?.studentId)return;
+   const arr=JSON.parse(localStorage.getItem('NNC_students')||'[]');
+   if(!Array.isArray(arr))return;
+   const mob=String(student.mobile||'').replace(/\D/g,'');
+   let changed=false;
+   arr.forEach(st=>{
+     const sm=String(st?.phone||st?.mobile||'').replace(/\D/g,'');
+     if(mob && sm===mob){
+       const c=normalizeStudentCode(st.studentId||st.studentCode);
+       if((!c || c==='000') && normalizeStudentCode(student.studentId)!=='000'){
+         st.studentId=normalizeStudentCode(student.studentId);
+         st.studentCode=st.studentId;
+         changed=true;
+       }
+     }
+   });
+   if(changed)localStorage.setItem('NNC_students',JSON.stringify(arr));
+ }catch(e){console.warn('Learning→Fee ID sync failed',e);}
+}
+function loginStudentRecord(pair){
+ if(!pair)return false;
+ const sid=pair[0], s={...pair[1],id:sid,studentId:normalizeStudentCode(pair[1]?.studentId||pair[1]?.studentCode)};
+ if(String(s.source||'registration')!=='teacher' && s.approved!==true && s.approvalStatus!=='approved'){
+   alert(s.approvalStatus==='rejected'?'❌ Teacherએ તમારી Registration Reject કરી છે.':'⏳ Registration થઈ ગઈ છે, પરંતુ Teacher Approval હજી બાકી છે.');
+   return false;
+ }
+ window.currentStudent=s; currentStudent=s;
+ localStorage.setItem('nirmala_current_student',sid);
+ localStorage.setItem('nirmala_current_student_id',s.studentId||'');
+ saveStudentSession(s);
+ syncLearningStudentToFee(s);
+ markCurrentGuestLessonsSeen();
+ document.getElementById('studentLogin')?.classList.add('hidden');
+ document.getElementById('studentHome')?.classList.remove('hidden');
+ if(document.getElementById('studentHome'))document.getElementById('studentHome').style.display='block';
+ const hu=document.getElementById('headerUser');if(hu)hu.textContent='👨‍🎓 '+s.name;
+ if(typeof studentSection==='function')studentSection('noticesSection');
+ if(typeof renderStudent==='function')renderStudent();
+ enableStudentNotifications();
+ return true;
+}
+function loginStudentById(){
+ const code=normalizeStudentCode(document.getElementById('studentIdLogin')?.value);
+ const msgEl=document.getElementById('studentMsg');
+ if(!/^\d{3}$/.test(code)||code==='000'){if(msgEl)msgEl.textContent='❌ 3 અંકનો સાચો Student ID નાખો. જેમ કે 001';return;}
+ const pair=findStudentByStudentId(code);
+ if(!pair){if(msgEl)msgEl.textContent='❌ આ Student ID મળ્યો નથી.';return;}
+ if(loginStudentRecord(pair)){if(msgEl)msgEl.textContent='';}
+}
+
 function make4DigitOtp(){
  return String(Math.floor(1000 + Math.random()*9000));
 }
@@ -1026,6 +1169,19 @@ function showDemoOtp(elementId, otp){
  if(el)el.textContent='🔐 તમારો 4 અંકનો OTP: '+otp;
 }
 
+function getOfflineStudentByMobile(mobile){
+ const d=String(mobile||'').replace(/\D/g,'');
+ if(!d)return null;
+ const sources=[];
+ try{sources.push(Object.entries(window.students||{}));}catch(e){}
+ try{const c=JSON.parse(localStorage.getItem(OFFLINE_CACHE_KEY)||'{}'); if(c.students)sources.push(Object.entries(c.students));}catch(e){}
+ try{const l=localData('students'); sources.push(Object.entries(l));}catch(e){}
+ for(const arr of sources){
+   const hit=arr.find(([id,s])=>String(s?.mobile||'').replace(/\D/g,'')===d && s?.active!==false);
+   if(hit)return hit;
+ }
+ return null;
+}
 function sendStudentOTP(){
  const mobile=digits10('studentMobile');
  const msgEl=document.getElementById('studentMsg');
@@ -1064,26 +1220,13 @@ function verifyStudentOTP(){
    if(msgEl)msgEl.textContent='❌ Student મળ્યો નથી.';
    return;
  }
- const sid=pair[0],s={...pair[1],id:sid};
- if(String(s.source||'registration')!=='teacher' && s.approved!==true && s.approvalStatus!=='approved'){
-  if(msgEl)msgEl.textContent=s.approvalStatus==='rejected'?'❌ Teacherએ તમારી Registration Reject કરી છે.':'⏳ Registration થઈ ગઈ છે, પરંતુ Teacher Approval હજી બાકી છે.';
-  return;
- }
- currentStudent=s;
- localStorage.setItem('nirmala_current_student',sid);
- saveStudentSession(s);
- markCurrentGuestLessonsSeen();
+ const ok=loginStudentRecord(pair);
  studentDemoOtp='';
  studentOtpExpiresAt=0;
- document.getElementById('studentLogin')?.classList.add('hidden');
- document.getElementById('studentHome')?.classList.remove('hidden');
- if(document.getElementById('studentHome'))document.getElementById('studentHome').style.display='block';
- const hu=document.getElementById('headerUser');if(hu)hu.textContent='👨‍🎓 '+s.name;
- if(typeof studentSection==='function')studentSection('noticesSection');
- if(typeof renderStudent==='function')renderStudent();
- enableStudentNotifications();
- if(msgEl)msgEl.textContent='';
-  if(pendingGuestLessonId){setTimeout(openPendingGuestLessonAfterLogin,350);}
+ if(ok){
+   if(msgEl)msgEl.textContent='';
+   if(pendingGuestLessonId){setTimeout(openPendingGuestLessonAfterLogin,350);}
+ }
 }
 
 function openStudentRegistration(){
@@ -1107,8 +1250,6 @@ function sendRegistrationOTP(){
  if(!schoolName){if(msgEl)msgEl.textContent='❌ શાળાનું નામ નાખો.';return;}
  if(!address){if(msgEl)msgEl.textContent='❌ એડ્રેસ નાખો.';return;}
  if(mobile.length!==10){if(msgEl)msgEl.textContent='❌ 10 અંકનો મોબાઇલ નંબર નાખો.';return;}
- if(findStudentByMobile(mobile)){if(msgEl)msgEl.textContent='❌ આ મોબાઇલ નંબર પહેલેથી Registered છે. Student Login કરો.';return;}
-
  registrationDemoOtp=make4DigitOtp();
  registrationOtpExpiresAt=Date.now()+5*60*60*1000;
  showDemoOtp('regDemoOtp',registrationDemoOtp);
@@ -1133,9 +1274,11 @@ async function verifyRegistrationOTP(){
    return;
  }
  try{
-   if(findStudentByMobile(mobile)){if(msgEl)msgEl.textContent='❌ આ નંબર પહેલેથી Registered છે.';return;}
    const id='s_'+Date.now();
+   const studentId=nextThreeDigitStudentId();
    const student={
+     studentId,
+     studentCode:studentId,
      name,
      fatherName,
      schoolName,
@@ -1150,10 +1293,12 @@ async function verifyRegistrationOTP(){
    await dataSet('students',id,student);
    registrationDemoOtp='';
    registrationOtpExpiresAt=0;
+   syncLearningStudentToFee(student);
+   const sm=document.getElementById('studentMobile');if(sm)sm.value=mobile;
+   alert('✅ Registration સફળ થઈ ગઈ.\n\n🆔 તમારો 3 અંકનો Student ID: '+studentId+'\n\nઆ ID સાચવી રાખો. Login માટે હંમેશા મોબાઇલ નંબર વાપરવો.');
    document.getElementById('studentRegistration')?.classList.add('hidden');
    document.getElementById('studentLogin')?.classList.remove('hidden');
-   if(msgEl)msgEl.textContent=(navigator.onLine?'✅ Registration સફળ થઈ ગઈ.':'✅ Registration Offlineમાં પણ સેવ થઈ ગઈ છે. Internet મળતાં Cloudમાં Sync થશે.')+' હવે Teacher Approval આપશે. Approval મળ્યા પછી Student Login કરી શકશે.';
-   const sm=document.getElementById('studentMobile');if(sm)sm.value=mobile;
+   if(msgEl)msgEl.innerHTML='✅ Registration થઈ ગઈ. 🆔 Student ID: <b>'+studentId+'</b>';
  }catch(e){
    console.error(e);
    if(msgEl)msgEl.textContent='❌ Registration સેવ થવામાં સમસ્યા આવી.';
@@ -1280,43 +1425,14 @@ function showStudentLogin(){
  if(h){h.classList.add('hidden');h.style.display='none';}
  const n=document.getElementById('studentName'); if(n){n.focus();}
 }
-async function syncLocalDataToCloud(){
- if(!cloudMode || !db || !navigator.onLine)return;
- const keys=['students','notices','lessons','tests','personalMessages','questionBanks','notifications'];
- for(const key of keys){
-   try{
-     const local=localData(key);
-     if(local && Object.keys(local).length){
-       const snap=await db.ref(key).once('value');
-       const cloud=snap.val()||{};
-       const merged={...local,...cloud};
-       // Local-only records (for example offline registrations) are pushed.
-       const updates={};
-       Object.entries(local).forEach(([id,val])=>{
-         if(!Object.prototype.hasOwnProperty.call(cloud,id)) updates[key+'/'+id]=val;
-       });
-       if(Object.keys(updates).length) await db.ref().update(updates);
-       window[key]=merged;
-       if(key==='students')students=merged;
-       if(key==='notices')notices=merged;
-       if(key==='lessons')lessons=merged;
-       if(key==='tests')tests=merged;
-       if(key==='personalMessages')personalMessages=merged;
-       if(key==='questionBanks')questionBanks=merged;
-       if(key==='notifications')window.notifications=merged;
-       saveLocalData(key,merged);
-     }
-   }catch(e){console.warn('Local-to-cloud sync skipped for',key,e);}
- }
- renderTeacher();
- if(currentStudent)renderStudent();
-}
-
 function initFirebase(){
  restoreOfflineCache();
- const localKeys=['students','notices','lessons','tests','personalMessages','questionBanks','notifications','testResults'];
+ // Offline-first: restore local cache before any Firebase connection. Student Login can therefore work without Internet.
+ try{ if(!navigator.onLine){ cloudMode=false; renderGuestLessons(); renderTeacher(); setTimeout(()=>{ if(!currentStudent) restoreStudentSession(); },350); return; } }catch(e){}
+
+ const localKeys=['students','notices','lessons','tests','personalMessages','questionBanks','notifications'];
  localKeys.forEach(k=>window[k]=localData(k));
- students=window.students; notices=window.notices; lessons=window.lessons; tests=window.tests; personalMessages=window.personalMessages||{}; questionBanks=window.questionBanks||{}; testResults=window.testResults||{}; window.notifications=window.notifications||{};
+ students=window.students; notices=window.notices; lessons=window.lessons; tests=window.tests; personalMessages=window.personalMessages||{}; questionBanks=window.questionBanks||{}; window.notifications=window.notifications||{}; ensureAllLearningStudentIds();
  loadFirebaseConfigForm();
  loadOneSignalConfigForm();
  if(!hasFirebaseConfig()){cloudMode=false; if(currentStudent)renderStudent(); renderGuestLessons(); renderTeacher(); cacheCurrentData(); setTimeout(()=>{ if(!currentStudent) restoreStudentSession(); },350); return;}
@@ -1325,27 +1441,32 @@ function initFirebase(){
   db=firebase.database(); storage=firebase.storage(); cloudMode=true;
   initStudentNotifications();
   localKeys.forEach(k=>db.ref(k).on('value',s=>{
-    const cloud=s.val()||{};
-    const local=localData(k);
-    const merged={...local,...cloud};
-    window[k]=merged;
-    if(k==='students')students=merged;
-    if(k==='notices')notices=merged;
-    if(k==='lessons')lessons=merged;
-    if(k==='tests')tests=merged;
-    if(k==='personalMessages')personalMessages=merged;
-    if(k==='questionBanks')questionBanks=merged;
-    if(k==='notifications')window.notifications=merged;
-    saveLocalData(k,merged);
+    const cloudValue=s.val()||{};
+    if(k==='students'){
+      // Never let an older Firebase snapshot erase a student registered offline.
+      const merged=mergePendingStudentsWithCloud(cloudValue);
+      window.students=merged; students=merged; ensureAllLearningStudentIds();
+      // Keep the merged copy locally while pending records are being uploaded.
+      saveLocalData('students',merged);
+      setTimeout(()=>syncPendingStudentsToCloud(),0);
+    }else{
+      window[k]=cloudValue;
+      if(k==='notices')notices=cloudValue; if(k==='lessons')lessons=cloudValue; if(k==='tests')tests=cloudValue; if(k==='personalMessages')personalMessages=cloudValue; if(k==='questionBanks')questionBanks=cloudValue; if(k==='notifications')window.notifications=cloudValue;
+    }
     if(currentStudent)renderStudent(); renderGuestLessons(); renderTeacher(); cacheCurrentData();
   }));
-  setTimeout(async()=>{
-    await syncLocalDataToCloud();
-    if(!currentStudent) restoreStudentSession();
-    pollStudentNotifications();
-  },350);
+  setTimeout(()=>{ syncPendingStudentsToCloud().catch(()=>{}); if(!currentStudent) restoreStudentSession(); pollStudentNotifications(); }, 350);
  }catch(e){cloudMode=false;console.log(e); setTimeout(()=>{ if(!currentStudent) restoreStudentSession(); },350);}
 }
+let __nncFirebaseRetryStarted=false;
+window.addEventListener('online',()=>{
+ try{
+   if(__nncFirebaseRetryStarted)return;
+   __nncFirebaseRetryStarted=true;
+   setTimeout(()=>{__nncFirebaseRetryStarted=false; try{initFirebase();}catch(e){}},1200);
+ }catch(e){}
+});
+window.addEventListener('offline',()=>{ try{ cacheCurrentData(); updateConnectionStatus(); }catch(e){} });
 let teacherStudentView='registered';
 function showRegisteredStudents(){teacherStudentView='registered';const b=document.getElementById('teacherAddStudentBox');if(b)b.style.display='none';const t=document.getElementById('studentViewTitle');if(t)t.textContent='🟢 Registered Students';renderTeacherStudents();}
 function showAllStudents(){teacherStudentView='all';const b=document.getElementById('teacherAddStudentBox');if(b)b.style.display='none';const t=document.getElementById('studentViewTitle');if(t)t.textContent='👥 બધા Students';renderTeacherStudents();}
@@ -1374,19 +1495,17 @@ function studentApprovalStatus(s){
 function renderTeacherStudents(){
  const box=document.getElementById('teacherStudents');if(!box)return;
  const all=Object.entries(students||{}).reverse();
- const arr=teacherStudentView==='registered'
-  ? all.filter(([id,s])=>String(s.source||'registration')==='registration')
-  : all;
+ const arr=teacherStudentView==='registered'?all.filter(([id,s])=>String(s.source||'registration')!=='teacher'):all;
  const total=document.getElementById('studentTotalBadge');if(total)total.textContent='કુલ: '+all.length;
  if(!arr.length){box.innerHTML='<p class="muted">આ વિભાગમાં કોઈ Student નથી.</p>';return;}
- box.innerHTML=`<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;min-width:850px;background:#fff"><thead><tr style="background:#173b72;color:#fff"><th style="padding:9px;border:1px solid #dbe3ef">#</th><th style="padding:9px;border:1px solid #dbe3ef">વિદ્યાર્થી</th><th style="padding:9px;border:1px solid #dbe3ef">પપ્પાનું નામ</th><th style="padding:9px;border:1px solid #dbe3ef">શાળા</th><th style="padding:9px;border:1px solid #dbe3ef">મોબાઇલ</th><th style="padding:9px;border:1px solid #dbe3ef">એડ્રેસ</th><th style="padding:9px;border:1px solid #dbe3ef">Course</th><th style="padding:9px;border:1px solid #dbe3ef">Status</th><th style="padding:9px;border:1px solid #dbe3ef">Action</th></tr></thead><tbody>${arr.map(([id,s],i)=>{
+ box.innerHTML=`<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;min-width:850px;background:#fff"><thead><tr style="background:#173b72;color:#fff"><th style="padding:9px;border:1px solid #dbe3ef">#</th><th style="padding:9px;border:1px solid #dbe3ef">🆔 Student ID</th><th style="padding:9px;border:1px solid #dbe3ef">વિદ્યાર્થી</th><th style="padding:9px;border:1px solid #dbe3ef">પપ્પાનું નામ</th><th style="padding:9px;border:1px solid #dbe3ef">શાળા</th><th style="padding:9px;border:1px solid #dbe3ef">મોબાઇલ</th><th style="padding:9px;border:1px solid #dbe3ef">એડ્રેસ</th><th style="padding:9px;border:1px solid #dbe3ef">Course</th><th style="padding:9px;border:1px solid #dbe3ef">Status</th><th style="padding:9px;border:1px solid #dbe3ef">Action</th></tr></thead><tbody>${arr.map(([id,s],i)=>{
   const type=String(s.source||'registration')==='teacher'?'teacher':studentApprovalStatus(s);
   let badge='',actions='';
   if(type==='teacher'){badge='<span class="badge">👨‍🏫 Teacher Added</span>';}
   else if(type==='approved'){badge='<span class="badge" style="background:#eaf7ea;color:#18733a">🟢 Approved</span>';actions=`<button type="button" class="danger" onclick="setStudentApproval('${esc(id)}','rejected')">❌ Reject</button>`;}
   else if(type==='rejected'){badge='<span class="badge" style="background:#ffeaea;color:#b42318">🔴 Rejected</span>';actions=`<button type="button" onclick="setStudentApproval('${esc(id)}','approved')">✅ Approve</button>`;}
   else {badge='<span class="badge" style="background:#fff4d6;color:#8a5a00">🟡 Pending</span>';actions=`<button type="button" onclick="setStudentApproval('${esc(id)}','approved')">✅ Approve</button> <button type="button" class="danger" onclick="setStudentApproval('${esc(id)}','rejected')">❌ Reject</button>`;}
-  return `<tr><td style="padding:8px;border:1px solid #dbe3ef">${i+1}</td><td style="padding:8px;border:1px solid #dbe3ef"><b>${esc(s.name||'')}</b></td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.fatherName||'')}</td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.schoolName||'')}</td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.mobile||'')}</td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.address||'')}</td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.course||s.batch||'-')}</td><td style="padding:8px;border:1px solid #dbe3ef">${badge}<br><span class="badge" style="margin-top:4px;background:#eef7ff;color:#175cd3">📝 Self Registration</span></td><td style="padding:8px;border:1px solid #dbe3ef;white-space:nowrap">${actions}<br><button class="danger" type="button" onclick="deleteTeacherItem('students','${esc(id)}')">🗑️ Delete</button></td></tr>`;
+  return `<tr><td style="padding:8px;border:1px solid #dbe3ef">${i+1}</td><td style="padding:8px;border:1px solid #dbe3ef"><b>${esc(normalizeStudentCode(s.studentId||s.studentCode)||'---')}</b></td><td style="padding:8px;border:1px solid #dbe3ef"><b>${esc(s.name||'')}</b></td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.fatherName||'')}</td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.schoolName||'')}</td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.mobile||'')}</td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.address||'')}</td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.course||s.batch||'-')}</td><td style="padding:8px;border:1px solid #dbe3ef">${badge}</td><td style="padding:8px;border:1px solid #dbe3ef;white-space:nowrap">${actions}<br><button class="danger" type="button" onclick="deleteTeacherItem('students','${esc(id)}')">🗑️ Delete</button></td></tr>`;
  }).join('')}</tbody></table></div>`;
 }
 async function addStudent(){
@@ -1398,13 +1517,12 @@ async function addStudent(){
  if(!name||!fatherName||!schoolName||!address||mobile.length!==10){
    return alert('વિદ્યાર્થીનું નામ, પપ્પાનું નામ, શાળાનું નામ, એડ્રેસ અને 10 અંકનો મોબાઇલ નંબર નાખો.');
  }
- const existing=Object.values(students||{}).some(s=>String(s.mobile||'').replace(/\D/g,'')===mobile);
- if(existing)return alert('આ મોબાઇલ નંબર પહેલેથી કોઈ Student સાથે જોડાયેલ છે.');
  const id='s_'+Date.now();
+ const studentId=nextThreeDigitStudentId();
  try{
-   await dataSet('students',id,{name,fatherName,schoolName,address,mobile,active:true,approved:true,approvalStatus:'approved',source:'teacher',registeredAt:new Date().toISOString()});
+   await dataSet('students',id,{studentId,studentCode:studentId,name,fatherName,schoolName,address,mobile,active:true,approved:true,approvalStatus:'approved',source:'teacher',registeredAt:new Date().toISOString()});
    ['newStudentName','newStudentFather','newStudentSchool','newStudentMobile','newStudentAddress'].forEach(x=>{const e=document.getElementById(x);if(e)e.value='';});
-   alert('✅ Student સફળતાપૂર્વક ઉમેરાયો.');
+   alert('✅ Student સફળતાપૂર્વક ઉમેરાયો.\n\n🆔 Student ID: '+studentId);
    hideTeacherAddStudent();
    if(typeof renderTeacher==='function')renderTeacher();
  }catch(e){alert('❌ Student ઉમેરાઈ શક્યો નથી: '+(e?.message||e));}
@@ -2138,12 +2256,6 @@ function onlineTestStudentKey(){return String(currentStudent?.id||currentStudent
 function onlineTestCompletionStorageKey(){return 'nirmala_online_test_completed_'+onlineTestStudentKey();}
 function getCompletedOnlineTests(){try{return JSON.parse(localStorage.getItem(onlineTestCompletionStorageKey())||'{}')||{};}catch(e){return {};}}
 function isOnlineTestCompleted(id){return !!getCompletedOnlineTests()[String(id)];}
-function getStudentTestResult(testId){
- const sid=String(currentStudent?.id||'');
- if(!sid)return null;
- const r=(testResults||{})[String(testId)];
- return r && r[sid] ? r[sid] : null;
-}
 async function loadOnlineTestCompletions(){
  if(!currentStudent)return;
  if(cloudMode&&db){
@@ -2153,10 +2265,7 @@ async function loadOnlineTestCompletions(){
      const local=getCompletedOnlineTests();
      const merged={...local,...cloud};
      localStorage.setItem(onlineTestCompletionStorageKey(),JSON.stringify(merged));
-     const rs=await db.ref('testResults').once('value');
-     testResults=rs.val()||{}; window.testResults=testResults;
-     saveLocalData('testResults',testResults);
-   }catch(e){console.warn('Online test completion/result sync failed:',e);}
+   }catch(e){console.warn('Online test completion sync failed:',e);}
  }
  renderOnlineTestsStudent();
  updateLoginOnlineTestButton();
@@ -2173,50 +2282,6 @@ async function markOnlineTestCompleted(id){
  renderOnlineTestsStudent();
  updateLoginOnlineTestButton();
  return true;
-}
-async function saveOnlineTestResult(testId, studentId, score, note=''){
- const tid=String(testId||'').trim(), sid=String(studentId||'').trim();
- const val=Number(score);
- if(!tid||!sid||!Number.isFinite(val)||val<0){alert('❌ યોગ્ય Student અને ગુણ નાખો.');return false;}
- const t=(tests||{})[tid]||{};
- const max=Number(t.marks||0);
- if(max>0 && val>max){alert('❌ મેળવેલા ગુણ કુલ ગુણ કરતાં વધારે ન હોઈ શકે.');return false;}
- const rec={score:val,maxMarks:max,studentId:sid,studentName:String((students||{})[sid]?.name||''),testId:tid,testTitle:onlineTestTitleOf(t),course:onlineTestCourseOf(t),subject:onlineTestSubjectOf(t),updatedAt:Date.now(),note:String(note||'')};
- if(cloudMode&&db) await db.ref('testResults/'+tid+'/'+sid).set(rec);
- else {const d=localData('testResults'); d[tid]=d[tid]||{}; d[tid][sid]=rec; saveLocalData('testResults',d); testResults=d; window.testResults=d;}
- // Result entered by teacher also makes the test completed for that student.
- const completion={completedAt:Date.now(),studentId:sid,studentName:rec.studentName,score:val,maxMarks:max};
- if(cloudMode&&db) await db.ref('testCompletions/'+String(sid)+'/'+tid).set(completion);
- if(currentStudent&&String(currentStudent.id)===sid){
-   const c=getCompletedOnlineTests(); c[tid]=completion; localStorage.setItem(onlineTestCompletionStorageKey(),JSON.stringify(c));
- }
- renderOnlineTestsTeacher();
- if(currentStudent)renderOnlineTestsStudent();
- return true;
-}
-function openOnlineTestResultEditor(testId){
- const t=(tests||{})[String(testId)]; if(!t)return;
- const entries=Object.entries(students||{}).filter(([id,s])=>s&&s.active!==false).sort((a,b)=>String(a[1].name||'').localeCompare(String(b[1].name||''),'gu'));
- if(!entries.length){alert('❌ કોઈ Student મળ્યો નથી.');return;}
- const options=entries.map(([id,s])=>`<option value="${esc(id)}">${esc(s.name||'')} — ${esc(s.mobile||'')}</option>`).join('');
- let modal=document.getElementById('onlineTestResultModal');
- if(!modal){
-   modal=document.createElement('div'); modal.id='onlineTestResultModal'; modal.className='online-test-modal';
-   modal.innerHTML=`<div class="online-test-modal-card" style="height:auto;max-height:94vh"><div class="online-test-modal-head"><b id="onlineTestResultTitle">📝 Test Result</b><button type="button" class="secondary" onclick="closeOnlineTestResultEditor()">✖️ બંધ</button></div><label>વિદ્યાર્થી</label><select id="resultStudentSelect" style="width:100%;padding:10px;border:1px solid #ccd5e2;border-radius:8px;margin:5px 0 10px"></select><label>મેળવેલા ગુણ</label><input id="resultScoreInput" type="number" min="0" step="0.01" placeholder="જેમ કે 18"><label>Teacher Note (Optional)</label><input id="resultNoteInput" placeholder="જેમ કે ખૂબ સારું"><button type="button" onclick="saveOnlineTestResultFromEditor()">💾 Result Save કરો</button><div id="resultEditorMsg" class="sync-status"></div></div>`;
-   document.body.appendChild(modal);
- }
- document.getElementById('onlineTestResultTitle').textContent='📝 '+onlineTestTitleOf(t)+(t.marks?` — કુલ ${t.marks} ગુણ`:'' );
- document.getElementById('resultStudentSelect').innerHTML=options;
- document.getElementById('resultScoreInput').value=''; document.getElementById('resultNoteInput').value='';
- modal.dataset.testId=String(testId); modal.classList.add('show');
-}
-function closeOnlineTestResultEditor(){document.getElementById('onlineTestResultModal')?.classList.remove('show');}
-async function saveOnlineTestResultFromEditor(){
- const modal=document.getElementById('onlineTestResultModal'); const tid=modal?.dataset.testId||'';
- const sid=document.getElementById('resultStudentSelect')?.value||''; const score=document.getElementById('resultScoreInput')?.value||''; const note=document.getElementById('resultNoteInput')?.value||'';
- const ok=await saveOnlineTestResult(tid,sid,score,note);
- const m=document.getElementById('resultEditorMsg'); if(m)m.textContent=ok?'✅ Result સેવ થઈ ગયું.':'❌ Result સેવ થયું નથી.';
- if(ok) setTimeout(closeOnlineTestResultEditor,400);
 }
 async function markOnlineTestCompletedFromModal(){
  const id=window.onlineTestCurrentId;
@@ -2274,7 +2339,7 @@ function renderOnlineTestsTeacher(){
  const arr=Object.entries(tests||{}).filter(([id,t])=>isOnlineTest(t)).reverse();
  box.innerHTML=arr.map(([id,t])=>{
    const url=onlineTestUrlOf(t);
-   return `<div class="online-test-card"><b>🧪 ${esc(onlineTestTitleOf(t))}</b><br><span class="badge">📚 ${esc(onlineTestCourseOf(t))}</span> <span class="badge">📖 ${esc(onlineTestSubjectOf(t))}</span>${t.marks?` <span class="badge">🎯 ${esc(t.marks)} ગુણ</span>`:''}${t.timeMinutes?` <span class="badge">⏱️ ${esc(t.timeMinutes)} મિનિટ</span>`:''}<br><small>${esc(t.date||'')}</small><div class="muted" style="word-break:break-all;margin-top:6px">🔗 ${esc(url)}</div><div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px"><button type="button" onclick="openOnlineTest('${esc(id)}')">👁️ Test જુઓ</button><button type="button" onclick="openOnlineTestResultEditor('${esc(id)}')">🎯 Result દાખલ કરો</button><button type="button" class="secondary" onclick="copyOnlineTestLink('${esc(id)}')">🔗 Link Copy</button><button type="button" class="danger" onclick="deleteTeacherItem('tests','${esc(id)}')">🗑️ Delete</button></div></div>`;
+   return `<div class="online-test-card"><b>🧪 ${esc(onlineTestTitleOf(t))}</b><br><span class="badge">📚 ${esc(onlineTestCourseOf(t))}</span> <span class="badge">📖 ${esc(onlineTestSubjectOf(t))}</span>${t.marks?` <span class="badge">🎯 ${esc(t.marks)} ગુણ</span>`:''}${t.timeMinutes?` <span class="badge">⏱️ ${esc(t.timeMinutes)} મિનિટ</span>`:''}<br><small>${esc(t.date||'')}</small><div class="muted" style="word-break:break-all;margin-top:6px">🔗 ${esc(url)}</div><div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px"><button type="button" onclick="openOnlineTest('${esc(id)}')">👁️ Test જુઓ</button><button type="button" class="secondary" onclick="copyOnlineTestLink('${esc(id)}')">🔗 Link Copy</button><button type="button" class="danger" onclick="deleteTeacherItem('tests','${esc(id)}')">🗑️ Delete</button></div></div>`;
  }).join('')||'<p class="muted">હજી કોઈ Online Test Publish નથી.</p>';
 }
 function renderOnlineTestsStudent(){
@@ -2283,7 +2348,6 @@ function renderOnlineTestsStudent(){
  if(!box||!courses||!subjects)return;
  const arr=pendingOnlineTests();
  const allActive=Object.entries(tests||{}).filter(([id,t])=>isOnlineTest(t)&&t.active!==false).sort((a,b)=>Number(b[1].createdAt||0)-Number(a[1].createdAt||0));
- const completedArr=allActive.filter(([id,t])=>isOnlineTestCompleted(id));
  const cs=[...new Set(arr.map(([id,t])=>onlineTestCourseOf(t)))];
  const selectedC=window.onlineTestCourseFilter||''; const selectedS=window.onlineTestSubjectFilter||'';
  courses.innerHTML='<button type="button" class="'+(!selectedC?'':'secondary')+'" onclick="selectOnlineTestCourse(\'\')">📚 બધા Course</button>'+cs.map(c=>`<button type="button" class="${selectedC===c?'':'secondary'}" onclick="selectOnlineTestCourse('${esc(c)}')">${esc(c)}</button>`).join('');
@@ -2291,24 +2355,7 @@ function renderOnlineTestsStudent(){
  const ss=[...new Set(filteredC.map(([id,t])=>onlineTestSubjectOf(t)))];
  subjects.innerHTML=(selectedC?'<button type="button" class="'+(!selectedS?'':'secondary')+'" onclick="selectOnlineTestSubject(\'\')">📖 બધા વિષય</button>':'')+ss.map(x=>`<button type="button" class="${selectedS===x?'':'secondary'}" onclick="selectOnlineTestSubject('${esc(x)}')">📖 ${esc(x)}</button>`).join('');
  const shown=selectedS?filteredC.filter(([id,t])=>onlineTestSubjectOf(t)===selectedS):filteredC;
- let html='';
- html+=`<div class="item" style="background:#f8fbff;border:1px solid #cfe0ff"><b>📊 મારી Online Test સ્થિતિ</b><div class="grid" style="margin-top:9px"><div><span class="badge">⏳ બાકી: ${arr.length}</span></div><div><span class="badge" style="background:#eaf7ea">✅ આપેલી: ${completedArr.length}</span></div><div><span class="badge">📝 કુલ: ${allActive.length}</span></div></div></div>`;
- if(completedArr.length){
-   html+='<h4 style="margin:14px 0 8px">✅ આપેલી Tests અને Result</h4>';
-   html+=completedArr.map(([id,t])=>{
-     const c=getCompletedOnlineTests()[String(id)]||{}; const r=getStudentTestResult(id); const score=r?.score ?? c?.score; const max=r?.maxMarks || c?.maxMarks || Number(t.marks||0);
-     const scoreText=(score!==undefined&&score!==null&&score!=='')?`🎯 ${esc(score)}${max?` / ${esc(max)}`:''} ગુણ`:'🎯 Result હજી દાખલ થયો નથી';
-     const date=c?.completedAt?new Date(Number(c.completedAt)).toLocaleString('gu-IN'):'';
-     return `<div class="online-test-card" style="border-left:5px solid #2e7d32"><b>✅ ${esc(onlineTestTitleOf(t))}</b><br><span class="badge">📚 ${esc(onlineTestCourseOf(t))}</span> <span class="badge">📖 ${esc(onlineTestSubjectOf(t))}</span><div style="margin-top:7px;font-weight:700">${scoreText}</div>${date?`<small>📅 Test તારીખ: ${esc(date)}</small><br>`:''}${r?.note?`<small>💬 ${esc(r.note)}</small><br>`:''}<span class="badge" style="margin-top:5px;background:#eaf7ea">STATUS: COMPLETED</span></div>`;
-   }).join('');
- }
- if(shown.length){
-   html+='<h4 style="margin:14px 0 8px">⏳ બાકી Online Tests</h4>';
-   html+=shown.map(([id,t])=>`<div class="online-test-card"><b>🧪 ${esc(onlineTestTitleOf(t))}</b><br><span class="badge">📚 ${esc(onlineTestCourseOf(t))}</span> <span class="badge">📖 ${esc(onlineTestSubjectOf(t))}</span>${t.marks?` <span class="badge">🎯 ${esc(t.marks)} ગુણ</span>`:''}${t.timeMinutes?` <span class="badge">⏱️ ${esc(t.timeMinutes)} મિનિટ</span>`:''}<br><small>${esc(t.date||'')}</small><br><button type="button" style="margin-top:8px" onclick="openOnlineTest('${esc(id)}')">📝 Online Test આપો</button></div>`).join('');
- } else {
-   html+='<p class="muted" style="margin-top:12px">🎉 હાલ કોઈ બાકી Online Test નથી.</p>';
- }
- box.innerHTML=html;
+ box.innerHTML=shown.map(([id,t])=>`<div class="online-test-card"><b>🧪 ${esc(onlineTestTitleOf(t))}</b><br><span class="badge">📚 ${esc(onlineTestCourseOf(t))}</span> <span class="badge">📖 ${esc(onlineTestSubjectOf(t))}</span>${t.marks?` <span class="badge">🎯 ${esc(t.marks)} ગુણ</span>`:''}${t.timeMinutes?` <span class="badge">⏱️ ${esc(t.timeMinutes)} મિનિટ</span>`:''}<br><small>${esc(t.date||'')}</small><br><button type="button" style="margin-top:8px" onclick="openOnlineTest('${esc(id)}')">📝 Online Test આપો</button></div>`).join('')||'<p class="muted">🎉 હાલ કોઈ બાકી Online Test નથી.</p>';
  const badge=document.getElementById('onlineTestCountBadge');if(badge)badge.textContent=arr.length?' ('+arr.length+')':'';
  updateLoginOnlineTestButton();
 }
@@ -2324,7 +2371,7 @@ function openOnlineTest(id){
  if(frame){frame.src=url;}
  if(modal)modal.classList.add('show');
 }
-function closeOnlineTest(){const m=document.getElementById('onlineTestModal'),f=document.getElementById('onlineTestFrame');if(f)f.src='about:blank';if(m)m.classList.remove('show');window.onlineTestCurrentId='';}
+function closeOnlineTest(){const m=document.getElementById('onlineTestModal'),f=document.getElementById('onlineTestFrame');if(f){f.removeAttribute('srcdoc');f.src='about:blank';} try{localStorage.removeItem('nnc_connected_test_query');}catch(e){} window.__NNC_QUERY__='';if(m)m.classList.remove('show');window.onlineTestCurrentId='';}
 async function copyOnlineTestLink(id){const t=(tests||{})[id];const url=onlineTestUrlOf(t);try{await navigator.clipboard.writeText(url);alert('✅ Online Test Link Copy થઈ ગઈ.');}catch(e){prompt('આ Link Copy કરો:',url);}}
 
 function renderTeacher(){
@@ -2394,7 +2441,7 @@ function renderProfile(){
  if(!currentStudent)return;
  const setVal=(id,val)=>{
    const e=document.getElementById(id);
-   if(e)e.value=String(val??'');
+   if(e)e.textContent=String(val??'');
  };
  setVal('profileName',currentStudent.name||'');
  setVal('profileFather',currentStudent.fatherName||'');
@@ -2529,39 +2576,6 @@ function renderGuestLessons(){
  updateGuestLessonButton();
  const panel=document.getElementById('guestLessonPanel');
  if(panel && !getGuestNewLessons().length)panel.classList.add('hidden');
-}
-
-function getCurrentStudentId(){
-  if(!currentStudent)return '';
-  return String(currentStudent.id || Object.entries(students||{}).find(([id,s])=>s===currentStudent)?.[0] || '');
-}
-function unreadPersonalCount(){
-  if(!currentStudent)return 0;
-  const sid=getCurrentStudentId();
-  return Object.values(personalMessages||{}).filter(p=>{
-    if(!p)return false;
-    const sameStudent=String(p.studentId||'')===sid || String(p.studentName||'').toLowerCase()===String(currentStudent.name||'').toLowerCase();
-    return sameStudent && p.read!==true;
-  }).length;
-}
-function markPersonalMessagesRead(){
-  if(!currentStudent)return;
-  const sid=getCurrentStudentId();
-  const data={...(personalMessages||{})};
-  let changed=false;
-  Object.entries(data).forEach(([id,p])=>{
-    if(!p)return;
-    const sameStudent=String(p.studentId||'')===sid || String(p.studentName||'').toLowerCase()===String(currentStudent.name||'').toLowerCase();
-    if(sameStudent && p.read!==true){ data[id]={...p,read:true}; changed=true; }
-  });
-  if(!changed)return;
-  personalMessages=data; window.personalMessages=data;
-  saveLocalData('personalMessages',data);
-  if(cloudMode && db){
-    Object.entries(data).forEach(([id,p])=>{
-      if(String(p.studentId||'')===sid && p.read===true){ db.ref('personalMessages/'+id+'/read').set(true).catch(()=>{}); }
-    });
-  }
 }
 
 function renderStudent(){
@@ -2891,4 +2905,340 @@ document.addEventListener('DOMContentLoaded',function(){try{renderGuestLessons()
 </script>
 <script>
 document.addEventListener('DOMContentLoaded',function(){
- try{updateCloudBackupLastText
+ try{updateCloudBackupLastText();if(isTeacherDashboardOpen())startAutoCloudBackup();}
+ catch(e){console.warn('Cloud backup UI init failed:',e);}
+});
+window.addEventListener('beforeunload',function(){stopAutoCloudBackup();});
+</script>
+<style id="connected-modules-css">
+#connectedModuleModal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:2000000;display:none;padding:8px;box-sizing:border-box}
+#connectedModuleModal.show{display:flex;align-items:center;justify-content:center}
+#connectedModuleCard{width:min(1200px,100%);height:min(96vh,100%);background:#fff;border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
+#connectedModuleHead{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#173b72;color:#fff;gap:8px}
+#connectedModuleFrame{flex:1;width:100%;border:0;background:#f4f7fb}
+#connectedStudentPortal{position:fixed;inset:0;background:#f4f7fb;z-index:1999999;display:none;overflow:auto;padding:12px;box-sizing:border-box}
+#connectedStudentPortal.show{display:block}
+.csp-wrap{max-width:900px;margin:auto}.csp-card{background:#fff;border-radius:14px;padding:14px;margin:10px 0;box-shadow:0 2px 10px #0001}.csp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}.csp-stat{border:1px solid #dbe3ef;border-radius:10px;padding:10px;text-align:center}.csp-stat b{display:block;font-size:20px}.csp-green{color:#188038}.csp-red{color:#c5221f}.csp-blue{color:#173b72}.csp-item{border:1px solid #e1e7ef;border-radius:10px;padding:10px;margin:7px 0}.csp-btn{border:0;border-radius:9px;padding:9px 12px;background:#173b72;color:#fff;font-weight:700}.csp-btn.secondary{background:#e9eef7;color:#173b72}.csp-student-pick{display:grid;gap:8px}
+</style>
+<div id="connectedModuleModal">
+  <div id="connectedModuleCard">
+    <div id="connectedModuleHead"><b id="connectedModuleTitle">Connected Module</b><button type="button" class="secondary" onclick="closeConnectedModule()">✖️ બંધ</button></div>
+    <iframe id="connectedModuleFrame" title="Connected module"></iframe>
+  </div>
+</div>
+<iframe id="feeDataFrame" style="display:none;width:0;height:0;border:0" title="Fee data sync"></iframe>
+<div id="connectedStudentPortal">
+ <div class="csp-wrap">
+  <div class="csp-card" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+   <div><h2 style="margin:0">💰 વિદ્યાર્થીની Fee માહિતી</h2><div id="cspStudentName" class="muted"></div></div>
+   <button class="csp-btn secondary" onclick="closeConnectedStudentPortal()">✖️ બંધ</button>
+  </div>
+  <div id="cspStudentChooser" class="csp-card hidden"><b>વિદ્યાર્થી પસંદ કરો:</b><div id="cspStudentButtons" class="csp-student-pick" style="margin-top:8px"></div></div>
+  <div id="cspBody"></div>
+ </div>
+</div>
+
+
+
+
+
+
+<!-- FINAL CONNECTED ONLINE TEST SYSTEM: OnlineTest Firebase -> Student Login -->
+<script id="final-connected-online-tests">
+(function(){
+  const ONLINE_TEST_FIREBASE_CONFIG={
+    apiKey:"AIzaSyDmDK-BcWaw92SfhDYLYDrK1vwjaEEGi0s",
+    authDomain:"nirmala-navoday-online-test.firebaseapp.com",
+    databaseURL:"https://nirmala-navoday-online-test-default-rtdb.firebaseio.com",
+    projectId:"nirmala-navoday-online-test",
+    storageBucket:"nirmala-navoday-online-test.firebasestorage.app",
+    messagingSenderId:"1094616857029",
+    appId:"1:1094616857029:web:5a0d5584100140285773ac"
+  };
+  let testDb=null;
+  let connectedTests={};
+  let connectedSubs={};
+  const TEST_CACHE='nirmala_connected_online_tests_cache_v2';
+  const SUB_CACHE='nirmala_connected_online_subs_cache_v2';
+  function read(k,f){try{return JSON.parse(localStorage.getItem(k)||'null')||f}catch(e){return f}}
+  function write(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+  function initTestDb(){
+    try{
+      if(!window.firebase||!firebase.database)return null;
+      const app=firebase.apps.find(a=>a.name==='nirmalaOnlineTests') || firebase.initializeApp(ONLINE_TEST_FIREBASE_CONFIG,'nirmalaOnlineTests');
+      testDb=app.database();
+      testDb.ref('tests').on('value',snap=>{
+        connectedTests=snap.val()||{}; write(TEST_CACHE,connectedTests); renderConnectedStudentTests();
+      });
+      testDb.ref('submissions').on('value',snap=>{
+        connectedSubs=snap.val()||{}; write(SUB_CACHE,connectedSubs); renderConnectedStudentTests();
+      });
+    }catch(e){console.warn('Online Test Firebase init:',e);}
+    connectedTests=read(TEST_CACHE,connectedTests||{});
+    connectedSubs=read(SUB_CACHE,connectedSubs||{});
+    return testDb;
+  }
+  function sidOf(st){return String(st?.studentId||st?.studentCode||st?.id||'').trim()}
+  function hasSubmitted(st,key){
+    const sid=sidOf(st),name=String(st?.name||'').trim().toLowerCase();
+    return Object.values(connectedSubs||{}).some(s=>String(s?.testKey||'')===String(key) && ((sid && String(s?.studentId||'')===sid) || (!s?.studentId && name && String(s?.studentName||'').trim().toLowerCase()===name)));
+  }
+  function activeTests(){
+    return Object.entries(connectedTests||{}).filter(([k,t])=>{
+      const m=t?.meta||{};
+      return t && m.status==='active' && Array.isArray(t.questions) && t.questions.length>0;
+    }).sort((a,b)=>Number(b[1]?.meta?.testNumber||0)-Number(a[1]?.meta?.testNumber||0) || String(b[0]).localeCompare(String(a[0])));
+  }
+  function renderConnectedStudentTests(){
+    const box=document.getElementById('studentOnlineTests');
+    if(!box || !window.currentStudent)return;
+    const st=window.currentStudent;
+    const arr=activeTests().filter(([k])=>!hasSubmitted(st,k));
+    const all=activeTests();
+    const badge=document.getElementById('onlineTestCountBadge');
+    if(badge)badge.textContent=arr.length?' ('+arr.length+')':'';
+    const loginBtn=document.getElementById('loginOnlineTestBtn'),loginCount=document.getElementById('loginOnlineTestCount');
+    if(loginBtn){loginBtn.style.display=arr.length?'inline-flex':'none';if(loginCount)loginCount.textContent=arr.length?String(arr.length):'';}
+    const cs=[...new Set(arr.map(([k,t])=>String(t.meta?.course||'સામાન્ય')))].sort();
+    const ssFilter=window.onlineTestSubjectFilter||''; const cFilter=window.onlineTestCourseFilter||'';
+    const courses=document.getElementById('studentOnlineTestCourses'),subjects=document.getElementById('studentOnlineTestSubjects');
+    if(courses)courses.innerHTML='<button type="button" class="'+(!cFilter?'':'secondary')+'" onclick="window.onlineTestCourseFilter=\'\';window.onlineTestSubjectFilter=\'\';renderConnectedStudentTests()">📚 બધા Course</button>'+cs.map(c=>'<button type="button" class="'+(cFilter===c?'':'secondary')+'" onclick="window.onlineTestCourseFilter='+JSON.stringify(c)+';window.onlineTestSubjectFilter=\'\';renderConnectedStudentTests()">'+esc(c)+'</button>').join('');
+    const filteredC=cFilter?arr.filter(([k,t])=>String(t.meta?.course||'સામાન્ય')===cFilter):arr;
+    const ss=[...new Set(filteredC.map(([k,t])=>String(t.meta?.subject||'સામાન્ય')))].sort();
+    if(subjects)subjects.innerHTML=(cFilter?'<button type="button" class="'+(!ssFilter?'':'secondary')+'" onclick="window.onlineTestSubjectFilter=\'\';renderConnectedStudentTests()">📖 બધા વિષય</button>':'')+ss.map(x=>'<button type="button" class="'+(ssFilter===x?'':'secondary')+'" onclick="window.onlineTestSubjectFilter='+JSON.stringify(x)+';renderConnectedStudentTests()">📖 '+esc(x)+'</button>').join('');
+    const shown=ssFilter?filteredC.filter(([k,t])=>String(t.meta?.subject||'સામાન્ય')===ssFilter):filteredC;
+    box.innerHTML=shown.map(([k,t])=>{const m=t.meta||{};return '<div class="online-test-card"><b>🧪 '+esc(m.title||k)+'</b><br><span class="badge">📚 '+esc(m.course||'સામાન્ય')+'</span> <span class="badge">📖 '+esc(m.subject||'સામાન્ય')+'</span> <span class="badge">🎯 '+esc(m.totalMarks||100)+' ગુણ</span> <span class="badge">⏱️ '+esc(m.timeLimit||60)+' મિનિટ</span><br><small>Test No. '+esc(m.testNumber||'')+'</small><br><button type="button" style="margin-top:8px" onclick="openConnectedTestDirect(\''+encodeURIComponent(k)+'\')">📝 Test આપો</button></div>'}).join('') || (all.length?'<p class="muted">🎉 આ વિદ્યાર્થીએ બધી Published Online Tests આપી દીધી છે.</p>':'<p class="muted">હાલમાં કોઈ Published Online Test નથી.</p>');
+  }
+  window.renderConnectedStudentTests=renderConnectedStudentTests;
+  window.openConnectedTestDirect=function(encoded){
+    const key=decodeURIComponent(encoded), st=window.currentStudent;
+    if(!st)return alert('❌ પહેલા Student Login કરો.');
+    const t=connectedTests?.[key]; if(!t)return alert('❌ Test મળ્યો નથી.');
+    const q='?t='+encodeURIComponent(key)+'&sid='+encodeURIComponent(sidOf(st))+'&name='+encodeURIComponent(st.name||'')+'&std='+encodeURIComponent(st.std||st.standard||'');
+    try{localStorage.setItem('nnc_connected_test_query',q);localStorage.setItem('nnc_connected_test_data_'+key,JSON.stringify(t));}catch(e){}
+    window.__NNC_QUERY__=q;
+    const modal=document.getElementById('connectedModuleModal'),frame=document.getElementById('connectedModuleFrame');
+    document.getElementById('connectedModuleTitle').textContent='📝 '+(t.meta?.title||'Online Test');
+    if(modal&&frame){window.__nncOpenSrcdoc(frame,window.__NNC_TEST_HTML);modal.classList.add('show');}
+  };
+  window.openPendingOnlineTestsFromLogin=function(){
+    const p=document.getElementById('loginOnlineTestPanel'),l=document.getElementById('loginOnlineTestList');
+    if(!p||!l)return;
+    if(!window.currentStudent){p.classList.remove('hidden');l.innerHTML='<p class="muted">પહેલા Mobile + OTPથી Student Login કરો.</p>';return;}
+    const arr=activeTests().filter(([k])=>!hasSubmitted(window.currentStudent,k));
+    p.classList.remove('hidden');l.innerHTML=arr.map(([k,t])=>'<div class="online-test-card"><b>🧪 '+esc(t.meta?.title||k)+'</b><br>'+esc(t.meta?.course||'')+' • '+esc(t.meta?.subject||'')+' • '+esc(t.meta?.totalMarks||100)+' ગુણ<br><button type="button" style="margin-top:8px" onclick="openConnectedTestDirect(\''+encodeURIComponent(k)+'\')">📝 Test આપો</button></div>').join('')||'<p class="muted">🎉 કોઈ બાકી Test નથી.</p>';
+  };
+  // Keep old buttons/sections but make them use the real OnlineTest Firebase.
+  const oldRender=window.renderOnlineTestsStudent;
+  window.renderOnlineTestsStudent=function(){renderConnectedStudentTests();};
+  const oldPending=window.pendingOnlineTests;
+  window.pendingOnlineTests=function(){
+    const st=window.currentStudent; if(!st)return [];
+    return activeTests().filter(([k])=>!hasSubmitted(st,k));
+  };
+  const oldOpen=window.openOnlineTest;
+  window.openOnlineTest=function(id){return window.openConnectedTestDirect(encodeURIComponent(id));};
+  document.addEventListener('DOMContentLoaded',()=>{initTestDb();setTimeout(renderConnectedStudentTests,800);});
+  if(document.readyState!=='loading')setTimeout(()=>{initTestDb();renderConnectedStudentTests()},200);
+  window.addEventListener('online',()=>setTimeout(()=>{try{initTestDb()}catch(e){}},800));
+})();
+</script>
+
+<!-- NIRMLA STUDY ZON: LIVE LINKS + APPROVAL/DELETE FIXES -->
+<script id="nirmala-final-live-fixes">
+(function(){
+  window.NIRMLA_REMOTE_APPS = {
+    studyZon: 'https://vaghelarajveer30-design.github.io/study-zon/',
+    feeManagement: 'https://vaghelarajveer30-design.github.io/fee-managemant/',
+    onlineTest: 'https://vaghelarajveer30-design.github.io/-Repository-name-/'
+  };
+
+  function remoteStudentParams(){
+    const st=window.currentStudent||currentStudent||{};
+    const q=new URLSearchParams();
+    const sid=st.studentId||st.studentCode||st.id||'';
+    if(sid) q.set('studentId',String(sid));
+    if(sid) q.set('sid',String(sid));
+    if(st.name) q.set('studentName',String(st.name));
+    if(st.mobile) q.set('mobile',String(st.mobile));
+    if(st.std) q.set('std',String(st.std));
+    q.set('from','nirmala-study-zon');
+    return q.toString();
+  }
+  function remoteUrl(base){
+    const q=remoteStudentParams();
+    return base+(base.indexOf('?')>=0?'&':'?')+q;
+  }
+  function openRemote(url,title){
+    let m=document.getElementById('nirmalaRemoteModuleModal');
+    if(!m){
+      m=document.createElement('div');
+      m.id='nirmalaRemoteModuleModal';
+      m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:999999;padding:8px;box-sizing:border-box;display:none;';
+      m.innerHTML='<div style="width:100%;height:100%;background:#fff;border-radius:14px;overflow:hidden;display:flex;flex-direction:column;">'+
+        '<div style="height:52px;min-height:52px;background:#173b72;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 10px;"><b id="nirmalaRemoteTitle">Module</b><div style="display:flex;gap:6px;"><button type="button" onclick="document.getElementById(\'nirmalaRemoteFrame\').src=document.getElementById(\'nirmalaRemoteFrame\').src">🔄</button><button type="button" onclick="closeNirmalaRemoteModule()">✕</button></div></div>'+
+        '<iframe id="nirmalaRemoteFrame" style="flex:1;width:100%;border:0;background:#fff" allow="camera;microphone;fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>';
+      document.body.appendChild(m);
+    }
+    document.getElementById('nirmalaRemoteTitle').textContent=title||'NIRMLA STUDY ZON';
+    document.getElementById('nirmalaRemoteFrame').src=url;
+    m.style.display='block';
+  }
+  window.closeNirmalaRemoteModule=function(){const m=document.getElementById('nirmalaRemoteModuleModal');if(m){m.style.display='none';const f=document.getElementById('nirmalaRemoteFrame');if(f)f.src='about:blank';}};
+
+  // Teacher: Fee Management and Online Test Admin now open from their live GitHub links.
+  window.openConnectedModule=function(kind){
+    if(kind==='fee') return openRemote(remoteUrl(window.NIRMLA_REMOTE_APPS.feeManagement),'💰 Fee Management');
+    return openRemote(remoteUrl(window.NIRMLA_REMOTE_APPS.onlineTest),'🧪 Online Test Admin');
+  };
+
+  // Student: Fee button opens the live Fee Management page for the selected student.
+  window.openConnectedStudentPortal=function(){
+    const st=window.currentStudent||currentStudent;
+    if(!st){alert('પહેલા Student Login કરો.');return;}
+    openRemote(remoteUrl(window.NIRMLA_REMOTE_APPS.feeManagement),'💰 મારી Fee માહિતી');
+  };
+
+  // Student Online Test opens the live Online Test page; existing test list remains intact.
+  window.openConnectedTestDirect=function(encodedKey){
+    const st=window.currentStudent||currentStudent||{};
+    const q=new URLSearchParams();
+    if(encodedKey){try{q.set('test',decodeURIComponent(encodedKey));}catch(e){q.set('test',String(encodedKey));}}
+    const sid=st.studentId||st.studentCode||st.id||'';
+    if(sid)q.set('sid',String(sid));
+    if(st.name)q.set('name',String(st.name));
+    if(st.std)q.set('std',String(st.std));
+    q.set('from','nirmala-study-zon');
+    openRemote(window.NIRMLA_REMOTE_APPS.onlineTest+'?'+q.toString(),'📝 Online Test');
+  };
+
+  // Robust approval: save locally immediately, sync to Firebase when available, and do not let
+  // notification failure cancel the approval.
+  window.setStudentApproval=async function(id,status){
+    const s=(window.students||{})[id];
+    if(!s){alert('❌ Student મળ્યો નથી.');return;}
+    const normalized=status==='approved'?'approved':(status==='rejected'?'rejected':'pending');
+    const updated={...s,approved:normalized==='approved',approvalStatus:normalized,active:true,approvalUpdatedAt:new Date().toISOString()};
+    try{
+      // Local state first so the button works even if Firebase is temporarily unavailable.
+      const d=localData('students'); d[id]=updated; saveLocalData('students',d); window.students=d; students=d;
+      renderTeacherStudents(); renderTeacher(); cacheCurrentData();
+      if(cloudMode&&db&&navigator.onLine){
+        try{ await db.ref('students/'+id).set(updated); clearStudentPendingSync(id); }
+        catch(e){ markStudentPendingSync(id,updated); console.warn('Approval cloud sync pending:',e); }
+      }else{ markStudentPendingSync(id,updated); }
+      try{
+        if(normalized==='approved') await createStudentNotification('approval','✅ Registration Approved','Teacherએ તમારી Student Registration approve કરી છે. હવે તમે Login કરી શકો છો.',id);
+        else if(normalized==='rejected') await createStudentNotification('approval','❌ Registration Rejected','Teacherએ તમારી Student Registration reject કરી છે.',id);
+      }catch(e){console.warn('Approval notification failed:',e);}
+      if(currentStudent&&String(currentStudent.id)===String(id)&&normalized!=='approved')studentLogout();
+      alert(normalized==='approved'?'✅ Student Approval આપી દીધી.':normalized==='rejected'?'❌ Student Approval Reject કરી દીધી.':'⏳ Approval Pending રાખી.');
+      renderTeacherStudents(); renderTeacher();
+    }catch(e){console.error(e);alert('❌ Approval status બદલાઈ શક્યો નથી.\n'+(e?.message||e));}
+  };
+
+  // Robust delete: remove from Firebase and always remove the local cached record too.
+  const __oldDeleteTeacherItem=window.deleteTeacherItem;
+  window.deleteTeacherItem=async function(key,id){
+    const labels={students:'વિદ્યાર્થી',notices:'Notice',lessons:'Lesson',questionBanks:'પ્રશ્નો',personalMessages:'Personal Message',tests:'Online Test'};
+    const label=labels[key]||'આ વસ્તુ';
+    if(!confirm('શું તમે '+label+' ને કાયમ માટે Delete કરવા માંગો છો?\n\nઆ ક્રિયા પાછી Undo કરી શકાશે નહીં.')) return;
+    try{
+      let item=null;
+      if(cloudMode&&db){try{const snap=await db.ref(key+'/'+id).once('value');item=snap.val();}catch(e){console.warn(e);}}
+      if(!item) item=(window[key]||{})[id]||null;
+      await dataRemove(key,id);
+      const fileUrl=item?.content||item?.url||item?.pdfUrl||item?.fileUrl||'';
+      if(storage&&cloudMode&&/^https?:/i.test(String(fileUrl))&&String(fileUrl).includes('firebasestorage.googleapis.com')){
+        try{await storage.refFromURL(fileUrl).delete();}catch(e){console.warn('Storage file could not be deleted:',e);}
+      }
+      // Force the current in-memory/local list to refresh so the count decreases immediately.
+      const d=localData(key); delete d[id]; saveLocalData(key,d); window[key]=d;
+      if(key==='students')students=d;
+      if(key==='tests')tests=d;
+      if(key==='lessons')lessons=d;
+      if(key==='notices')notices=d;
+      if(key==='questionBanks')questionBanks=d;
+      if(key==='personalMessages')personalMessages=d;
+      if(typeof renderTeacherStudents==='function')renderTeacherStudents();
+      if(typeof renderTeacher==='function')renderTeacher();
+      if(typeof renderStudent==='function'&&currentStudent)renderStudent();
+      alert('✅ '+label+' Delete થઈ ગયું.');
+    }catch(e){console.error(e);alert('❌ Delete થઈ શક્યું નથી.\n'+(e?.message||e));}
+  };
+})();
+</script>
+<script id="student-fee-only-portal-fix">
+(function(){
+  const FEE_DB='https://fee-managemant-default-rtdb.asia-southeast1.firebasedatabase.app';
+  const escFee=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const moneyFee=v=>'₹'+Math.round(Number(v)||0).toLocaleString('en-IN');
+  const feeCache=()=>{try{const a=JSON.parse(localStorage.getItem('NNC_fee_cloud_students')||'[]');return Array.isArray(a)?a:[]}catch(e){return[]}};
+  async function loadFeeStudents(){
+    try{
+      if(!navigator.onLine)return feeCache();
+      const r=await fetch(FEE_DB+'/backup.json?ts='+Date.now(),{cache:'no-store'});
+      if(!r.ok)throw Error('HTTP '+r.status);
+      const data=await r.json();
+      const arr=Array.isArray(data?.students)?data.students:[];
+      if(arr.length)try{localStorage.setItem('NNC_fee_cloud_students',JSON.stringify(arr));}catch(e){}
+      return arr;
+    }catch(e){return feeCache();}
+  }
+  function feeMatch(st,arr){
+    const sid=String(st?.studentId||st?.studentCode||st?.id||'').trim();
+    const mob=String(st?.mobile||st?.phone||'').replace(/\D/g,'');
+    const name=String(st?.name||'').trim().toLowerCase();
+    if(sid){const x=arr.find(v=>String(v?.studentId||v?.studentCode||v?.id||'').trim()===sid);if(x)return x;}
+    if(mob){const x=arr.find(v=>String(v?.mobile||v?.phone||'').replace(/\D/g,'')===mob);if(x)return x;}
+    return arr.find(v=>String(v?.name||'').trim().toLowerCase()===name)||null;
+  }
+  function monthName(i){return ['જાન્યુઆરી','ફેબ્રુઆરી','માર્ચ','એપ્રિલ','મે','જૂન','જુલાઈ','ઓગસ્ટ','સપ્ટેમ્બર','ઓક્ટોબર','નવેમ્બર','ડિસેમ્બર'][Number(i)]||'';}
+  function renderStudentFee(st){
+    const body=document.getElementById('cspBody'); if(!body)return;
+    const join=st.joinDate||st.registeredAt?.slice?.(0,10)||'';
+    const receipts=Array.isArray(st.receipts)?st.receipts:[];
+    const stationery=Array.isArray(st.stationery)?st.stationery.filter(x=>x&&Number(x.price)>0):[];
+    const statTotal=stationery.reduce((a,x)=>a+(Number(x.price)||0),0);
+    const statPaid=stationery.filter(x=>String(x.payType||'').trim().toLowerCase()!=='ઉધાર').reduce((a,x)=>a+(Number(x.price)||0),0);
+    const months=new Map();
+    const add=(name,year,total=0,date='')=>{const label=String(name||'').trim()+(year?' '+year:'');if(!label)return;const r=months.get(label)||{label,total:0,paid:0};r.total=Math.max(r.total,Number(total)||0);months.set(label,r);};
+    let tuitionPaid=0;
+    receipts.forEach(r=>{
+      const tf=Number(r.tuitionFee)||0, paid=Math.max(0,Number(r.paidVal??r.paid??0)||0);
+      if(tf<=0)return;
+      const tp=Math.min(tf,paid);tuitionPaid+=tp;
+      const ms=Array.isArray(r.months)?r.months:[];
+      let rem=tp;
+      ms.forEach(m=>{add(m.name,m.year,Number(m.fee??m.amount??0)||0,r.date||r.paymentDate||'');const label=String(m.name||'').trim()+(m.year?' '+m.year:'');const row=months.get(label);if(row&&rem>0){const x=Math.min(row.total,rem);row.paid+=x;rem-=x;}});
+    });
+    if(months.size===0&&join){
+      const d=new Date(join+'T00:00:00'),now=new Date();
+      if(!isNaN(d)&&d<=now){let cur=new Date(d.getFullYear(),d.getMonth(),1),end=new Date(now.getFullYear(),now.getMonth(),1),g=0;while(cur<=end&&g<240){add(monthName(cur.getMonth()),cur.getFullYear(),Number(st.fee)||0);cur.setMonth(cur.getMonth()+1);g++;}}
+    }
+    if(tuitionPaid<=0)tuitionPaid=Math.max(0,(Number(st.paid)||0)-statPaid);
+    let rem=tuitionPaid;for(const r of months.values()){if(r.paid<=0&&rem>0){const x=Math.min(r.total,rem);r.paid=x;rem-=x;}r.due=Math.max(0,r.total-r.paid);}
+    const tuitionTotal=Array.from(months.values()).reduce((a,r)=>a+r.total,0)||Math.max(0,Number(st.totalFeeWithStationery??st.totalFee??st.fee??0)-statTotal);
+    tuitionPaid=Math.min(tuitionTotal,tuitionPaid);const tuitionDue=Math.max(0,tuitionTotal-tuitionPaid);
+    const rows=Array.from(months.values()).map(r=>`<tr><td>${escFee(r.label)}</td><td>${moneyFee(r.total)}</td><td style="color:#188038;font-weight:700">${moneyFee(r.paid)}</td><td style="color:#c5221f;font-weight:700">${moneyFee(r.due)}</td></tr>`).join('');
+    body.innerHTML=`<div class="csp-card"><h3>👤 ${escFee(st.name||'-')}</h3><div class="muted">🆔 Student ID: <b>${escFee(st.studentId||st.studentCode||st.id||'-')}</b></div><div class="csp-grid"><div class="csp-stat csp-blue">કુલ ફી<b>${moneyFee(tuitionTotal)}</b></div><div class="csp-stat csp-green">જમા ફી<b>${moneyFee(tuitionPaid)}</b></div><div class="csp-stat csp-red">બાકી ફી<b>${moneyFee(tuitionDue)}</b></div></div></div>`+
+      `<div class="csp-card"><h3>📅 મહિના પ્રમાણે ફી</h3>${rows?`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr><th>મહિનો</th><th>કુલ</th><th>જમા</th><th>બાકી</th></tr></thead><tbody>${rows}</tbody></table></div>`:'<div class="muted">હાલ મહિના પ્રમાણે Fee માહિતી ઉપલબ્ધ નથી.</div>'}</div>`+
+      `<div class="csp-card"><h3>📚 સ્ટેશનરી</h3><div class="csp-grid"><div class="csp-stat csp-blue">કુલ<b>${moneyFee(statTotal)}</b></div><div class="csp-stat csp-green">જમા<b>${moneyFee(statPaid)}</b></div><div class="csp-stat csp-red">બાકી<b>${moneyFee(Math.max(0,statTotal-statPaid))}</b></div></div></div>`;
+  }
+  window.openConnectedStudentPortal=async function(){
+    const st=window.currentStudent||window.currentStudent; if(!st){alert('પહેલા Student Login કરો.');return;}
+    const modal=document.getElementById('connectedStudentPortal'); if(!modal)return;
+    modal.classList.add('show');
+    const title=document.getElementById('cspStudentName'); if(title)title.textContent=(st.name||'')+' • ID '+(st.studentId||st.studentCode||st.id||'-');
+    const chooser=document.getElementById('cspStudentChooser');if(chooser)chooser.classList.add('hidden');
+    const body=document.getElementById('cspBody');if(body)body.innerHTML='<div class="csp-card" style="text-align:center;padding:28px">⏳ તમારી Fee માહિતી લોડ થઈ રહી છે...</div>';
+    try{
+      const arr=await loadFeeStudents();
+      const fee=feeMatch(st,arr);
+      renderStudentFee(fee||st);
+    }catch(e){if(body)body.innerHTML='<div class="csp-card" style="color:#b91c1c">❌ તમારી Fee માહિતી લોડ થઈ શકી નથી.</div>';}
+  };
+  window.closeConnectedStudentPortal=function(){const m=document.getElementById('connectedStudentPortal');if(m)m.classList.remove('show');};
+})();
+</script>
+</body></html>
