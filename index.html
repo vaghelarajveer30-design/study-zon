@@ -257,7 +257,7 @@ const defaultFirebaseConfig = {
   appId: "1:419936963635:web:7bfbc258bce9c3507bee36"
 };
 let firebaseConfig = JSON.parse(localStorage.getItem('nirmala_firebase_config') || 'null') || defaultFirebaseConfig;
-let db=null, storage=null, students={}, notices={}, lessons={}, tests={}, personalMessages={}, questionBanks={};
+let db=null, storage=null, students={}, notices={}, lessons={}, tests={}, personalMessages={}, questionBanks={}, testResults={};
 let cloudMode=false;
 window.firebaseConfig=firebaseConfig;
 window.NIRMLA_FIREBASE_PROJECT='study-zon';
@@ -865,7 +865,7 @@ async function dataSet(key,id,value){
 }
 function dataRemove(key,id){
  if(cloudMode && db) return db.ref(key+'/'+id).remove();
- const d=localData(key); delete d[id]; saveLocalData(key,d); window[key]=d; if(key==='personalMessages')personalMessages=d; if(key==='questionBanks')questionBanks=d; if(key==='students')students=d; if(key==='notices')notices=d; if(key==='lessons')lessons=d; if(key==='tests')tests=d; if(currentStudent)renderStudent(); renderGuestLessons(); renderTeacher(); cacheCurrentData();
+ const d=localData(key); delete d[id]; saveLocalData(key,d); window[key]=d; if(key==='personalMessages')personalMessages=d; if(key==='questionBanks')questionBanks=d; if(key==='students')students=d; if(key==='notices')notices=d; if(key==='lessons')lessons=d; if(key==='tests')tests=d; if(key==='testResults')testResults=d; if(currentStudent)renderStudent(); renderGuestLessons(); renderTeacher(); cacheCurrentData();
  return Promise.resolve();
 }
 
@@ -1290,9 +1290,9 @@ async function syncLocalDataToCloud(){
 
 function initFirebase(){
  restoreOfflineCache();
- const localKeys=['students','notices','lessons','tests','personalMessages','questionBanks','notifications'];
+ const localKeys=['students','notices','lessons','tests','personalMessages','questionBanks','notifications','testResults'];
  localKeys.forEach(k=>window[k]=localData(k));
- students=window.students; notices=window.notices; lessons=window.lessons; tests=window.tests; personalMessages=window.personalMessages||{}; questionBanks=window.questionBanks||{}; window.notifications=window.notifications||{};
+ students=window.students; notices=window.notices; lessons=window.lessons; tests=window.tests; personalMessages=window.personalMessages||{}; questionBanks=window.questionBanks||{}; testResults=window.testResults||{}; window.notifications=window.notifications||{};
  loadFirebaseConfigForm();
  loadOneSignalConfigForm();
  if(!hasFirebaseConfig()){cloudMode=false; if(currentStudent)renderStudent(); renderGuestLessons(); renderTeacher(); cacheCurrentData(); setTimeout(()=>{ if(!currentStudent) restoreStudentSession(); },350); return;}
@@ -2114,6 +2114,12 @@ function onlineTestStudentKey(){return String(currentStudent?.id||currentStudent
 function onlineTestCompletionStorageKey(){return 'nirmala_online_test_completed_'+onlineTestStudentKey();}
 function getCompletedOnlineTests(){try{return JSON.parse(localStorage.getItem(onlineTestCompletionStorageKey())||'{}')||{};}catch(e){return {};}}
 function isOnlineTestCompleted(id){return !!getCompletedOnlineTests()[String(id)];}
+function getStudentTestResult(testId){
+ const sid=String(currentStudent?.id||'');
+ if(!sid)return null;
+ const r=(testResults||{})[String(testId)];
+ return r && r[sid] ? r[sid] : null;
+}
 async function loadOnlineTestCompletions(){
  if(!currentStudent)return;
  if(cloudMode&&db){
@@ -2123,7 +2129,10 @@ async function loadOnlineTestCompletions(){
      const local=getCompletedOnlineTests();
      const merged={...local,...cloud};
      localStorage.setItem(onlineTestCompletionStorageKey(),JSON.stringify(merged));
-   }catch(e){console.warn('Online test completion sync failed:',e);}
+     const rs=await db.ref('testResults').once('value');
+     testResults=rs.val()||{}; window.testResults=testResults;
+     saveLocalData('testResults',testResults);
+   }catch(e){console.warn('Online test completion/result sync failed:',e);}
  }
  renderOnlineTestsStudent();
  updateLoginOnlineTestButton();
@@ -2140,6 +2149,50 @@ async function markOnlineTestCompleted(id){
  renderOnlineTestsStudent();
  updateLoginOnlineTestButton();
  return true;
+}
+async function saveOnlineTestResult(testId, studentId, score, note=''){
+ const tid=String(testId||'').trim(), sid=String(studentId||'').trim();
+ const val=Number(score);
+ if(!tid||!sid||!Number.isFinite(val)||val<0){alert('❌ યોગ્ય Student અને ગુણ નાખો.');return false;}
+ const t=(tests||{})[tid]||{};
+ const max=Number(t.marks||0);
+ if(max>0 && val>max){alert('❌ મેળવેલા ગુણ કુલ ગુણ કરતાં વધારે ન હોઈ શકે.');return false;}
+ const rec={score:val,maxMarks:max,studentId:sid,studentName:String((students||{})[sid]?.name||''),testId:tid,testTitle:onlineTestTitleOf(t),course:onlineTestCourseOf(t),subject:onlineTestSubjectOf(t),updatedAt:Date.now(),note:String(note||'')};
+ if(cloudMode&&db) await db.ref('testResults/'+tid+'/'+sid).set(rec);
+ else {const d=localData('testResults'); d[tid]=d[tid]||{}; d[tid][sid]=rec; saveLocalData('testResults',d); testResults=d; window.testResults=d;}
+ // Result entered by teacher also makes the test completed for that student.
+ const completion={completedAt:Date.now(),studentId:sid,studentName:rec.studentName,score:val,maxMarks:max};
+ if(cloudMode&&db) await db.ref('testCompletions/'+String(sid)+'/'+tid).set(completion);
+ if(currentStudent&&String(currentStudent.id)===sid){
+   const c=getCompletedOnlineTests(); c[tid]=completion; localStorage.setItem(onlineTestCompletionStorageKey(),JSON.stringify(c));
+ }
+ renderOnlineTestsTeacher();
+ if(currentStudent)renderOnlineTestsStudent();
+ return true;
+}
+function openOnlineTestResultEditor(testId){
+ const t=(tests||{})[String(testId)]; if(!t)return;
+ const entries=Object.entries(students||{}).filter(([id,s])=>s&&s.active!==false).sort((a,b)=>String(a[1].name||'').localeCompare(String(b[1].name||''),'gu'));
+ if(!entries.length){alert('❌ કોઈ Student મળ્યો નથી.');return;}
+ const options=entries.map(([id,s])=>`<option value="${esc(id)}">${esc(s.name||'')} — ${esc(s.mobile||'')}</option>`).join('');
+ let modal=document.getElementById('onlineTestResultModal');
+ if(!modal){
+   modal=document.createElement('div'); modal.id='onlineTestResultModal'; modal.className='online-test-modal';
+   modal.innerHTML=`<div class="online-test-modal-card" style="height:auto;max-height:94vh"><div class="online-test-modal-head"><b id="onlineTestResultTitle">📝 Test Result</b><button type="button" class="secondary" onclick="closeOnlineTestResultEditor()">✖️ બંધ</button></div><label>વિદ્યાર્થી</label><select id="resultStudentSelect" style="width:100%;padding:10px;border:1px solid #ccd5e2;border-radius:8px;margin:5px 0 10px"></select><label>મેળવેલા ગુણ</label><input id="resultScoreInput" type="number" min="0" step="0.01" placeholder="જેમ કે 18"><label>Teacher Note (Optional)</label><input id="resultNoteInput" placeholder="જેમ કે ખૂબ સારું"><button type="button" onclick="saveOnlineTestResultFromEditor()">💾 Result Save કરો</button><div id="resultEditorMsg" class="sync-status"></div></div>`;
+   document.body.appendChild(modal);
+ }
+ document.getElementById('onlineTestResultTitle').textContent='📝 '+onlineTestTitleOf(t)+(t.marks?` — કુલ ${t.marks} ગુણ`:'' );
+ document.getElementById('resultStudentSelect').innerHTML=options;
+ document.getElementById('resultScoreInput').value=''; document.getElementById('resultNoteInput').value='';
+ modal.dataset.testId=String(testId); modal.classList.add('show');
+}
+function closeOnlineTestResultEditor(){document.getElementById('onlineTestResultModal')?.classList.remove('show');}
+async function saveOnlineTestResultFromEditor(){
+ const modal=document.getElementById('onlineTestResultModal'); const tid=modal?.dataset.testId||'';
+ const sid=document.getElementById('resultStudentSelect')?.value||''; const score=document.getElementById('resultScoreInput')?.value||''; const note=document.getElementById('resultNoteInput')?.value||'';
+ const ok=await saveOnlineTestResult(tid,sid,score,note);
+ const m=document.getElementById('resultEditorMsg'); if(m)m.textContent=ok?'✅ Result સેવ થઈ ગયું.':'❌ Result સેવ થયું નથી.';
+ if(ok) setTimeout(closeOnlineTestResultEditor,400);
 }
 async function markOnlineTestCompletedFromModal(){
  const id=window.onlineTestCurrentId;
@@ -2197,7 +2250,7 @@ function renderOnlineTestsTeacher(){
  const arr=Object.entries(tests||{}).filter(([id,t])=>isOnlineTest(t)).reverse();
  box.innerHTML=arr.map(([id,t])=>{
    const url=onlineTestUrlOf(t);
-   return `<div class="online-test-card"><b>🧪 ${esc(onlineTestTitleOf(t))}</b><br><span class="badge">📚 ${esc(onlineTestCourseOf(t))}</span> <span class="badge">📖 ${esc(onlineTestSubjectOf(t))}</span>${t.marks?` <span class="badge">🎯 ${esc(t.marks)} ગુણ</span>`:''}${t.timeMinutes?` <span class="badge">⏱️ ${esc(t.timeMinutes)} મિનિટ</span>`:''}<br><small>${esc(t.date||'')}</small><div class="muted" style="word-break:break-all;margin-top:6px">🔗 ${esc(url)}</div><div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px"><button type="button" onclick="openOnlineTest('${esc(id)}')">👁️ Test જુઓ</button><button type="button" class="secondary" onclick="copyOnlineTestLink('${esc(id)}')">🔗 Link Copy</button><button type="button" class="danger" onclick="deleteTeacherItem('tests','${esc(id)}')">🗑️ Delete</button></div></div>`;
+   return `<div class="online-test-card"><b>🧪 ${esc(onlineTestTitleOf(t))}</b><br><span class="badge">📚 ${esc(onlineTestCourseOf(t))}</span> <span class="badge">📖 ${esc(onlineTestSubjectOf(t))}</span>${t.marks?` <span class="badge">🎯 ${esc(t.marks)} ગુણ</span>`:''}${t.timeMinutes?` <span class="badge">⏱️ ${esc(t.timeMinutes)} મિનિટ</span>`:''}<br><small>${esc(t.date||'')}</small><div class="muted" style="word-break:break-all;margin-top:6px">🔗 ${esc(url)}</div><div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px"><button type="button" onclick="openOnlineTest('${esc(id)}')">👁️ Test જુઓ</button><button type="button" onclick="openOnlineTestResultEditor('${esc(id)}')">🎯 Result દાખલ કરો</button><button type="button" class="secondary" onclick="copyOnlineTestLink('${esc(id)}')">🔗 Link Copy</button><button type="button" class="danger" onclick="deleteTeacherItem('tests','${esc(id)}')">🗑️ Delete</button></div></div>`;
  }).join('')||'<p class="muted">હજી કોઈ Online Test Publish નથી.</p>';
 }
 function renderOnlineTestsStudent(){
@@ -2206,6 +2259,7 @@ function renderOnlineTestsStudent(){
  if(!box||!courses||!subjects)return;
  const arr=pendingOnlineTests();
  const allActive=Object.entries(tests||{}).filter(([id,t])=>isOnlineTest(t)&&t.active!==false).sort((a,b)=>Number(b[1].createdAt||0)-Number(a[1].createdAt||0));
+ const completedArr=allActive.filter(([id,t])=>isOnlineTestCompleted(id));
  const cs=[...new Set(arr.map(([id,t])=>onlineTestCourseOf(t)))];
  const selectedC=window.onlineTestCourseFilter||''; const selectedS=window.onlineTestSubjectFilter||'';
  courses.innerHTML='<button type="button" class="'+(!selectedC?'':'secondary')+'" onclick="selectOnlineTestCourse(\'\')">📚 બધા Course</button>'+cs.map(c=>`<button type="button" class="${selectedC===c?'':'secondary'}" onclick="selectOnlineTestCourse('${esc(c)}')">${esc(c)}</button>`).join('');
@@ -2213,7 +2267,24 @@ function renderOnlineTestsStudent(){
  const ss=[...new Set(filteredC.map(([id,t])=>onlineTestSubjectOf(t)))];
  subjects.innerHTML=(selectedC?'<button type="button" class="'+(!selectedS?'':'secondary')+'" onclick="selectOnlineTestSubject(\'\')">📖 બધા વિષય</button>':'')+ss.map(x=>`<button type="button" class="${selectedS===x?'':'secondary'}" onclick="selectOnlineTestSubject('${esc(x)}')">📖 ${esc(x)}</button>`).join('');
  const shown=selectedS?filteredC.filter(([id,t])=>onlineTestSubjectOf(t)===selectedS):filteredC;
- box.innerHTML=shown.map(([id,t])=>`<div class="online-test-card"><b>🧪 ${esc(onlineTestTitleOf(t))}</b><br><span class="badge">📚 ${esc(onlineTestCourseOf(t))}</span> <span class="badge">📖 ${esc(onlineTestSubjectOf(t))}</span>${t.marks?` <span class="badge">🎯 ${esc(t.marks)} ગુણ</span>`:''}${t.timeMinutes?` <span class="badge">⏱️ ${esc(t.timeMinutes)} મિનિટ</span>`:''}<br><small>${esc(t.date||'')}</small><br><button type="button" style="margin-top:8px" onclick="openOnlineTest('${esc(id)}')">📝 Online Test આપો</button></div>`).join('')||'<p class="muted">🎉 હાલ કોઈ બાકી Online Test નથી.</p>';
+ let html='';
+ html+=`<div class="item" style="background:#f8fbff;border:1px solid #cfe0ff"><b>📊 મારી Online Test સ્થિતિ</b><div class="grid" style="margin-top:9px"><div><span class="badge">⏳ બાકી: ${arr.length}</span></div><div><span class="badge" style="background:#eaf7ea">✅ આપેલી: ${completedArr.length}</span></div><div><span class="badge">📝 કુલ: ${allActive.length}</span></div></div></div>`;
+ if(completedArr.length){
+   html+='<h4 style="margin:14px 0 8px">✅ આપેલી Tests અને Result</h4>';
+   html+=completedArr.map(([id,t])=>{
+     const c=getCompletedOnlineTests()[String(id)]||{}; const r=getStudentTestResult(id); const score=r?.score ?? c?.score; const max=r?.maxMarks || c?.maxMarks || Number(t.marks||0);
+     const scoreText=(score!==undefined&&score!==null&&score!=='')?`🎯 ${esc(score)}${max?` / ${esc(max)}`:''} ગુણ`:'🎯 Result હજી દાખલ થયો નથી';
+     const date=c?.completedAt?new Date(Number(c.completedAt)).toLocaleString('gu-IN'):'';
+     return `<div class="online-test-card" style="border-left:5px solid #2e7d32"><b>✅ ${esc(onlineTestTitleOf(t))}</b><br><span class="badge">📚 ${esc(onlineTestCourseOf(t))}</span> <span class="badge">📖 ${esc(onlineTestSubjectOf(t))}</span><div style="margin-top:7px;font-weight:700">${scoreText}</div>${date?`<small>📅 Test તારીખ: ${esc(date)}</small><br>`:''}${r?.note?`<small>💬 ${esc(r.note)}</small><br>`:''}<span class="badge" style="margin-top:5px;background:#eaf7ea">STATUS: COMPLETED</span></div>`;
+   }).join('');
+ }
+ if(shown.length){
+   html+='<h4 style="margin:14px 0 8px">⏳ બાકી Online Tests</h4>';
+   html+=shown.map(([id,t])=>`<div class="online-test-card"><b>🧪 ${esc(onlineTestTitleOf(t))}</b><br><span class="badge">📚 ${esc(onlineTestCourseOf(t))}</span> <span class="badge">📖 ${esc(onlineTestSubjectOf(t))}</span>${t.marks?` <span class="badge">🎯 ${esc(t.marks)} ગુણ</span>`:''}${t.timeMinutes?` <span class="badge">⏱️ ${esc(t.timeMinutes)} મિનિટ</span>`:''}<br><small>${esc(t.date||'')}</small><br><button type="button" style="margin-top:8px" onclick="openOnlineTest('${esc(id)}')">📝 Online Test આપો</button></div>`).join('');
+ } else {
+   html+='<p class="muted" style="margin-top:12px">🎉 હાલ કોઈ બાકી Online Test નથી.</p>';
+ }
+ box.innerHTML=html;
  const badge=document.getElementById('onlineTestCountBadge');if(badge)badge.textContent=arr.length?' ('+arr.length+')':'';
  updateLoginOnlineTestButton();
 }
