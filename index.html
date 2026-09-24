@@ -863,10 +863,33 @@ async function dataSet(key,id,value){
  }
  return true;
 }
-function dataRemove(key,id){
- if(cloudMode && db) return db.ref(key+'/'+id).remove();
- const d=localData(key); delete d[id]; saveLocalData(key,d); window[key]=d; if(key==='personalMessages')personalMessages=d; if(key==='questionBanks')questionBanks=d; if(key==='students')students=d; if(key==='notices')notices=d; if(key==='lessons')lessons=d; if(key==='tests')tests=d; if(key==='testResults')testResults=d; if(currentStudent)renderStudent(); renderGuestLessons(); renderTeacher(); cacheCurrentData();
- return Promise.resolve();
+async function dataRemove(key,id){
+ // Always remove the local copy as well. Otherwise Firebase listeners can
+ // merge the old local record back into the list after a successful delete.
+ try{
+   if(cloudMode && db){
+     await db.ref(key+'/'+id).remove();
+   }
+ }catch(e){
+   console.warn('Cloud delete failed:',key,id,e);
+   // Keep working offline: remove the local copy so the UI/count updates.
+ }
+ const d=localData(key);
+ delete d[id];
+ saveLocalData(key,d);
+ window[key]=d;
+ if(key==='personalMessages')personalMessages=d;
+ if(key==='questionBanks')questionBanks=d;
+ if(key==='students')students=d;
+ if(key==='notices')notices=d;
+ if(key==='lessons')lessons=d;
+ if(key==='tests')tests=d;
+ if(key==='testResults')testResults=d;
+ if(currentStudent)renderStudent();
+ renderGuestLessons();
+ renderTeacher();
+ cacheCurrentData();
+ return true;
 }
 
 async function deleteTeacherItem(key,id){
@@ -887,6 +910,7 @@ async function deleteTeacherItem(key,id){
      try{ await storage.refFromURL(fileUrl).delete(); }catch(storageErr){ console.warn('Storage file could not be deleted:',storageErr); }
    }
    alert('✅ '+label+' Delete થઈ ગયું.');
+   if(typeof renderTeacherStudents==='function')renderTeacherStudents();
    if(typeof renderTeacher==='function')renderTeacher();
    if(typeof renderStudent==='function' && currentStudent)renderStudent();
  }catch(e){
