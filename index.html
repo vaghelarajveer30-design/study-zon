@@ -2578,6 +2578,24 @@ function renderGuestLessons(){
  if(panel && !getGuestNewLessons().length)panel.classList.add('hidden');
 }
 
+
+function unreadPersonalCount(){
+  if(!currentStudent) return 0;
+  const sid = String(
+    currentStudent.id ||
+    currentStudent.studentId ||
+    currentStudent.studentCode ||
+    Object.entries(students||{}).find(([id,s])=>s===currentStudent)?.[0] || ''
+  );
+  const name = String(currentStudent.name||'').trim().toLowerCase();
+  return Object.values(personalMessages||{}).filter(p=>{
+    if(!p || p.read) return false;
+    const sameId = sid && String(p.studentId||'') === sid;
+    const sameName = name && String(p.studentName||'').trim().toLowerCase() === name;
+    return sameId || sameName;
+  }).length;
+}
+
 function renderStudent(){
  if(!currentStudent)return;
  updateLoginOnlineTestButton();
@@ -3314,7 +3332,21 @@ window.addEventListener('beforeunload',function(){stopAutoCloudBackup();});
 
     // Fee Management જેવી monthly tuition calculation: attendance/re-join period અને fee history બંને ધ્યાનમાં.
     const firstDate=periods.map(p=>p.fromDate).filter(Boolean).sort()[0]||join||todayStr;
-    if(String(st.feeType||'')==='માસિક' && firstDate && firstDate<=todayStr){
+    const feeTypeText=String(st.feeType||'').trim().toLowerCase();
+    const receiptHasMonths=receipts.some(r=>Array.isArray(r?.months)&&r.months.length);
+    const tuitionBase=Math.max(0,
+      Number(st.totalFeeWithStationery||st.totalFee||0)-Number(stationery.reduce((a,x)=>a+(Number(x.price)||0),0))
+    );
+    const monthlyLike =
+      feeTypeText==='માસિક' ||
+      feeTypeText==='monthly' ||
+      feeTypeText==='month' ||
+      /monthly|month|માસિક/.test(feeTypeText) ||
+      Number(st.monthlyFee||st.monthlyFeeAmount||0)>0 ||
+      receiptHasMonths ||
+      (Number(st.fee||0)>0 && tuitionBase>Number(st.fee||0) && periods.length>0);
+
+    if(monthlyLike && firstDate && firstDate<=todayStr){
       let cur=new Date(firstDate+'T00:00:00');
       cur=new Date(cur.getFullYear(),cur.getMonth(),1);
       const end=new Date(today.getFullYear(),today.getMonth(),1);
@@ -3369,7 +3401,9 @@ window.addEventListener('beforeunload',function(){stopAutoCloudBackup();});
     remaining=Math.max(0,remaining);
     for(const row of months.values()){if(row.paid<=0&&remaining>0){const x=Math.min(row.total,remaining);row.paid=x;remaining-=x;}}
     const tuitionTotal=Array.from(months.values()).reduce((a,r)=>a+r.total,0);
-    const finalTuitionTotal=tuitionTotal>0?tuitionTotal:Math.max(0,Number(st.totalFeeWithStationery||st.totalFee||st.fee||0)-statTotal);
+    const finalTuitionTotal=monthlyLike && tuitionTotal>0
+      ? tuitionTotal
+      : (tuitionTotal>0?tuitionTotal:Math.max(0,Number(st.totalFeeWithStationery||st.totalFee||st.fee||0)-statTotal));
     const finalPaid=Math.min(finalTuitionTotal+statTotal,tuitionPaid+statPaid);
     const finalTotal=finalTuitionTotal+statTotal;
     const finalDue=Math.max(0,finalTotal-finalPaid);
