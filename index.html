@@ -2936,7 +2936,7 @@ window.addEventListener('beforeunload',function(){stopAutoCloudBackup();});
 #connectedModuleFrame{flex:1;width:100%;border:0;background:#f4f7fb}
 #connectedStudentPortal{position:fixed;inset:0;background:#f4f7fb;z-index:1999999;display:none;overflow:auto;padding:12px;box-sizing:border-box}
 #connectedStudentPortal.show{display:block}
-.csp-wrap{max-width:900px;margin:auto}.csp-card{background:#fff;border-radius:14px;padding:14px;margin:10px 0;box-shadow:0 2px 10px #0001}.csp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}.csp-stat{border:1px solid #dbe3ef;border-radius:10px;padding:10px;text-align:center}.csp-stat b{display:block;font-size:20px}.csp-green{color:#188038}.csp-red{color:#c5221f}.csp-blue{color:#173b72}.csp-item{border:1px solid #e1e7ef;border-radius:10px;padding:10px;margin:7px 0}.csp-btn{border:0;border-radius:9px;padding:9px 12px;background:#173b72;color:#fff;font-weight:700}.csp-btn.secondary{background:#e9eef7;color:#173b72}.csp-student-pick{display:grid;gap:8px}
+.csp-wrap{max-width:900px;margin:auto}.csp-card{background:#fff;border-radius:14px;padding:14px;margin:10px 0;box-shadow:0 2px 10px #0001}.csp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px}.csp-stat{border:1px solid #dbe3ef;border-radius:8px;padding:7px;text-align:center}.csp-stat b{display:block;font-size:18px}.csp-green{color:#188038}.csp-red{color:#c5221f}.csp-blue{color:#173b72}.csp-item{border:1px solid #e1e7ef;border-radius:10px;padding:10px;margin:7px 0}.csp-btn{border:0;border-radius:9px;padding:9px 12px;background:#173b72;color:#fff;font-weight:700}.csp-btn.secondary{background:#e9eef7;color:#173b72}.csp-student-pick{display:grid;gap:8px}
 </style>
 <div id="connectedModuleModal">
   <div id="connectedModuleCard">
@@ -3178,33 +3178,47 @@ window.addEventListener('beforeunload',function(){stopAutoCloudBackup();});
         const y=cursor.getFullYear(),m=cursor.getMonth(),last=new Date(y,m+1,0); let active=false,activeDate='';
         for(let d=1;d<=last.getDate();d++){const ds=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');if(ds>todayStr)break;if(activeOn(ds)){active=true;activeDate=ds;break;}}
         const mk=y+'-'+String(m+1).padStart(2,'0');
-        if(active&&!seenMonths.has(mk)){monthRows.push({key:mk,fee:feeOn(activeDate)});seenMonths.add(mk);}
+        if(active&&!seenMonths.has(mk)){monthRows.push({key:mk,label:monthName(m)+' '+y,fee:feeOn(activeDate)});seenMonths.add(mk);}
         cursor.setMonth(cursor.getMonth()+1);
       }
       const tuition=String(fee.feeType||'')==='માસિક'?monthRows.reduce((a,x)=>a+(Number(x.fee)||0),0):(monthRows.length?(Number(fee.fee)||0):0);
       const total=tuition+totalStationery;
       const paidReceipts=receipts.reduce((a,x)=>a+(Number(x?.paidVal)||0),0);
+
+      // IMPORTANT: Total Paidમાંથી Stationery અલગ રાખો.
+      // ઉદાહરણ: ₹700 receipt + ₹300 stationery => Tuition Paid ₹400.
+      const receiptStationeryPaid=receipts.reduce((a,x)=>a+(Number(x?.statFee)||0),0);
       const cashStationery=stationery.reduce((a,x)=>a+(String(x?.payType||'')==='રોકડ'?(Number(x?.price)||0):0),0);
-      const paid=(Number(fee.paid)>0?Number(fee.paid):paidReceipts+cashStationery);
+      const stationPaid=Math.min(totalStationery,Math.max(0,receiptStationeryPaid+cashStationery));
+      let tuitionPaid=Math.max(0,paidReceipts-stationPaid);
+      if(paidReceipts<=0 && Number(fee.paid)>0){
+        tuitionPaid=Math.max(0,Number(fee.paid)-stationPaid);
+      }
+      // Tuition અને Stationery અલગ ગણાય.
+      // ઉદાહરણ: ₹700 receipt = ₹400 April tuition + ₹300 stationery.
+      const paid=Math.min(total,tuitionPaid+stationPaid);
       const due=Math.max(0,total-paid);
 
       body.innerHTML=
         '<div style="background:#fff;border-radius:14px;padding:18px;box-shadow:0 2px 10px rgba(0,0,0,.08);">'+
         '<h2 style="margin-top:0;">👨‍🎓 '+esc(fee.name||st.name||'વિદ્યાર્થી')+'</h2>'+
         '<div style="color:#666;margin-bottom:14px;">🆔 Student ID: <b>'+esc(sid)+'</b></div>'+
-        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">'+
-        '<div style="background:#eef6ff;padding:12px;border-radius:10px;"><small>Total Fee</small><h3 style="margin:4px 0;">'+money(total)+'</h3></div>'+
-        '<div style="background:#eefbf2;padding:12px;border-radius:10px;"><small>Paid</small><h3 style="margin:4px 0;">'+money(paid)+'</h3></div>'+
-        '<div style="background:#fff3f3;padding:12px;border-radius:10px;"><small>Pending</small><h3 style="margin:4px 0;">'+money(due)+'</h3></div>'+
+        '<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;">'+
+        '<div style="background:#eef6ff;padding:5px 3px;border-radius:7px;font-size:10px;min-width:0;text-align:center;"><small>Total Fee</small><h3 style="margin:2px 0;font-size:15px;white-space:nowrap;">'+money(total)+'</h3></div>'+
+        '<div style="background:#eefbf2;padding:5px 3px;border-radius:7px;font-size:10px;min-width:0;text-align:center;"><small>Paid</small><h3 style="margin:2px 0;font-size:15px;white-space:nowrap;">'+money(paid)+'</h3></div>'+
+        '<div style="background:#fff3f3;padding:5px 3px;border-radius:7px;font-size:10px;min-width:0;text-align:center;"><small>Pending</small><h3 style="margin:2px 0;font-size:15px;white-space:nowrap;">'+money(due)+'</h3></div>'+
         '</div>'+
         '<div style="margin-top:12px;padding:10px;background:#f8fbff;border-radius:10px;"><b>📅 દાખલ તારીખ:</b> '+esc(fee.joinDate||fee.registeredAt?.slice?.(0,10)||'-')+'</div>'+
         '<hr><h3>📅 મહિના પ્રમાણે ફી</h3>'+
-        (monthRows.length ? '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr><th style="padding:7px;text-align:left">મહિનો</th><th style="padding:7px">કુલ</th><th style="padding:7px">જમા</th><th style="padding:7px">બાકી</th></tr></thead><tbody>'+
+        (monthRows.length ? '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr><th style="padding:5px;text-align:left;font-size:12px">મહિનો</th><th style="padding:5px;font-size:12px">કુલ</th><th style="padding:5px;font-size:12px">જમા</th><th style="padding:5px;font-size:12px">બાકી</th></tr></thead><tbody>'+
           (function(){
             let rem=Math.max(0,paidReceipts);
             return monthRows.map(function(m){
               const p=Math.min(Number(m.fee)||0,rem); rem-=p;
-              return '<tr><td style="padding:7px;border-top:1px solid #eee">'+esc((m.label||''))+'</td><td style="padding:7px;border-top:1px solid #eee;text-align:center">'+money(m.fee)+'</td><td style="padding:7px;border-top:1px solid #eee;text-align:center;color:#188038;font-weight:700">'+money(p)+'</td><td style="padding:7px;border-top:1px solid #eee;text-align:center;color:#c5221f;font-weight:700">'+money(Math.max(0,(Number(m.fee)||0)-p))+'</td></tr>';
+              const bal=Math.max(0,(Number(m.fee)||0)-p);
+              const rowColor=bal===0?'#188038':'#c5221f';
+              const rowBg=bal===0?'#eefbf2':'#fff3f3';
+              return '<tr style="background:'+rowBg+';color:'+rowColor+';font-weight:700"><td style="padding:5px;border-top:1px solid #eee;font-size:12px">'+esc((m.label||''))+'</td><td style="padding:5px;border-top:1px solid #eee;text-align:center;font-size:12px">'+money(m.fee)+'</td><td style="padding:5px;border-top:1px solid #eee;text-align:center;font-size:12px">'+money(p)+'</td><td style="padding:5px;border-top:1px solid #eee;text-align:center;font-size:12px">'+money(bal)+'</td></tr>';
             }).join('');
           })()+
         '</tbody></table></div>' : '<div style="color:#777;">મહિના પ્રમાણે Fee માહિતી ઉપલબ્ધ નથી.</div>')+
@@ -3212,6 +3226,15 @@ window.addEventListener('beforeunload',function(){stopAutoCloudBackup();});
         (function(){
           window.__studentFeeReceipts=receipts;
           window.__studentFeeStudent=fee;
+          window.__studentFeeBreakdown={};
+          let receiptTuitionRemaining=Math.max(0,tuitionPaid);
+          receipts.forEach(function(rr,ii){
+            const gross=Number(rr.paidVal??rr.amount??rr.paid??0)||0;
+            const explicitStat=Math.min(totalStationery,Number(rr.statFee)||0);
+            const stationPart=explicitStat>0?explicitStat:Math.min(gross,Math.max(0,stationPaid));
+            const tuitionPart=Math.max(0,gross-stationPart);
+            window.__studentFeeBreakdown[ii]={tuition:tuitionPart,stationery:stationPart};
+          });
           return receipts.length ? receipts.slice().reverse().map(function(x,revIndex){
             const originalIndex=receipts.length-1-revIndex;
             const paidAmount=x.paidVal??x.amount??x.paid??0;
@@ -3388,14 +3411,19 @@ window.addEventListener('beforeunload',function(){stopAutoCloudBackup();});
       if(!isNaN(d)&&d<=today){const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');addMonth(key,monthName(d.getMonth())+' '+d.getFullYear(),Number(st.fee)||0);}
     }
 
-    // Receiptમાં જે months આપેલા હોય તે actual month amount તરીકે ઉપયોગ કરો.
+    // Receiptના monthsને અલગ row તરીકે ઉમેરશો નહીં.
+    // જે મહિનો પહેલેથી monthRows/monthsમાં છે તેમાં જ payment ગણાશે.
     receipts.forEach(r=>{
       const ms=Array.isArray(r.months)?r.months:[];
       ms.forEach(m=>{
         const y=Number(m.year), mi=Number(m.month);
         const key=y&&mi>=0?y+'-'+String(mi+1).padStart(2,'0'):String(m.name||'')+' '+String(m.year||'');
-        const label=String(m.name||monthName(mi)||'')+(m.year?' '+m.year:'');
-        addMonth(key,label,Number(m.fee??m.amount??0));
+        const existing=months.get(key);
+        // Receipt month is only a payment reference.
+        // Never create another month row from a receipt.
+        if(existing && !existing.label){
+          existing.label=String(m.name||monthName(mi)||'')+(m.year?' '+m.year:'');
+        }
       });
     });
 
@@ -3405,8 +3433,10 @@ window.addEventListener('beforeunload',function(){stopAutoCloudBackup();});
     const statPaidDirect=stationery.reduce((a,x)=>a+(String(x.payType||'').trim()==='રોકડ'?(Number(x.price)||0):0),0);
     const statPaid=Math.min(statTotal,Math.max(0,statPaidDirect+receiptStatAmount));
 
-    let tuitionPaid=receipts.reduce((a,r)=>a+(Number(r.paidVal)||0),0);
-    if(tuitionPaid<=0 && Number(st.paid)>0) tuitionPaid=Math.max(0,Number(st.paid)-statPaid);
+    // Total receiptમાંથી stationery અલગ રાખો.
+    let grossPaid=receipts.reduce((a,r)=>a+(Number(r.paidVal)||0),0);
+    let tuitionPaid=Math.max(0,grossPaid-statPaid);
+    if(grossPaid<=0 && Number(st.paid)>0) tuitionPaid=Math.max(0,Number(st.paid)-statPaid);
 
     // મહિના પ્રમાણે paid amount receiptsના months પરથી વહેંચો; પછી બાકી paidને જૂના monthsમાં લગાવો.
     receipts.forEach(r=>{
@@ -3424,21 +3454,46 @@ window.addEventListener('beforeunload',function(){stopAutoCloudBackup();});
     const tuitionTotal=Array.from(months.values()).reduce((a,r)=>a+r.total,0);
     const finalTuitionTotal=monthlyLike && tuitionTotal>0
       ? tuitionTotal
-      : (tuitionTotal>0?tuitionTotal:Math.max(0,Number(st.totalFeeWithStationery||st.totalFee||st.fee||0)-statTotal));
+      : Math.max(0,Number(st.totalFee||st.fee||0)-statTotal);
     const finalPaid=Math.min(finalTuitionTotal+statTotal,tuitionPaid+statPaid);
     const finalTotal=finalTuitionTotal+statTotal;
     const finalDue=Math.max(0,finalTotal-finalPaid);
-    const rows=Array.from(months.values()).map(r=>`<tr><td>${escFee(r.label)}</td><td>${moneyFee(r.total)}</td><td style="color:#188038;font-weight:700">${moneyFee(Math.min(r.total,r.paid))}</td><td style="color:#c5221f;font-weight:700">${moneyFee(Math.max(0,r.total-r.paid))}</td></tr>`).join('');
+    const rows=Array.from(months.values()).map(r=>{
+      const mp=Math.min(r.total,r.paid), mb=Math.max(0,r.total-mp);
+      const rc=mb===0?'#188038':'#c5221f', rb=mb===0?'#eefbf2':'#fff3f3';
+      const status=mb===0?'ભરેલી':'બાકી';
+      return `<tr style="background:${rb};color:${rc};font-weight:700">
+        <td>${escFee(r.label)}</td>
+        <td>${moneyFee(r.total)}</td>
+        <td>${moneyFee(mp)}</td>
+        <td>${moneyFee(mb)}</td>
+      </tr>`;
+    }).join('');
     window.__studentFeeReceipts=receipts;
     window.__studentFeeStudent=st;
+    window.__studentFeeBreakdown={};
+    receipts.forEach((r,i)=>{
+      const gross=Number(r.paidVal??r.amount??r.paid??0)||0;
+      const explicitStat=Number(r.statFee)||0;
+      const stationPart=explicitStat>0?Math.min(statTotal,explicitStat):Math.min(gross,statPaid);
+      window.__studentFeeBreakdown[i]={tuition:Math.max(0,gross-stationPart),stationery:stationPart};
+    });
     const receiptRows=receipts.slice().reverse().map((r,ri)=>{
       const originalIndex=receipts.length-1-ri;
       const ms=Array.isArray(r.months)?r.months:[];
       const ml=ms.length?ms.map(m=>(m.name||'')+(m.year?' '+m.year:'')).join(', '):'મહિનો નોંધાયેલ નથી';
-      return `<div class="csp-item"><b>🧾 ${escFee(r.date||r.paidDate||'-')}</b> — ${moneyFee(r.paidVal??r.amount??r.paid??0)}<br><small>મહિના: ${escFee(ml)}</small><br><button type="button" class="csp-btn" onclick="viewStudentFeeReceipt(${originalIndex})">🧾 Receipt જુઓ</button></div>`;
+      const bd=window.__studentFeeBreakdown[originalIndex]||{};
+      return `<div class="csp-item"><b>🧾 ${escFee(r.date||r.paidDate||'-')}</b> — ${moneyFee(r.paidVal??r.amount??r.paid??0)}<br><small>📚 Tuition: ${moneyFee(bd.tuition||0)} • 🛍️ Stationery: ${moneyFee(bd.stationery||0)}</small><br><small>મહિના: ${escFee(ml)}</small><br><button type="button" class="csp-btn" style="padding:5px 8px;font-size:12px" onclick="viewStudentFeeReceipt(${originalIndex})">🧾 Receipt જુઓ</button></div>`;
     }).join('');
-    body.innerHTML=`<div class="csp-card"><h3>👤 ${escFee(st.name||'-')}</h3><div class="muted">🆔 Student ID: <b>${escFee(st.studentId||st.studentCode||st.id||'-')}</b></div><div style="margin-top:8px">📅 દાખલ તારીખ: <b>${escFee(st.joinDate||st.registeredAt?.slice?.(0,10)||'-')}</b></div><div class="csp-grid"><h3>👤 ${escFee(st.name||'-')}</h3><div class="muted">🆔 Student ID: <b>${escFee(st.studentId||st.studentCode||st.id||'-')}</b></div><div class="csp-grid"><div class="csp-stat csp-blue">કુલ ફી<b>${moneyFee(finalTotal)}</b></div><div class="csp-stat csp-green">કુલ જમા<b>${moneyFee(finalPaid)}</b></div><div class="csp-stat csp-red">કુલ બાકી<b>${moneyFee(finalDue)}</b></div></div></div>`+
-      `<div class="csp-card"><h3>📅 મહિના પ્રમાણે ફી</h3>${rows?`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr><th>મહિનો</th><th>કુલ</th><th>જમા</th><th>બાકી</th></tr></thead><tbody>${rows}</tbody></table></div>`:'<div class="muted">હાલ મહિના પ્રમાણે Fee માહિતી ઉપલબ્ધ નથી.</div>'}</div>`+
+    body.innerHTML=`<div class="csp-card">
+      <div style="margin-bottom:8px;font-size:13px;color:#555">📅 દાખલ તારીખ: <b>${escFee(st.joinDate||st.registeredAt?.slice?.(0,10)||'-')}</b></div>
+      <div class="csp-grid" style="grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;">
+        <div class="csp-stat csp-blue" style="padding:6px 4px;font-size:11px;display:flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap;">કુલ ફી <b style="font-size:15px;display:inline;white-space:nowrap">${moneyFee(finalTotal)}</b></div>
+        <div class="csp-stat csp-green" style="padding:6px 4px;font-size:11px;display:flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap;">કુલ જમા <b style="font-size:15px;display:inline;white-space:nowrap">${moneyFee(finalPaid)}</b></div>
+        <div class="csp-stat csp-red" style="padding:6px 4px;font-size:11px;display:flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap;">કુલ બાકી <b style="font-size:15px;display:inline;white-space:nowrap">${moneyFee(finalDue)}</b></div>
+      </div>
+    </div>`+
+      `<div class="csp-card"><h3>📅 મહિના પ્રમાણે ફી</h3>${rows?`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr><th style="padding:5px;font-size:12px">મહિનો</th><th style="padding:5px;font-size:12px">કુલ</th><th style="padding:5px;font-size:12px">જમા</th><th style="padding:5px;font-size:12px">બાકી</th></tr></thead><tbody>${rows}</tbody></table></div>`:'<div class="muted">હાલ મહિના પ્રમાણે Fee માહિતી ઉપલબ્ધ નથી.</div>'}</div>`+
       `<div class="csp-card"><h3>🧾 Fee Receipts</h3>${receiptRows||'<div class="muted">કોઈ Fee receipt નથી.</div>'}</div>`+
       `<div class="csp-card"><h3>📚 સ્ટેશનરી</h3><div class="csp-grid"><div class="csp-stat csp-blue">કુલ<b>${moneyFee(statTotal)}</b></div><div class="csp-stat csp-green">જમા<b>${moneyFee(statPaid)}</b></div><div class="csp-stat csp-red">બાકી<b>${moneyFee(Math.max(0,statTotal-statPaid))}</b></div></div>`+
       (stationery.length?stationery.slice().reverse().map(x=>`<div class="csp-item"><b>${escFee(x.itemName||x.name||'-')}</b> × ${Number(x.qty)||1}<br>${moneyFee(x.price)} • ${escFee(x.date||'-')} • ${escFee(x.payType||'')}</div>`).join(''):'')+`</div>`;
@@ -3457,37 +3512,75 @@ window.addEventListener('beforeunload',function(){stopAutoCloudBackup();});
       renderStudentFee(fee||st);
     }catch(e){if(body)body.innerHTML='<div class="csp-card" style="color:#b91c1c">❌ તમારી Fee માહિતી લોડ થઈ શકી નથી.</div>';}
   };
-  window.closeConnectedStudentPortal
+  window.closeConnectedStudentPortal=function(){
+    const modal=document.getElementById('connectedStudentPortal');
+    if(modal)modal.classList.remove('show');
+  };
+})();
+</script>
+
 <script id="student-fee-receipt-viewer">
 (function(){
   window.viewStudentFeeReceipt=function(index){
     const r=(window.__studentFeeReceipts||[])[Number(index)];
     const st=window.__studentFeeStudent||{};
+    const feeBreak=(window.__studentFeeBreakdown||{})[Number(index)]||{
+      tuition:Math.max(0,Number(r.paidVal??r.amount??r.paid??0)-Number(r.statFee||0)),
+      stationery:Number(r.statFee||0)
+    };
     if(!r)return;
+
     const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const money=v=>'₹'+Math.round(Number(v)||0).toLocaleString('en-IN');
     const months=Array.isArray(r.months)?r.months:[];
     const monthText=months.length
       ? months.map(m=>esc((m.name||'')+(m.year?' '+m.year:'')+' — '+money(m.fee??m.amount??0))).join('<br>')
-      : 'Receiptમાં મહિના નોંધાયેલા નથી.';
+      : (feeBreak.monthText||'મહિના પ્રમાણે ચુકવણી માહિતી ઉપલબ્ધ નથી.');
+
     let old=document.getElementById('studentFeeReceiptViewer');
     if(old)old.remove();
+
     const box=document.createElement('div');
     box.id='studentFeeReceiptViewer';
-    box.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100000;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow:auto;';
-    box.innerHTML='<div style="background:#fff;width:100%;max-width:520px;border-radius:16px;padding:18px;box-shadow:0 8px 30px #0004;">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #ddd;padding-bottom:10px;"><b style="font-size:20px;">🧾 Fee Receipt</b><button type="button" style="border:0;border-radius:8px;padding:8px 12px;background:#eee;" onclick="document.getElementById(\'studentFeeReceiptViewer\').remove()">✕ બંધ</button></div>'
-      +'<h3 style="margin-bottom:6px;">'+esc(st.name||'-')+'</h3>'
+    box.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100000;display:flex;align-items:flex-start;justify-content:center;padding:14px;overflow:auto;';
+
+    box.innerHTML='<div id="studentFeeReceiptPaper" style="background:#fff;width:100%;max-width:560px;border-radius:16px;padding:18px;box-shadow:0 8px 30px #0004;">'
+      +'<div class="receipt-actions" style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px;">'
+      +'<button type="button" style="border:0;border-radius:8px;padding:9px 12px;background:#173b72;color:#fff;font-weight:700;" onclick="window.printStudentFeeReceipt()">💾 PDF / સેવ</button>'
+      +'<button type="button" style="border:0;border-radius:8px;padding:9px 12px;background:#eee;" onclick="document.getElementById(\'studentFeeReceiptViewer\').remove()">✕ બંધ</button>'
+      +'</div>'
+      +'<div style="text-align:center;border-bottom:2px solid #173b72;padding-bottom:10px;">'
+      +'<div style="font-size:22px;font-weight:800;">નિર્મળા સ્ટડી ઝોન</div>'
+      +'<div style="font-size:18px;font-weight:700;margin-top:4px;">🧾 Fee Receipt</div>'
+      +'</div>'
+      +'<h3 style="margin-bottom:5px;">👨‍🎓 '+esc(st.name||'-')+'</h3>'
       +'<div>🆔 Student ID: <b>'+esc(st.studentId||st.studentCode||st.id||'-')+'</b></div>'
       +'<div style="margin-top:6px;">📅 દાખલ તારીખ: <b>'+esc(st.joinDate||st.registeredAt?.slice?.(0,10)||'-')+'</b></div>'
-      +'<hr><div><b>🧾 Receipt Date:</b> '+esc(r.date||r.paidDate||'-')+'</div>'
-      +'<div style="margin-top:6px;"><b>💰 જમા રકમ:</b> '+money(r.paidVal??r.amount??r.paid??0)+'</div>'
-      +'<div style="margin-top:6px;"><b>📅 કયા મહિના માટે:</b><br>'+monthText+'</div>'
-      +(r.note?'<div style="margin-top:6px;"><b>નોંધ:</b> '+esc(r.note)+'</div>':'')
-      +(r.payType||r.paymentMode?'<div style="margin-top:6px;"><b>ચુકવણી રીત:</b> '+esc(r.payType||r.paymentMode)+'</div>':'')
-      +'<hr><div style="text-align:center;font-weight:700;">નિર્મળા સ્ટડી ઝોન</div>'
+      +'<hr>'
+      +'<div><b>🧾 Receipt Date:</b> '+esc(r.date||r.paidDate||'-')+'</div>'
+      +'<div style="margin-top:7px;"><b>💰 કુલ જમા:</b> '+money(r.paidVal??r.amount??r.paid??0)+'</div>'
+      +'<div style="margin-top:10px;padding:10px;background:#eefbf2;border-radius:10px;"><b>📚 Tuition Fee:</b> '+money(feeBreak.tuition||0)+'</div>'
+      +'<div style="margin-top:8px;padding:10px;background:#fff7e8;border-radius:10px;"><b>🛍️ Stationery:</b> '+money(feeBreak.stationery||0)+'</div>'
+      +'<div style="margin-top:10px;"><b>📅 કયા મહિના માટે:</b><br>'+monthText+'</div>'
+      +(r.note?'<div style="margin-top:8px;"><b>નોંધ:</b> '+esc(r.note)+'</div>':'')
+      +(r.payType||r.paymentMode?'<div style="margin-top:8px;"><b>ચુકવણી રીત:</b> '+esc(r.payType||r.paymentMode)+'</div>':'')
+      +'<hr><div style="text-align:center;font-weight:700;">આ receipt વિદ્યાર્થીની Fee માહિતીમાંથી બનાવવામાં આવી છે.</div>'
       +'</div>';
+
     document.body.appendChild(box);
+  };
+
+  window.printStudentFeeReceipt=function(){
+    const box=document.getElementById('studentFeeReceiptViewer');
+    if(!box)return;
+    const oldStyle=document.getElementById('studentFeePrintStyle');
+    if(oldStyle)oldStyle.remove();
+    const st=document.createElement('style');
+    st.id='studentFeePrintStyle';
+    st.textContent='@media print{body>*{display:none!important}#studentFeeReceiptViewer{display:block!important;position:static!important;background:#fff!important;padding:0!important}#studentFeeReceiptPaper{display:block!important;max-width:none!important;box-shadow:none!important;border-radius:0!important}.receipt-actions{display:none!important}}';
+    document.head.appendChild(st);
+    window.print();
+    setTimeout(()=>st.remove(),1200);
   };
 })();
 </script>
