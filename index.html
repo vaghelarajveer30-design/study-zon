@@ -2507,6 +2507,39 @@ function renderGuestLessons(){
  if(panel && !getGuestNewLessons().length)panel.classList.add('hidden');
 }
 
+function getCurrentStudentId(){
+  if(!currentStudent)return '';
+  return String(currentStudent.id || Object.entries(students||{}).find(([id,s])=>s===currentStudent)?.[0] || '');
+}
+function unreadPersonalCount(){
+  if(!currentStudent)return 0;
+  const sid=getCurrentStudentId();
+  return Object.values(personalMessages||{}).filter(p=>{
+    if(!p)return false;
+    const sameStudent=String(p.studentId||'')===sid || String(p.studentName||'').toLowerCase()===String(currentStudent.name||'').toLowerCase();
+    return sameStudent && p.read!==true;
+  }).length;
+}
+function markPersonalMessagesRead(){
+  if(!currentStudent)return;
+  const sid=getCurrentStudentId();
+  const data={...(personalMessages||{})};
+  let changed=false;
+  Object.entries(data).forEach(([id,p])=>{
+    if(!p)return;
+    const sameStudent=String(p.studentId||'')===sid || String(p.studentName||'').toLowerCase()===String(currentStudent.name||'').toLowerCase();
+    if(sameStudent && p.read!==true){ data[id]={...p,read:true}; changed=true; }
+  });
+  if(!changed)return;
+  personalMessages=data; window.personalMessages=data;
+  saveLocalData('personalMessages',data);
+  if(cloudMode && db){
+    Object.entries(data).forEach(([id,p])=>{
+      if(String(p.studentId||'')===sid && p.read===true){ db.ref('personalMessages/'+id+'/read').set(true).catch(()=>{}); }
+    });
+  }
+}
+
 function renderStudent(){
  if(!currentStudent)return;
  updateLoginOnlineTestButton();
