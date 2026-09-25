@@ -756,13 +756,21 @@ async function savePDFOffline(id){
 }
 
 
-/* NIRMALA FAST LESSON CACHE: background IndexedDB cache for slow internet */
-const NNC_LESSON_DB='nirmala_lesson_files_v2';
+/* NIRMALA FAST LESSON CACHE: persistent IndexedDB cache for slow/offline internet.
+   Raw Photo/PDF files are cached once. PDF pages are also rendered and cached once
+   when first opened online, so the same PDF can open later without PDF.js/network. */
+const NNC_LESSON_DB='nirmala_lesson_files_v3';
 function nncLessonDB(){
  return new Promise((resolve,reject)=>{
   try{
-   const req=indexedDB.open(NNC_LESSON_DB,1);
-   req.onupgradeneeded=()=>{try{req.result.createObjectStore('files');}catch(e){}};
+   const req=indexedDB.open(NNC_LESSON_DB,2);
+   req.onupgradeneeded=()=>{
+    try{
+      const db=req.result;
+      if(!db.objectStoreNames.contains('files'))db.createObjectStore('files');
+      if(!db.objectStoreNames.contains('pdfPages'))db.createObjectStore('pdfPages');
+    }catch(e){}
+   };
    req.onsuccess=()=>resolve(req.result);
    req.onerror=()=>reject(req.error||new Error('IndexedDB unavailable'));
   }catch(e){reject(e)}
@@ -773,6 +781,48 @@ async function nncLessonCacheGet(key){
 }
 async function nncLessonCachePut(key,blob,url,type){
  try{const db=await nncLessonDB();await new Promise((res,rej)=>{const tx=db.transaction('files','readwrite');tx.objectStore('files').put({blob,url,type,savedAt:Date.now()},key);tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});return true;}catch(e){return false;}
+}
+async function nncPdfPagesGet(key){
+ try{const db=await nncLessonDB();return await new Promise((res,rej)=>{const tx=db.transaction('pdfPages','readonly');const q=tx.objectStore('pdfPages').get(key);q.onsuccess=()=>res(q.result||null);q.onerror=()=>rej(q.error);});}catch(e){return null;}
+}
+async function nncPdfPagesPut(key,pages){
+ try{const db=await nncLessonDB();await new Promise((res,rej)=>{const tx=db.transaction('pdfPages','readwrite');tx.objectStore('pdfPages').put({pages,savedAt:Date.now()},key);tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});return true;}catch(e){return false;}
+}
+function nncPdfPageKey(id,url){return String(id)+'|'+String(url||'');}
+async function nncCacheRenderedPdfPages(id,url,pdf){
+ try{
+  const key=nncPdfPageKey(id,url);
+  const existing=await nncPdfPagesGet(key);
+  if(existing?.pages?.length)return true;
+  const pages=[];
+  for(let pageNo=1;pageNo<=pdf.numPages;pageNo++){
+    const page=await pdf.getPage(pageNo);
+    const base=page.getViewport({scale:1});
+    const maxWidth=Math.max(280,Math.min((window.innerWidth||900)-20,900));
+    const scale=Math.max(1,Math.min(2.0,maxWidth/base.width));
+    const viewport=page.getViewport({scale});
+    const canvas=document.createElement('canvas');
+    canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);
+    await page.render({canvasContext:canvas.getContext('2d',{alpha:false}),viewport}).promise;
+    const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('PNG cache failed')),'image/png',0.88));
+    pages.push({pageNo,blob,width:canvas.width,height:canvas.height});
+  }
+  await nncPdfPagesPut(key,pages);
+  return true;
+ }catch(e){console.warn('PDF page cache failed',id,e);return false;}
+}
+async function nncShowCachedPdfPages(id,url,pagesBox,status){
+ const rec=await nncPdfPagesGet(nncPdfPageKey(id,url));
+ if(!rec?.pages?.length)return false;
+ pagesBox.innerHTML='';
+ if(status)status.textContent='📄 Offline Saved Lesson • '+rec.pages.length+' પેજ';
+ for(const p of rec.pages){
+  const wrap=document.createElement('div');wrap.style.cssText='background:#fff;margin:0 auto 10px;box-shadow:0 1px 5px #0002;max-width:100%;';
+  const img=document.createElement('img');img.style.cssText='display:block;width:100%;height:auto;';
+  img.src=URL.createObjectURL(p.blob);img.onload=()=>setTimeout(()=>{try{URL.revokeObjectURL(img.src)}catch(e){}},30000);
+  wrap.appendChild(img);pagesBox.appendChild(wrap);
+ }
+ return true;
 }
 function nncLessonKey(id,url){return String(id)+'|'+String(url||'');}
 async function nncFetchLessonBlob(id,url,type){
@@ -841,13 +891,26 @@ async function openPdfInApp(url,title='PDF',cacheId=''){
   const titleEl=document.getElementById('nirmalaPdfViewerTitle'),status=document.getElementById('nirmalaPdfStatus'),pages=document.getElementById('nirmalaPdfPages');
   if(titleEl)titleEl.textContent='📄 '+(title||'PDF'); if(status)status.textContent='⏳ PDF ખોલાઈ રહ્યું છે...'; if(pages)pages.innerHTML=''; modal.style.display='flex';
   try{
-    if(!window.pdfjsLib)throw new Error('PDF Viewer લાઇબ્રેરી લોડ થઈ નથી.');
-    let sourceUrl=String(url), blob=null;
+    const sourceUrl=String(url);
+    // Offline first: if the PDF pages were already rendered once, show them without
+    // requiring Firebase, PDF.js, or Internet.
+    if(cacheId){
+      const shown=await nncShowCachedPdfPages(cacheId,sourceUrl,pages,status);
+      if(shown)return true;
+    }
+    if(!window.pdfjsLib){
+      // The raw file may still be cached, but without PDF.js we cannot decode it here.
+      // Give the user a clear offline message rather than showing a blank viewer.
+      throw new Error('આ PDFનું Offline page-cache હજી તૈયાર નથી. એક વાર Internet સાથે આ Lesson ખોલો.');
+    }
+    let blob=null;
     if(cacheId) blob=await nncFetchLessonBlob(cacheId,sourceUrl,'application/pdf');
-    if(blob) { if(status)status.textContent='📄 Cached Lesson ખોલાઈ રહ્યું છે...'; const source=await blob.arrayBuffer(); var loadingTask=window.pdfjsLib.getDocument({data:source}); }
-    else { var loadingTask=window.pdfjsLib.getDocument({url:sourceUrl,disableAutoFetch:false,disableStream:false}); }
+    let loadingTask;
+    if(blob){ if(status)status.textContent='📄 Cached Lesson ખોલાઈ રહ્યું છે...'; const source=await blob.arrayBuffer(); loadingTask=window.pdfjsLib.getDocument({data:source}); }
+    else { loadingTask=window.pdfjsLib.getDocument({url:sourceUrl,disableAutoFetch:false,disableStream:false}); }
     const pdf=await loadingTask.promise;
     if(status)status.textContent='📄 '+pdf.numPages+' પેજ • એપમાં જ દેખાય છે';
+    const rendered=[];
     for(let pageNo=1;pageNo<=pdf.numPages;pageNo++){
       const page=await pdf.getPage(pageNo),base=page.getViewport({scale:1});
       const maxWidth=Math.max(280,Math.min((window.innerWidth||900)-20,900));
@@ -855,15 +918,20 @@ async function openPdfInApp(url,title='PDF',cacheId=''){
       const wrap=document.createElement('div');wrap.style.cssText='background:#fff;margin:0 auto 10px;box-shadow:0 1px 5px #0002;max-width:100%;';
       const canvas=document.createElement('canvas');canvas.style.cssText='display:block;width:100%;height:auto;';canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);wrap.appendChild(canvas);pages.appendChild(wrap);
       await page.render({canvasContext:canvas.getContext('2d',{alpha:false}),viewport}).promise;
+      rendered.push({pageNo,canvas});
     }
-  }catch(e){console.error(e);if(status)status.textContent='❌ PDF એપમાં દેખાડી શકાયું નથી.';if(pages)pages.innerHTML='<div style="background:#fff;border-radius:12px;padding:18px;margin:10px;color:#b42318;text-align:left;">PDF એપમાં ખોલવામાં સમસ્યા આવી.<br><br><small>'+String(e?.message||e)+'</small></div>';}
+    // Save rendered pages after the first successful online/cached open. This makes
+    // subsequent opens work even when PDF.js/network is unavailable.
+    if(cacheId)await nncCacheRenderedPdfPages(cacheId,sourceUrl,pdf);
+    return true;
+  }catch(e){console.error(e);if(status)status.textContent='❌ PDF એપમાં દેખાડી શકાયું નથી.';if(pages)pages.innerHTML='<div style="background:#fff;border-radius:12px;padding:18px;margin:10px;color:#b42318;text-align:left;">'+esc(String(e?.message||e))+'</div>';return false;}
 }
 
-function openLessonPDFInApp(id){
+async function openLessonPDFInApp(id){
   const l=(lessons||{})[id];
   if(!l || l.type!=='pdf' || !l.content){ alert('PDF ઉપલબ્ધ નથી.'); return; }
   markViewed('lessons',id);
-  openPdfInApp(String(l.content),l.title||'PDF',String(id));
+  await openPdfInApp(String(l.content),l.title||'PDF',String(id));
 }
 function closeLessonPDFInApp(){
   const modal=document.getElementById('nirmalaPdfViewer');
@@ -1575,12 +1643,15 @@ function msg(id,t){document.getElementById(id).innerHTML=t}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
 
-const STUDENT_SESSION_TTL = 5*60*60*1000;
+// Student session is intentionally persistent. Once the student has logged in,
+// the saved local student record can reopen the app offline until the student logs out.
+const STUDENT_SESSION_TTL = 0;
 function saveStudentSession(student){
   try{
     localStorage.setItem('nirmala_student_session', JSON.stringify({
       id: student?.id || '',
-      verifiedAt: Date.now()
+      verifiedAt: Date.now(),
+      student: student ? {...student} : null
     }));
   }catch(e){}
 }
@@ -1592,11 +1663,15 @@ function restoreStudentSession(){
     const raw=localStorage.getItem('nirmala_student_session');
     if(!raw)return false;
     const sdata=JSON.parse(raw);
-    if(!sdata || !sdata.id || !sdata.verifiedAt || Date.now()-Number(sdata.verifiedAt)>=STUDENT_SESSION_TTL){
+    if(!sdata || !sdata.id){
       clearStudentSession();
       return false;
     }
-    const pair=students && students[sdata.id] ? [sdata.id, students[sdata.id]] : null;
+    // Prefer the latest locally cached student record; fall back to the full record
+    // stored inside the session so offline reopen works even before Firebase loads.
+    const localRecord=students && students[sdata.id] ? students[sdata.id] : null;
+    const baseRecord=localRecord || sdata.student || null;
+    const pair=baseRecord ? [sdata.id, baseRecord] : null;
     if(!pair || pair[1]?.active===false){
       clearStudentSession();
       return false;
