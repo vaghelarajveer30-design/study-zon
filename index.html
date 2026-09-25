@@ -3471,22 +3471,55 @@ window.addEventListener('beforeunload',function(){stopAutoCloudBackup();});
       let item=null;
       if(cloudMode&&db){try{const snap=await db.ref(key+'/'+id).once('value');item=snap.val();}catch(e){console.warn(e);}}
       if(!item) item=(window[key]||{})[id]||null;
-      await dataRemove(key,id);
-      const fileUrl=item?.content||item?.url||item?.pdfUrl||item?.fileUrl||'';
-      if(storage&&cloudMode&&/^https?:/i.test(String(fileUrl))&&String(fileUrl).includes('firebasestorage.googleapis.com')){
-        try{await storage.refFromURL(fileUrl).delete();}catch(e){console.warn('Storage file could not be deleted:',e);}
+      // Lesson delete is handled separately so deleting one Lesson never makes the
+      // Student Lesson list temporarily empty or require a new Login.
+      if(key==='lessons'){
+        const localBefore=localData('lessons');
+        const remaining={...localBefore};
+        delete remaining[id];
+        saveLocalData('lessons',remaining);
+        window.lessons=remaining; lessons=remaining;
+        // Immediately show the remaining lessons. Do not clear/reload the whole list.
+        if(typeof renderTeacher==='function')renderTeacher();
+        if(typeof renderStudent==='function'&&currentStudent)renderStudent();
+
+        if(cloudMode&&db&&navigator.onLine){
+          await db.ref('lessons/'+id).remove();
+          // Read back the authoritative Lesson list after the single child is removed.
+          // This prevents a transient empty/stale Firebase snapshot from replacing all lessons.
+          try{
+            const snap=await db.ref('lessons').once('value');
+            const cloudLessons=snap.val()||{};
+            saveLocalData('lessons',cloudLessons);
+            window.lessons=cloudLessons; lessons=cloudLessons;
+          }catch(syncErr){
+            console.warn('Lesson list refresh after delete failed; keeping local remaining lessons:',syncErr);
+          }
+        }
+
+        const fileUrl=item?.content||item?.url||item?.pdfUrl||item?.fileUrl||'';
+        if(storage&&cloudMode&&/^https?:/i.test(String(fileUrl))&&String(fileUrl).includes('firebasestorage.googleapis.com')){
+          try{await storage.refFromURL(fileUrl).delete();}catch(e){console.warn('Storage file could not be deleted:',e);}
+        }
+        if(typeof renderTeacher==='function')renderTeacher();
+        if(typeof renderStudent==='function'&&currentStudent)renderStudent();
+      }else{
+        await dataRemove(key,id);
+        const fileUrl=item?.content||item?.url||item?.pdfUrl||item?.fileUrl||'';
+        if(storage&&cloudMode&&/^https?:/i.test(String(fileUrl))&&String(fileUrl).includes('firebasestorage.googleapis.com')){
+          try{await storage.refFromURL(fileUrl).delete();}catch(e){console.warn('Storage file could not be deleted:',e);}
+        }
+        // Force the current in-memory/local list to refresh so the count decreases immediately.
+        const d=localData(key); delete d[id]; saveLocalData(key,d); window[key]=d;
+        if(key==='students')students=d;
+        if(key==='tests')tests=d;
+        if(key==='notices')notices=d;
+        if(key==='questionBanks')questionBanks=d;
+        if(key==='personalMessages')personalMessages=d;
+        if(typeof renderTeacherStudents==='function')renderTeacherStudents();
+        if(typeof renderTeacher==='function')renderTeacher();
+        if(typeof renderStudent==='function'&&currentStudent)renderStudent();
       }
-      // Force the current in-memory/local list to refresh so the count decreases immediately.
-      const d=localData(key); delete d[id]; saveLocalData(key,d); window[key]=d;
-      if(key==='students')students=d;
-      if(key==='tests')tests=d;
-      if(key==='lessons')lessons=d;
-      if(key==='notices')notices=d;
-      if(key==='questionBanks')questionBanks=d;
-      if(key==='personalMessages')personalMessages=d;
-      if(typeof renderTeacherStudents==='function')renderTeacherStudents();
-      if(typeof renderTeacher==='function')renderTeacher();
-      if(typeof renderStudent==='function'&&currentStudent)renderStudent();
       alert('✅ '+label+' Delete થઈ ગયું.');
     }catch(e){console.error(e);alert('❌ Delete થઈ શક્યું નથી.\n'+(e?.message||e));}
   };
@@ -3656,6 +3689,7 @@ window.addEventListener('beforeunload',function(){stopAutoCloudBackup();});
       <div class="csp-card csp-student-summary">
         <div class="csp-student-name">👤 ${studentName}</div>
         <div class="csp-student-id">🆔 Student ID: <b>${studentId}</b></div>
+        <div class="csp-student-id">📅 દાખલ તારીખ: <b>${escFee(join||'-')}</b></div>
         <div class="csp-grid">
           <div class="csp-stat csp-blue"><span>કુલ ફી</span><b>${moneyFee(finalTotal)}</b></div>
           <div class="csp-stat csp-green"><span>કુલ જમા</span><b>${moneyFee(finalPaid)}</b></div>
