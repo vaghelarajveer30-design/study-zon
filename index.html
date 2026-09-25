@@ -160,7 +160,7 @@ window.OneSignalDeferred.push(async function(OneSignal){
   <div id="teacherLessonSubjectButtons" class="teacher-filter-row" style="margin-top:4px"></div>
   <div id="teacherLessonSummary" class="teacher-lesson-summary"></div>
 </div>
-<div id="teacherLessons"></div></div><div id="questionTeacherSection" class="card teacher-section hidden"><h3>📝 Course → વિષય → Topic પ્રશ્ન બેંક</h3><p class="muted">પહેલા Course પસંદ કરો → પછી વિષય → પછી Topic આપો → પછી પ્રશ્નો Copy-Paste કરો. વિદ્યાર્થીઓને પણ આ જ ક્રમમાં પ્રશ્નો દેખાશે.</p><div class="grid"><select id="questionCourse"><option value="">Course પસંદ કરો</option><option value="નવોદય">🎯 નવોદય</option><option value="CET">🎓 CET</option><option value="જ્ઞાન સાધના">📘 જ્ઞાન સાધના</option><option value="સામાન્ય">📚 સામાન્ય</option><option value="આકૃતિ">📖 આકૃતિ</option><option value="Ganit">📖 Ganit</option></select><input id="questionSubject" placeholder="વિષય (જેમ કે ગણિત)"><input id="questionTitle" placeholder="Topic / પ્રકરણનું નામ"></div><textarea id="questionText" rows="12" placeholder="અહીં પ્રશ્નો Copy-Paste કરો...&#10;&#10;1. 25 + 35 = ?&#10;A) 50&#10;B) 60&#10;C) 70&#10;D) 80"></textarea><button onclick="saveQuestionBank()">📝 પ્રશ્નો Save / Publish</button><div id="questionMsg" class="sync-status"></div><hr style="border:0;border-top:1px solid #e5e7eb;margin:15px 0"><h4>📚 સેવ થયેલા વિષયો</h4><div id="teacherQuestionBanks"></div></div><div id="onlineTestTeacherSection" class="card teacher-section hidden"><h3>🧪 Online Test Link Publish</h3><p class="muted">Google Forms અથવા બીજી Online Testની Share Link અહીં મૂકો. APKમાં Publish કરવા માટે https:// વાળી link આપો. વિદ્યાર્થીઓ આ એપમાંથી Test ખોલી શકશે.</p><div class="grid"><select id="onlineTestCourse"><option value="">Course પસંદ કરો</option><option value="નવોદય">🎯 નવોદય</option><option value="CET">🎓 CET</option><option value="જ્ઞાન સાધના">📘 જ્ઞાન સાધના</option><option value="સામાન્ય">📚 સામાન્ય</option></select><input id="onlineTestSubject" placeholder="વિષય (જેમ કે ગણિત)"><input id="onlineTestTitle" placeholder="Test નું નામ"></div><input id="onlineTestLink" type="url" placeholder="Online Test Link — https://..." style="width:100%"><div class="grid"><input id="onlineTestMarks" type="number" min="0" placeholder="કુલ ગુણ (Optional)"><input id="onlineTestTime" type="number" min="0" placeholder="સમય મિનિટમાં (Optional)"></div><button type="button" onclick="publishOnlineTest()">🧪 Online Test Publish</button><div id="onlineTestTeacherMsg" class="sync-status"></div><hr style="border:0;border-top:1px solid #e5e7eb;margin:15px 0"><h4>📋 Published Online Tests</h4><div id="teacherOnlineTests"></div></div><div id="personalTeacherSection" class="card teacher-section hidden personal-card"><h3>💬 Personal Message / Document</h3><p class="muted">કોઈ એક વિદ્યાર્થીને વ્યક્તિગત રીતે Message, Fee Receipt, PDF અથવા કોઈ Link મોકલી શકો.</p><div class="grid"><select id="personalStudent"></select><input id="personalTitle" placeholder="શીર્ષક — જેમ કે Fee Receipt September"></div><textarea id="personalMessage" placeholder="વિદ્યાર્થી માટે વ્યક્તિગત Message"></textarea><div class="grid"><input id="personalLink" placeholder="Optional Link (જેમ કે Fee Receipt / Google Drive)"><input id="personalFile" type="file" accept=".pdf,image/*" ></div><button id="personalSendBtn" onclick="sendPersonalMessage()">📤 Personal મોકલો</button><div id="personalMsg" class="sync-status"></div><hr style="border:0;border-top:1px solid #e5e7eb;margin:15px 0"><h4>📨 મોકલેલા Personal Messages</h4><div id="teacherPersonalList" class="personal-list"></div></div><div id="settingsTeacherSection" class="card teacher-section hidden"><div class="card" style="margin-bottom:12px"><b>📱 Student OTP Login</b><div class="muted" style="margin-top:6px"> Student Registration અને Login માટે એપમાં જ 4 અંકનો Free OTP દેખાશે. SMSની જરૂર નથી. </div></div><h3>⚙️ Teacher Login ID / Password</h3><p class="muted">Login થયા પછી જ અહીંથી ID અને Password બદલી શકાશે.</p><div class="grid"><input id="setTeacherId" placeholder="નવું Teacher ID"><input id="setTeacherPass" type="password" placeholder="નવો Password"></div><button onclick="saveTeacherCredentials()">💾 ID / Password Save કરો</button><div id="credentialMsg"></div><hr style="border:0;border-top:1px solid #e5e7eb;margin:16px 0"><h3>🔔 Notifications</h3><p class="setting-note">Teacher અહીંથી notification મોકલી શકે છે. Firebaseમાં notification record સાચવાશે અને વિદ્યાર્થી એપ ખોલે/foregroundમાં આવે ત્યારે બતાવાશે. <b>OneSignal Push ON હોય તો notification OneSignal દ્વારા મોકલાશે.</b></p><div class="grid"><input id="notifyTitle" placeholder="Notification Title"><input id="notifyBody" placeholder="Notification Message"><select id="notifyTarget"><option value="all">👥 બધા વિદ્યાર્થીઓ</option></select></div><button type="button" onclick="sendTeacherNotification()">📢 Notification મોકલો</button><button type="button" class="secondary" onclick="testNativeNotification()">🧪 Native Test</button><div id="notifyMsg"></div><div class="card" style="margin-top:12px;border:1px solid #dbe3ef;background:#f8fbff"><h4 style="margin-top:0">🔔 OneSignal Push</h4><p class="setting-note">OneSignal App ID APKમાં OneSignal integration સાથે match હોવો જોઈએ. REST/API Key HTMLમાં ન નાખશો. Secure Push URL મારફતે PDF/Photo Google Driveમાં પણ સેવ કરી શકાય છે.</p><input id="oneSignalAppId" placeholder="OneSignal App ID"><input id="pushEndpoint" placeholder="Secure Push + Google Drive Web App URL"><button type="button" class="secondary" onclick="savePushEndpoint()">🔐 Secure URL Save</button><button type="button" onclick="saveOneSignalSettings()">💾 OneSignal Save</button><button type="button" class="secondary" onclick="requestOneSignalPermission()">🔔 Student Notification ON</button><div id="oneSignalMsg" class="sync-status"></div></div><hr style="border:0;border-top:1px solid #e5e7eb;margin:16px 0"><h3>☁️ Firebase Cloud Setup</h3><p class="setting-note"><b>✅ NIRMLA STUDY ZON Firebase Project 3: study-zon</b><br>આ એપમાં Firebase configuration પહેલેથી સેટ છે.</p><p class="setting-note">Project 3 ની Firebase Web App configuration અહીં એક વખત નાખો. ત્યારબાદ Students, Notices, Lessons અને પ્રશ્ન બેંકની માહિતી બધા devices પર cloudમાં sync થઈ શકશે.</p><div class="grid"><input id="fbApiKey" placeholder="apiKey"><input id="fbAuthDomain" placeholder="authDomain"><input id="fbDatabaseURL" placeholder="databaseURL"><input id="fbProjectId" placeholder="projectId"><input id="fbStorageBucket" placeholder="storageBucket"><input id="fbMessagingSenderId" placeholder="messagingSenderId"><input id="fbAppId" placeholder="appId"></div><button onclick="saveFirebaseConfig()">☁️ Firebase Config Save & Reload</button><div id="firebaseMsg"></div><hr style="border:0;border-top:1px solid #e5e7eb;margin:16px 0"><h3>💾 Backup & Restore</h3><p class="setting-note">Appના Students, Notices, Lessons, Tests, Personal Messages અને પ્રશ્ન બેંકનો backup મોબાઇલમાં JSON તરીકે અથવા <b>Google Cloud (Firebase)</b>માં સાચવી શકાય છે.</p><div class="cloud-backup-card"><h4 style="margin:0 0 6px">☁️ Google Cloud Backup</h4><p class="setting-note" style="margin:0 0 10px">Cloud Backup તમારા હાલના Firebase Realtime Database Project <b>study-zon</b>માં <b>cloudBackups/latest</b> તરીકે સાચવશે.</p><div class="cloud-backup-grid"><button type="button" onclick="saveCloudBackup(true)">☁️ Cloud Backup લો</button><button type="button" onclick="restoreLatestCloudBackup()">♻️ Cloud Restore કરો</button></div><div id="cloudBackupStatus" class="cloud-backup-status">⏱️ Automatic Cloud Backup: દર 5 કલાકે (Teacher Dashboard ખુલ્લું હોય ત્યારે).</div><div id="cloudBackupLast" class="cloud-backup-status muted"></div></div><div class="backup-grid"><button type="button" onclick="downloadBackup()">💾 Backup Download</button><button type="button" onclick="document.getElementById('restoreFile').click()">♻️ Restore Backup</button><button type="button" class="secondary" onclick="exportOfflineContent()">📦 Offline Data Export</button></div><input id="restoreFile" type="file" accept=".json,application/json" style="display:none" onchange="restoreBackup(this.files[0])"><div id="backupMsg" class="sync-status"></div><p class="setting-note">નોંધ: PDF/Photoની actual file જો Firebase Storage અથવા Google Driveમાં હોય તો backupમાં તેનો URL/record સાચવાશે; મોટી binary file JSONમાં copy થતી નથી.</p></div></section></main><div id="onlineTestModal" class="online-test-modal" onclick="if(event.target===this)closeOnlineTest()"><div class="online-test-modal-card"><div class="online-test-modal-head"><b id="onlineTestModalTitle">📝 Online Test</b><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><button id="onlineTestCompleteBtn" type="button" onclick="markOnlineTestCompletedFromModal()">✅ Test પૂર્ણ થઈ</button><button type="button" class="secondary" onclick="closeOnlineTest()">✖️ બંધ</button></div></div><div id="onlineTestCompleteHint" class="muted" style="padding:4px 2px 8px">Test Submit કર્યા પછી <b>“Test પૂર્ણ થઈ”</b> દબાવો, ત્યારબાદ આ Test બાકી ગણાશે નહીં.</div><iframe id="onlineTestFrame" title="Online Test" allow="camera; microphone; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe></div></div><div id="teacherLessonMediaModal" class="lesson-edit-modal" onclick="if(event.target===this)closeTeacherLessonMedia()">
+<div id="teacherLessons"></div></div><div id="questionTeacherSection" class="card teacher-section hidden"><h3>📝 Course → વિષય → Topic પ્રશ્ન બેંક</h3><p class="muted">પહેલા Course પસંદ કરો → પછી વિષય → પછી Topic આપો → પછી પ્રશ્નો Copy-Paste કરો. વિદ્યાર્થીઓને પણ આ જ ક્રમમાં પ્રશ્નો દેખાશે.</p><div class="grid"><select id="questionCourse"><option value="">Course પસંદ કરો</option><option value="નવોદય">🎯 નવોદય</option><option value="CET">🎓 CET</option><option value="જ્ઞાન સાધના">📘 જ્ઞાન સાધના</option><option value="સામાન્ય">📚 સામાન્ય</option><option value="આકૃતિ">📖 આકૃતિ</option><option value="Ganit">📖 Ganit</option></select><input id="questionSubject" placeholder="વિષય (જેમ કે ગણિત)"><input id="questionTitle" placeholder="Topic / પ્રકરણનું નામ"></div><textarea id="questionText" rows="12" placeholder="અહીં પ્રશ્નો Copy-Paste કરો...&#10;&#10;1. 25 + 35 = ?&#10;A) 50&#10;B) 60&#10;C) 70&#10;D) 80"></textarea><button onclick="saveQuestionBank()">📝 પ્રશ્નો Save / Publish</button><div id="questionMsg" class="sync-status"></div><hr style="border:0;border-top:1px solid #e5e7eb;margin:15px 0"><h4>📚 સેવ થયેલા વિષયો</h4><div id="teacherQuestionBanks"></div></div><div id="onlineTestTeacherSection" class="card teacher-section hidden"><h3>🧪 Online Test Link Publish</h3><p class="muted">Google Forms અથવા બીજી Online Testની Share Link અહીં મૂકો. APKમાં Publish કરવા માટે https:// વાળી link આપો. વિદ્યાર્થીઓ આ એપમાંથી Test ખોલી શકશે.</p><div class="grid"><select id="onlineTestCourse"><option value="">Course પસંદ કરો</option><option value="નવોદય">🎯 નવોદય</option><option value="CET">🎓 CET</option><option value="જ્ઞાન સાધના">📘 જ્ઞાન સાધના</option><option value="સામાન્ય">📚 સામાન્ય</option></select><input id="onlineTestSubject" placeholder="વિષય (જેમ કે ગણિત)"><input id="onlineTestTitle" placeholder="Test નું નામ"></div><input id="onlineTestLink" type="url" placeholder="Online Test Link — https://..." style="width:100%"><div class="grid"><input id="onlineTestMarks" type="number" min="0" placeholder="કુલ ગુણ (Optional)"><input id="onlineTestTime" type="number" min="0" placeholder="સમય મિનિટમાં (Optional)"></div><button type="button" onclick="publishOnlineTest()">🧪 Online Test Publish</button><div id="onlineTestTeacherMsg" class="sync-status"></div><hr style="border:0;border-top:1px solid #e5e7eb;margin:15px 0"><h4>📋 Published Online Tests</h4><div id="teacherOnlineTests"></div></div><div id="personalTeacherSection" class="card teacher-section hidden personal-card"><h3>💬 Personal Message / Document</h3><p class="muted">કોઈ એક વિદ્યાર્થીને વ્યક્તિગત રીતે Message, Fee Receipt, PDF અથવા કોઈ Link મોકલી શકો.</p><div class="grid"><select id="personalStudent"></select><input id="personalTitle" placeholder="શીર્ષક — જેમ કે Fee Receipt September"></div><textarea id="personalMessage" placeholder="વિદ્યાર્થી માટે વ્યક્તિગત Message"></textarea><div class="grid"><input id="personalLink" placeholder="Optional Link (જેમ કે Fee Receipt / Google Drive)"><input id="personalFile" type="file" accept=".pdf,image/*" ></div><button id="personalSendBtn" onclick="sendPersonalMessage()">📤 Personal મોકલો</button><div id="personalMsg" class="sync-status"></div><hr style="border:0;border-top:1px solid #e5e7eb;margin:15px 0"><h4>📨 મોકલેલા Personal Messages</h4><div id="teacherPersonalList" class="personal-list"></div></div><div id="settingsTeacherSection" class="card teacher-section hidden"><div class="card" style="margin-bottom:12px"><b>📱 Student OTP Login</b><div class="muted" style="margin-top:6px"> Student Registration અને Login માટે એપમાં જ 4 અંકનો Free OTP દેખાશે. SMSની જરૂર નથી. </div></div><h3>⚙️ Teacher Login ID / Password</h3><p class="muted">Login થયા પછી જ અહીંથી ID અને Password બદલી શકાશે.</p><div class="grid"><input id="setTeacherId" placeholder="નવું Teacher ID"><input id="setTeacherPass" type="password" placeholder="નવો Password"></div><button onclick="saveTeacherCredentials()">💾 ID / Password Save કરો</button><div id="credentialMsg"></div><hr style="border:0;border-top:1px solid #e5e7eb;margin:16px 0"><h3>🔔 Notifications</h3><p class="setting-note">Teacher અહીંથી notification મોકલી શકે છે. Firebaseમાં notification record સાચવાશે અને વિદ્યાર્થી એપ ખોલે/foregroundમાં આવે ત્યારે બતાવાશે. <b>OneSignal Push ON હોય તો notification OneSignal દ્વારા મોકલાશે.</b></p><div class="grid"><input id="notifyTitle" placeholder="Notification Title"><input id="notifyBody" placeholder="Notification Message"><select id="notifyTarget"><option value="all">👥 બધા વિદ્યાર્થીઓ</option></select></div><button type="button" onclick="sendTeacherNotification()">📢 Notification મોકલો</button><button type="button" class="secondary" onclick="testNativeNotification()">🧪 Native Test</button><div id="notifyMsg"></div><div class="card" style="margin-top:12px;border:1px solid #dbe3ef;background:#f8fbff"><h4 style="margin-top:0">🔔 OneSignal Push</h4><p class="setting-note">OneSignal App ID APKમાં OneSignal integration સાથે match હોવો જોઈએ. REST/API Key HTMLમાં ન નાખશો. Secure Push URL મારફતે PDF/Photo Google Driveમાં પણ સેવ કરી શકાય છે.</p><input id="oneSignalAppId" placeholder="OneSignal App ID"><input id="pushEndpoint" placeholder="Secure Push + Google Drive Web App URL"><button type="button" class="secondary" onclick="savePushEndpoint()">🔐 Secure URL Save</button><button type="button" onclick="saveOneSignalSettings()">💾 OneSignal Save</button><button type="button" class="secondary" onclick="requestOneSignalPermission()">🔔 Student Notification ON</button><div id="oneSignalMsg" class="sync-status"></div></div><hr style="border:0;border-top:1px solid #e5e7eb;margin:16px 0"><h3>☁️ Firebase Cloud Setup</h3><p class="setting-note"><b>✅ NIRMLA STUDY ZON Firebase Project 3: study-zon</b><br>આ એપમાં Firebase configuration પહેલેથી સેટ છે.</p><p class="setting-note">Project 3 ની Firebase Web App configuration અહીં એક વખત નાખો. ત્યારબાદ Students, Notices, Lessons અને પ્રશ્ન બેંકની માહિતી બધા devices પર cloudમાં sync થઈ શકશે.</p><div class="grid"><input id="fbApiKey" placeholder="apiKey"><input id="fbAuthDomain" placeholder="authDomain"><input id="fbDatabaseURL" placeholder="databaseURL"><input id="fbProjectId" placeholder="projectId"><input id="fbStorageBucket" placeholder="storageBucket"><input id="fbMessagingSenderId" placeholder="messagingSenderId"><input id="fbAppId" placeholder="appId"></div><button onclick="saveFirebaseConfig()">☁️ Firebase Config Save & Reload</button><div id="firebaseMsg"></div><hr style="border:0;border-top:1px solid #e5e7eb;margin:16px 0"><h3>💾 Backup & Restore</h3><p class="setting-note">Appના Students, Notices, Lessons, Tests, Personal Messages અને પ્રશ્ન બેંકનો backup મોબાઇલમાં JSON તરીકે અથવા <b>Google Cloud (Firebase)</b>માં સાચવી શકાય છે.</p><div class="cloud-backup-card"><h4 style="margin:0 0 6px">☁️ Google Cloud Backup</h4><p class="setting-note" style="margin:0 0 10px">Cloud Backup તમારા હાલના Firebase Realtime Database Project <b>study-zon</b>માં <b>cloudBackups/latest</b> તરીકે સાચવશે.</p><div class="cloud-backup-grid"><button type="button" onclick="saveCloudBackup(true)">☁️ Cloud Backup લો</button><button type="button" onclick="restoreLatestCloudBackup()">♻️ Cloud Restore કરો</button></div><div id="cloudBackupStatus" class="cloud-backup-status">⏱️ Google Cloud Backup તૈયાર છે. Backup/Restore માટે Internet જરૂરી છે.</div><div id="cloudBackupLast" class="cloud-backup-status muted"></div></div><div class="backup-grid"><button type="button" onclick="downloadBackup()">💾 Backup Download</button><button type="button" onclick="document.getElementById('restoreFile').click()">♻️ Restore Backup</button><button type="button" class="secondary" onclick="exportOfflineContent()">📦 Offline Data Export</button></div><input id="restoreFile" type="file" accept=".json,application/json" style="display:none" onchange="restoreBackup(this.files[0])"><div id="backupMsg" class="sync-status"></div><p class="setting-note">નોંધ: PDF/Photoની actual file જો Firebase Storage અથવા Google Driveમાં હોય તો backupમાં તેનો URL/record સાચવાશે; મોટી binary file JSONમાં copy થતી નથી.</p></div></section></main><div id="onlineTestModal" class="online-test-modal" onclick="if(event.target===this)closeOnlineTest()"><div class="online-test-modal-card"><div class="online-test-modal-head"><b id="onlineTestModalTitle">📝 Online Test</b><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><button id="onlineTestCompleteBtn" type="button" onclick="markOnlineTestCompletedFromModal()">✅ Test પૂર્ણ થઈ</button><button type="button" class="secondary" onclick="closeOnlineTest()">✖️ બંધ</button></div></div><div id="onlineTestCompleteHint" class="muted" style="padding:4px 2px 8px">Test Submit કર્યા પછી <b>“Test પૂર્ણ થઈ”</b> દબાવો, ત્યારબાદ આ Test બાકી ગણાશે નહીં.</div><iframe id="onlineTestFrame" title="Online Test" allow="camera; microphone; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe></div></div><div id="teacherLessonMediaModal" class="lesson-edit-modal" onclick="if(event.target===this)closeTeacherLessonMedia()">
   <div class="lesson-edit-card">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
       <h3 id="teacherLessonMediaTitle" style="margin:0">📚 Lesson</h3>
@@ -539,68 +539,131 @@ function updateCloudBackupLastText(){
  try{el.textContent='🕒 છેલ્લો Cloud Backup: '+new Date(ts).toLocaleString('gu-IN');}
  catch(e){el.textContent='🕒 છેલ્લો Cloud Backup: '+new Date(ts).toLocaleString();}
 }
+function cloudRestPut(path,data){
+ const base=String(firebaseConfig?.databaseURL||'').replace(/\/+$/,'');
+ if(!base)return Promise.reject(new Error('Firebase databaseURL મળ્યું નથી.'));
+ const url=base+'/'+String(path).replace(/^\/+/,'')+'.json';
+ return fetch(url,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data),cache:'no-store'})
+   .then(async r=>{
+     if(!r.ok){let d='';try{d=await r.text()}catch(e){};throw new Error('Firebase HTTP '+r.status+(d?' — '+d.slice(0,180):''));}
+     return r.json();
+   });
+}
+function cloudRestGet(path){
+ const base=String(firebaseConfig?.databaseURL||'').replace(/\/+$/,'');
+ if(!base)return Promise.reject(new Error('Firebase databaseURL મળ્યું નથી.'));
+ const url=base+'/'+String(path).replace(/^\/+/,'')+'.json?ts='+Date.now();
+ return fetch(url,{method:'GET',cache:'no-store'})
+   .then(async r=>{
+     if(!r.ok){let d='';try{d=await r.text()}catch(e){};throw new Error('Firebase HTTP '+r.status+(d?' — '+d.slice(0,180):''));}
+     return r.json();
+   });
+}
+function setLocalRestoredData(data){
+ const keys=['students','notices','lessons','tests','personalMessages','questionBanks','notifications'];
+ for(const k of keys){
+   const value=data[k]||{};
+   saveLocalData(k,value);
+   window[k]=value;
+ }
+ students=window.students||{};
+ notices=window.notices||{};
+ lessons=window.lessons||{};
+ tests=window.tests||{};
+ personalMessages=window.personalMessages||{};
+ questionBanks=window.questionBanks||{};
+ window.notifications=window.notifications||{};
+ try{ensureAllLearningStudentIds();}catch(e){}
+ try{cacheCurrentData();}catch(e){}
+}
 async function saveCloudBackup(manual=true){
  if(cloudBackupBusy)return false;
- if(!cloudMode || !db){
-   setCloudBackupStatus('❌ Firebase Cloud જોડાયેલું નથી. Internet અને Firebase Config તપાસો.',true);
-   if(manual)msg('backupMsg','❌ Cloud Backup માટે Firebase જોડાણ જરૂરી છે.');
+ if(!firebaseConfig?.databaseURL){
+   setCloudBackupStatus('❌ Firebase Database URL મળ્યું નથી.',true);
+   if(manual)msg('backupMsg','❌ Firebase Configમાં databaseURL નાખો.');
    return false;
  }
  if(!isTeacherDashboardOpen() && !manual)return false;
  cloudBackupBusy=true;
  try{
-   setCloudBackupStatus(manual?'⏳ Google Cloud Backup લેવામાં આવી રહ્યો છે...':'⏳ Automatic 5-hour Cloud Backup...');
+   setCloudBackupStatus(manual?'⏳ Google Cloud Backup લેવામાં આવી રહ્યો છે...':'⏳ Automatic Cloud Backup...');
    const data=snapshotAppData();
    const backup={...data,backupId:'cloud_'+Date.now(),backupType:'firebase_realtime_database',createdAt:Date.now(),createdBy:'Teacher'};
-   await db.ref(CLOUD_BACKUP_PATH).set(backup);
+   let saved=false,lastError=null;
+   if(cloudMode && db){
+     try{await db.ref(CLOUD_BACKUP_PATH).set(backup);saved=true;}
+     catch(e){lastError=e;console.warn('Firebase SDK backup failed; REST fallback:',e);}
+   }
+   if(!saved){
+     try{await cloudRestPut(CLOUD_BACKUP_PATH,backup);saved=true;}
+     catch(e){lastError=e;}
+   }
+   if(!saved)throw(lastError||new Error('Cloud Backup સેવ થઈ શક્યું નથી.'));
    const now=Date.now();
    localStorage.setItem('nirmala_last_cloud_backup',String(now));
    updateCloudBackupLastText();
    setCloudBackupStatus(manual?'✅ Google Cloud Backup સફળ થયું.':'✅ Automatic Cloud Backup સફળ થયું.');
-   if(manual)msg('backupMsg','✅ Google Cloudમાં Backup સેવ થઈ ગયું.');
+   if(manual)msg('backupMsg','✅ Google Cloudમાં Backup સફળતાપૂર્વક સેવ થઈ ગયું.');
    return true;
  }catch(e){
    console.error('Cloud backup failed:',e);
    setCloudBackupStatus('❌ Cloud Backup નિષ્ફળ: '+String(e?.message||e),true);
-   if(manual)msg('backupMsg','❌ Cloud Backup નિષ્ફળ થયું.');
+   if(manual)msg('backupMsg','❌ Cloud Backup નિષ્ફળ થયું: '+String(e?.message||e));
    return false;
  }finally{cloudBackupBusy=false;}
 }
 async function restoreLatestCloudBackup(){
- if(!cloudMode || !db){
-   setCloudBackupStatus('❌ Firebase Cloud જોડાયેલું નથી.',true);
-   msg('backupMsg','❌ Cloud Restore માટે Firebase જોડાણ જરૂરી છે.');
-   return;
+ if(!firebaseConfig?.databaseURL){
+   setCloudBackupStatus('❌ Firebase Database URL મળ્યું નથી.',true);
+   msg('backupMsg','❌ Firebase Configમાં databaseURL નાખો.');
+   return false;
  }
  if(!isTeacherDashboardOpen()){
    msg('backupMsg','❌ Cloud Restore ફક્ત Teacher Dashboardમાંથી કરો.');
-   return;
+   return false;
  }
- if(!confirm('☁️ Google Cloudનો છેલ્લો Backup Restore કરવો છે?\n\nહાલની Students, Notices, Lessons, Tests, Personal Messages અને પ્રશ્ન બેંકની માહિતી Backupથી બદલાઈ જશે.'))return;
+ if(!confirm('☁️ Google Cloudનો છેલ્લો Backup Restore કરવો છે?\n\nહાલની Students, Notices, Lessons, Tests, Personal Messages અને પ્રશ્ન બેંકની માહિતી Backupથી બદલાઈ જશે.'))return false;
  try{
    setCloudBackupStatus('⏳ Google Cloud Backup વાંચી રહ્યા છીએ...');
-   const snap=await db.ref(CLOUD_BACKUP_PATH).once('value');
-   const data=snap.val();
-   if(!data || data.app!=='NIRMLA STUDY ZON')throw new Error('કોઈ માન્ય Cloud Backup મળ્યો નથી.');
+   let data=null,lastError=null;
+   if(cloudMode && db){
+     try{const snap=await db.ref(CLOUD_BACKUP_PATH).once('value');data=snap.val();}
+     catch(e){lastError=e;console.warn('Firebase SDK restore failed; REST fallback:',e);}
+   }
+   if(!data){
+     try{data=await cloudRestGet(CLOUD_BACKUP_PATH);}
+     catch(e){lastError=e;}
+   }
+   if(!data || data.app!=='NIRMLA STUDY ZON' || !data.version)
+     throw(lastError||new Error('કોઈ માન્ય Cloud Backup મળ્યો નથી.'));
    const keys=['students','notices','lessons','tests','personalMessages','questionBanks','notifications'];
-   for(const k of keys)await db.ref(k).set(data[k]||{});
+   if(cloudMode && db){
+     try{
+       for(const k of keys)await db.ref(k).set(data[k]||{});
+     }catch(e){
+       console.warn('SDK main restore failed; REST fallback:',e);
+       for(const k of keys)await cloudRestPut(k,data[k]||{});
+     }
+   }else{
+     for(const k of keys)await cloudRestPut(k,data[k]||{});
+   }
+   setLocalRestoredData(data);
    if(data.viewed && currentStudent)saveViewed(data.viewed);
-   window.students=data.students||{};students=window.students;
-   window.notices=data.notices||{};notices=window.notices;
-   window.lessons=data.lessons||{};lessons=window.lessons;
-   window.tests=data.tests||{};tests=window.tests;
-   window.personalMessages=data.personalMessages||{};personalMessages=window.personalMessages;
-   window.questionBanks=data.questionBanks||{};questionBanks=window.questionBanks;
-   window.notifications=data.notifications||{};
-   renderTeacher();if(currentStudent)renderStudent();
+   if(typeof renderTeacher==='function')renderTeacher();
+   if(currentStudent&&typeof renderStudent==='function')renderStudent();
    setCloudBackupStatus('✅ Cloud Restore સફળ થયું.');
-   msg('backupMsg','✅ Google Cloudનો છેલ્લો Backup Restore થઈ ગયો.');
+   msg('backupMsg','✅ Google Cloud Backup Restore સફળ થયું.');
+   alert('✅ Google Cloud Backup Restore સફળ થયું.');
+   return true;
  }catch(e){
    console.error('Cloud restore failed:',e);
    setCloudBackupStatus('❌ Cloud Restore નિષ્ફળ: '+String(e?.message||e),true);
-   msg('backupMsg','❌ Cloud Restore નિષ્ફળ થયું.');
+   msg('backupMsg','❌ Cloud Restore નિષ્ફળ થયું: '+String(e?.message||e));
+   alert('❌ Cloud Restore થઈ શક્યું નથી.\n\n'+String(e?.message||e));
+   return false;
  }
 }
+
 function startAutoCloudBackup(){
  if(cloudBackupTimer)clearInterval(cloudBackupTimer);
  cloudBackupTimer=setInterval(()=>{
@@ -973,7 +1036,8 @@ function saveFirebaseConfig(){
  };
  if(!c.apiKey||!c.databaseURL||!c.projectId){msg('firebaseMsg','❌ apiKey, databaseURL અને projectId જરૂરી છે.');return}
  localStorage.setItem('nirmala_firebase_config',JSON.stringify(c));
- msg('firebaseMsg','✅ Config સેવ થઈ. App reload થશે...');
+ msg('firebaseMsg','✅ Config સેવ થઈ. Firebase Cloud જોડાણ ફરી શરૂ થશે...');
+ try{initFirebase();}catch(e){console.warn('Firebase re-init:',e);}
  setTimeout(()=>location.reload(),800);
 }
 function loadFirebaseConfigForm(){
@@ -1238,6 +1302,60 @@ function closeStudentRegistration(){
  document.getElementById('studentLogin')?.classList.remove('hidden');
 }
 
+
+function normalizeRegistrationName(v){
+ return String(v??'').trim().toLowerCase().replace(/\s+/g,' ');
+}
+function normalizeRegistrationMobile(v){
+ return String(v??'').replace(/\D/g,'').slice(-10);
+}
+function getRegistrationStudents(){
+ return Object.values(window.students||students||{}).filter(s=>String(s?.source||'registration')==='registration');
+}
+function checkRegistrationDuplicate(name,mobile,excludeId=''){
+ const n=normalizeRegistrationName(name);
+ const m=normalizeRegistrationMobile(mobile);
+ const list=getRegistrationStudents().filter(s=>String(s?.id||'')!==String(excludeId||''));
+ if(list.some(s=>normalizeRegistrationName(s?.name)===n && normalizeRegistrationMobile(s?.mobile)===m)){
+   return {ok:false,message:'❌ આ નામ અને મોબાઇલ નંબર સાથે વિદ્યાર્થીનું Registration પહેલેથી થઈ ગયું છે. બીજી વાર Registration થઈ શકશે નહીં.'};
+ }
+ const sameMobile=list.filter(s=>normalizeRegistrationMobile(s?.mobile)===m);
+ const distinctNames=new Set(sameMobile.map(s=>normalizeRegistrationName(s?.name)).filter(Boolean));
+ if(distinctNames.size>=3){
+   return {ok:false,message:'❌ એક મોબાઇલ નંબર પરથી વધુમાં વધુ 3 અલગ બાળકોનું Registration થઈ શકે છે.'};
+ }
+ return {ok:true};
+}
+async function editRegisteredStudent(id){
+ const s=(window.students||students||{})[id];
+ if(!s)return;
+ if(String(s.source||'registration')==='teacher'){
+   alert('ℹ️ આ વિદ્યાર્થી Teacher દ્વારા ઉમેરાયેલો છે.');
+   return;
+ }
+ const name=prompt('વિદ્યાર્થીનું નામ:',s.name||''); if(name===null)return;
+ const fatherName=prompt('પપ્પાનું નામ:',s.fatherName||''); if(fatherName===null)return;
+ const schoolName=prompt('શાળાનું નામ:',s.schoolName||''); if(schoolName===null)return;
+ const address=prompt('એડ્રેસ:',s.address||''); if(address===null)return;
+ const mobile=normalizeRegistrationMobile(prompt('મોબાઇલ નંબર (10 અંક):',s.mobile||'')||'');
+ if(mobile.length!==10){alert('❌ 10 અંકનો મોબાઇલ નંબર નાખો.');return;}
+ if(!String(name).trim()||!String(fatherName).trim()||!String(schoolName).trim()||!String(address).trim()){
+   alert('❌ કોઈ માહિતી ખાલી રાખી શકાશે નહીં.');return;
+ }
+ const chk=checkRegistrationDuplicate(name,mobile,id);
+ if(!chk.ok){alert(chk.message);return;}
+ const updated={...s,name:String(name).trim(),fatherName:String(fatherName).trim(),schoolName:String(schoolName).trim(),address:String(address).trim(),mobile};
+ try{
+   await dataSet('students',id,updated);
+   syncLearningStudentToFee(updated);
+   alert('✅ વિદ્યાર્થીની માહિતી સુધારી દેવામાં આવી.');
+   renderTeacherStudents();renderTeacher();
+ }catch(e){
+   console.error(e);
+   alert('❌ માહિતી સુધારી શકાઈ નથી.\n'+(e?.message||e));
+ }
+}
+
 function sendRegistrationOTP(){
  const name=(document.getElementById('regStudentName')?.value||'').trim();
  const fatherName=(document.getElementById('regFatherName')?.value||'').trim();
@@ -1250,6 +1368,8 @@ function sendRegistrationOTP(){
  if(!schoolName){if(msgEl)msgEl.textContent='❌ શાળાનું નામ નાખો.';return;}
  if(!address){if(msgEl)msgEl.textContent='❌ એડ્રેસ નાખો.';return;}
  if(mobile.length!==10){if(msgEl)msgEl.textContent='❌ 10 અંકનો મોબાઇલ નંબર નાખો.';return;}
+ const registrationCheck=checkRegistrationDuplicate(name,mobile);
+ if(!registrationCheck.ok){if(msgEl)msgEl.textContent=registrationCheck.message;return;}
  registrationDemoOtp=make4DigitOtp();
  registrationOtpExpiresAt=Date.now()+5*60*60*1000;
  showDemoOtp('regDemoOtp',registrationDemoOtp);
@@ -1273,6 +1393,8 @@ async function verifyRegistrationOTP(){
    if(msgEl)msgEl.textContent='❌ OTP ખોટો છે.';
    return;
  }
+ const registrationCheck=checkRegistrationDuplicate(name,mobile);
+ if(!registrationCheck.ok){if(msgEl)msgEl.textContent=registrationCheck.message;return;}
  try{
    const id='s_'+Date.now();
    const studentId=nextThreeDigitStudentId();
@@ -1505,7 +1627,7 @@ function renderTeacherStudents(){
   else if(type==='approved'){badge='<span class="badge" style="background:#eaf7ea;color:#18733a">🟢 Approved</span>';actions=`<button type="button" class="danger" onclick="setStudentApproval('${esc(id)}','rejected')">❌ Reject</button>`;}
   else if(type==='rejected'){badge='<span class="badge" style="background:#ffeaea;color:#b42318">🔴 Rejected</span>';actions=`<button type="button" onclick="setStudentApproval('${esc(id)}','approved')">✅ Approve</button>`;}
   else {badge='<span class="badge" style="background:#fff4d6;color:#8a5a00">🟡 Pending</span>';actions=`<button type="button" onclick="setStudentApproval('${esc(id)}','approved')">✅ Approve</button> <button type="button" class="danger" onclick="setStudentApproval('${esc(id)}','rejected')">❌ Reject</button>`;}
-  return `<tr><td style="padding:8px;border:1px solid #dbe3ef">${i+1}</td><td style="padding:8px;border:1px solid #dbe3ef"><b>${esc(normalizeStudentCode(s.studentId||s.studentCode)||'---')}</b></td><td style="padding:8px;border:1px solid #dbe3ef"><b>${esc(s.name||'')}</b></td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.fatherName||'')}</td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.schoolName||'')}</td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.mobile||'')}</td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.address||'')}</td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.course||s.batch||'-')}</td><td style="padding:8px;border:1px solid #dbe3ef">${badge}</td><td style="padding:8px;border:1px solid #dbe3ef;white-space:nowrap">${actions}<br><button class="danger" type="button" onclick="deleteTeacherItem('students','${esc(id)}')">🗑️ Delete</button></td></tr>`;
+  return `<tr><td style="padding:8px;border:1px solid #dbe3ef">${i+1}</td><td style="padding:8px;border:1px solid #dbe3ef"><b>${esc(normalizeStudentCode(s.studentId||s.studentCode)||'---')}</b></td><td style="padding:8px;border:1px solid #dbe3ef"><b>${esc(s.name||'')}</b></td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.fatherName||'')}</td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.schoolName||'')}</td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.mobile||'')}</td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.address||'')}</td><td style="padding:8px;border:1px solid #dbe3ef">${esc(s.course||s.batch||'-')}</td><td style="padding:8px;border:1px solid #dbe3ef">${badge}</td><td style="padding:8px;border:1px solid #dbe3ef;white-space:nowrap">${actions}<br><button type="button" onclick="editRegisteredStudent('${esc(id)}')">✏️ સુધારો</button><br><button class="danger" type="button" onclick="deleteTeacherItem('students','${esc(id)}')">🗑️ Delete</button></td></tr>`;
  }).join('')}</tbody></table></div>`;
 }
 async function addStudent(){
@@ -2578,24 +2700,6 @@ function renderGuestLessons(){
  if(panel && !getGuestNewLessons().length)panel.classList.add('hidden');
 }
 
-
-function unreadPersonalCount(){
-  if(!currentStudent) return 0;
-  const sid = String(
-    currentStudent.id ||
-    currentStudent.studentId ||
-    currentStudent.studentCode ||
-    Object.entries(students||{}).find(([id,s])=>s===currentStudent)?.[0] || ''
-  );
-  const name = String(currentStudent.name||'').trim().toLowerCase();
-  return Object.values(personalMessages||{}).filter(p=>{
-    if(!p || p.read) return false;
-    const sameId = sid && String(p.studentId||'') === sid;
-    const sameName = name && String(p.studentName||'').trim().toLowerCase() === name;
-    return sameId || sameName;
-  }).length;
-}
-
 function renderStudent(){
  if(!currentStudent)return;
  updateLoginOnlineTestButton();
@@ -2936,7 +3040,7 @@ window.addEventListener('beforeunload',function(){stopAutoCloudBackup();});
 #connectedModuleFrame{flex:1;width:100%;border:0;background:#f4f7fb}
 #connectedStudentPortal{position:fixed;inset:0;background:#f4f7fb;z-index:1999999;display:none;overflow:auto;padding:12px;box-sizing:border-box}
 #connectedStudentPortal.show{display:block}
-.csp-wrap{max-width:900px;margin:auto}.csp-card{background:#fff;border-radius:14px;padding:14px;margin:10px 0;box-shadow:0 2px 10px #0001}.csp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px}.csp-stat{border:1px solid #dbe3ef;border-radius:8px;padding:7px;text-align:center}.csp-stat b{display:block;font-size:18px}.csp-green{color:#188038}.csp-red{color:#c5221f}.csp-blue{color:#173b72}.csp-item{border:1px solid #e1e7ef;border-radius:10px;padding:10px;margin:7px 0}.csp-btn{border:0;border-radius:9px;padding:9px 12px;background:#173b72;color:#fff;font-weight:700}.csp-btn.secondary{background:#e9eef7;color:#173b72}.csp-student-pick{display:grid;gap:8px}
+.csp-wrap{max-width:900px;margin:auto}.csp-card{background:#fff;border-radius:14px;padding:14px;margin:10px 0;box-shadow:0 2px 10px #0001}.csp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}.csp-stat{border:1px solid #dbe3ef;border-radius:10px;padding:10px;text-align:center}.csp-stat b{display:block;font-size:20px}.csp-green{color:#188038}.csp-red{color:#c5221f}.csp-blue{color:#173b72}.csp-item{border:1px solid #e1e7ef;border-radius:10px;padding:10px;margin:7px 0}.csp-btn{border:0;border-radius:9px;padding:9px 12px;background:#173b72;color:#fff;font-weight:700}.csp-btn.secondary{background:#e9eef7;color:#173b72}.csp-student-pick{display:grid;gap:8px}
 </style>
 <div id="connectedModuleModal">
   <div id="connectedModuleCard">
@@ -3178,71 +3282,27 @@ window.addEventListener('beforeunload',function(){stopAutoCloudBackup();});
         const y=cursor.getFullYear(),m=cursor.getMonth(),last=new Date(y,m+1,0); let active=false,activeDate='';
         for(let d=1;d<=last.getDate();d++){const ds=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');if(ds>todayStr)break;if(activeOn(ds)){active=true;activeDate=ds;break;}}
         const mk=y+'-'+String(m+1).padStart(2,'0');
-        if(active&&!seenMonths.has(mk)){monthRows.push({key:mk,label:monthName(m)+' '+y,fee:feeOn(activeDate)});seenMonths.add(mk);}
+        if(active&&!seenMonths.has(mk)){monthRows.push({key:mk,fee:feeOn(activeDate)});seenMonths.add(mk);}
         cursor.setMonth(cursor.getMonth()+1);
       }
       const tuition=String(fee.feeType||'')==='માસિક'?monthRows.reduce((a,x)=>a+(Number(x.fee)||0),0):(monthRows.length?(Number(fee.fee)||0):0);
       const total=tuition+totalStationery;
       const paidReceipts=receipts.reduce((a,x)=>a+(Number(x?.paidVal)||0),0);
-
-      // IMPORTANT: Total Paidમાંથી Stationery અલગ રાખો.
-      // ઉદાહરણ: ₹700 receipt + ₹300 stationery => Tuition Paid ₹400.
-      const receiptStationeryPaid=receipts.reduce((a,x)=>a+(Number(x?.statFee)||0),0);
       const cashStationery=stationery.reduce((a,x)=>a+(String(x?.payType||'')==='રોકડ'?(Number(x?.price)||0):0),0);
-      const stationPaid=Math.min(totalStationery,Math.max(0,receiptStationeryPaid+cashStationery));
-      let tuitionPaid=Math.max(0,paidReceipts-stationPaid);
-      if(paidReceipts<=0 && Number(fee.paid)>0){
-        tuitionPaid=Math.max(0,Number(fee.paid)-stationPaid);
-      }
-      // Tuition અને Stationery અલગ ગણાય.
-      // ઉદાહરણ: ₹700 receipt = ₹400 April tuition + ₹300 stationery.
-      const paid=Math.min(total,tuitionPaid+stationPaid);
+      const paid=(Number(fee.paid)>0?Number(fee.paid):paidReceipts+cashStationery);
       const due=Math.max(0,total-paid);
 
       body.innerHTML=
         '<div style="background:#fff;border-radius:14px;padding:18px;box-shadow:0 2px 10px rgba(0,0,0,.08);">'+
         '<h2 style="margin-top:0;">👨‍🎓 '+esc(fee.name||st.name||'વિદ્યાર્થી')+'</h2>'+
         '<div style="color:#666;margin-bottom:14px;">🆔 Student ID: <b>'+esc(sid)+'</b></div>'+
-        '<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;">'+
-        '<div style="background:#eef6ff;padding:5px 3px;border-radius:7px;font-size:10px;min-width:0;text-align:center;"><small>Total Fee</small><h3 style="margin:2px 0;font-size:15px;white-space:nowrap;">'+money(total)+'</h3></div>'+
-        '<div style="background:#eefbf2;padding:5px 3px;border-radius:7px;font-size:10px;min-width:0;text-align:center;"><small>Paid</small><h3 style="margin:2px 0;font-size:15px;white-space:nowrap;">'+money(paid)+'</h3></div>'+
-        '<div style="background:#fff3f3;padding:5px 3px;border-radius:7px;font-size:10px;min-width:0;text-align:center;"><small>Pending</small><h3 style="margin:2px 0;font-size:15px;white-space:nowrap;">'+money(due)+'</h3></div>'+
+        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">'+
+        '<div style="background:#eef6ff;padding:12px;border-radius:10px;"><small>Total Fee</small><h3 style="margin:4px 0;">'+money(total)+'</h3></div>'+
+        '<div style="background:#eefbf2;padding:12px;border-radius:10px;"><small>Paid</small><h3 style="margin:4px 0;">'+money(paid)+'</h3></div>'+
+        '<div style="background:#fff3f3;padding:12px;border-radius:10px;"><small>Pending</small><h3 style="margin:4px 0;">'+money(due)+'</h3></div>'+
         '</div>'+
-        '<div style="margin-top:12px;padding:10px;background:#f8fbff;border-radius:10px;"><b>📅 દાખલ તારીખ:</b> '+esc(fee.joinDate||fee.registeredAt?.slice?.(0,10)||'-')+'</div>'+
-        '<hr><h3>📅 મહિના પ્રમાણે ફી</h3>'+
-        (monthRows.length ? '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr><th style="padding:5px;text-align:left;font-size:12px">મહિનો</th><th style="padding:5px;font-size:12px">કુલ</th><th style="padding:5px;font-size:12px">જમા</th><th style="padding:5px;font-size:12px">બાકી</th></tr></thead><tbody>'+
-          (function(){
-            let rem=Math.max(0,paidReceipts);
-            return monthRows.map(function(m){
-              const p=Math.min(Number(m.fee)||0,rem); rem-=p;
-              const bal=Math.max(0,(Number(m.fee)||0)-p);
-              const rowColor=bal===0?'#188038':'#c5221f';
-              const rowBg=bal===0?'#eefbf2':'#fff3f3';
-              return '<tr style="background:'+rowBg+';color:'+rowColor+';font-weight:700"><td style="padding:5px;border-top:1px solid #eee;font-size:12px">'+esc((m.label||''))+'</td><td style="padding:5px;border-top:1px solid #eee;text-align:center;font-size:12px">'+money(m.fee)+'</td><td style="padding:5px;border-top:1px solid #eee;text-align:center;font-size:12px">'+money(p)+'</td><td style="padding:5px;border-top:1px solid #eee;text-align:center;font-size:12px">'+money(bal)+'</td></tr>';
-            }).join('');
-          })()+
-        '</tbody></table></div>' : '<div style="color:#777;">મહિના પ્રમાણે Fee માહિતી ઉપલબ્ધ નથી.</div>')+
-        '<hr><h3>🧾 Fee Receipts</h3>'+
-        (function(){
-          window.__studentFeeReceipts=receipts;
-          window.__studentFeeStudent=fee;
-          window.__studentFeeBreakdown={};
-          let receiptTuitionRemaining=Math.max(0,tuitionPaid);
-          receipts.forEach(function(rr,ii){
-            const gross=Number(rr.paidVal??rr.amount??rr.paid??0)||0;
-            const explicitStat=Math.min(totalStationery,Number(rr.statFee)||0);
-            const stationPart=explicitStat>0?explicitStat:Math.min(gross,Math.max(0,stationPaid));
-            const tuitionPart=Math.max(0,gross-stationPart);
-            window.__studentFeeBreakdown[ii]={tuition:tuitionPart,stationery:stationPart};
-          });
-          return receipts.length ? receipts.slice().reverse().map(function(x,revIndex){
-            const originalIndex=receipts.length-1-revIndex;
-            const paidAmount=x.paidVal??x.amount??x.paid??0;
-            const ms=Array.isArray(x.months)?x.months:[];
-            const ml=ms.length ? ms.map(m=>(m.name||'')+(m.year?' '+m.year:'')).join(', ') : 'મહિનો નોંધાયેલ નથી';
-            return '<div style="padding:10px;border-bottom:1px solid #eee;"><b>'+esc(x.date||x.paidDate||'-')+'</b> — '+money(paidAmount)+'<br><small>મહિના: '+esc(ml)+'</small> <button type="button" style="margin-top:6px;border:0;border-radius:7px;padding:6px 10px;background:#173b72;color:#fff;" onclick="viewStudentFeeReceipt('+originalIndex+')">🧾 Receipt જુઓ</button></div>';
-          }).join('') : '<div style="color:#777;">કોઈ Fee receipt નથી.</div>';
-        })()+
+        '<hr><h3>📅 Fee Entries</h3>'+
+        (receipts.length ? receipts.slice().reverse().map(x=>'<div style="padding:9px;border-bottom:1px solid #eee;"><b>'+esc(x.date||x.paidDate||'-')+'</b> — '+money(x.amount||x.paid||0)+(x.note?'<br><small>'+esc(x.note)+'</small>':'')+'</div>').join('') : '<div style="color:#777;">કોઈ Fee entry નથી.</div>')+
         '<h3 style="margin-top:18px;">🛍️ Stationery</h3>'+
         (stationery.length ? stationery.map(x=>'<div style="padding:8px;border-bottom:1px solid #eee;">'+esc(x.name||x.item||'Stationery')+' — '+money(x.price||0)+'</div>').join('') : '<div style="color:#777;">કોઈ Stationery ખરીદી નથી.</div>')+
         (totalStationery?'<p><b>Stationery Total: '+money(totalStationery)+'</b></p>':'')+
@@ -3376,21 +3436,7 @@ window.addEventListener('beforeunload',function(){stopAutoCloudBackup();});
 
     // Fee Management જેવી monthly tuition calculation: attendance/re-join period અને fee history બંને ધ્યાનમાં.
     const firstDate=periods.map(p=>p.fromDate).filter(Boolean).sort()[0]||join||todayStr;
-    const feeTypeText=String(st.feeType||'').trim().toLowerCase();
-    const receiptHasMonths=receipts.some(r=>Array.isArray(r?.months)&&r.months.length);
-    const tuitionBase=Math.max(0,
-      Number(st.totalFeeWithStationery||st.totalFee||0)-Number(stationery.reduce((a,x)=>a+(Number(x.price)||0),0))
-    );
-    const monthlyLike =
-      feeTypeText==='માસિક' ||
-      feeTypeText==='monthly' ||
-      feeTypeText==='month' ||
-      /monthly|month|માસિક/.test(feeTypeText) ||
-      Number(st.monthlyFee||st.monthlyFeeAmount||0)>0 ||
-      receiptHasMonths ||
-      (Number(st.fee||0)>0 && tuitionBase>Number(st.fee||0) && periods.length>0);
-
-    if(monthlyLike && firstDate && firstDate<=todayStr){
+    if(String(st.feeType||'')==='માસિક' && firstDate && firstDate<=todayStr){
       let cur=new Date(firstDate+'T00:00:00');
       cur=new Date(cur.getFullYear(),cur.getMonth(),1);
       const end=new Date(today.getFullYear(),today.getMonth(),1);
@@ -3411,19 +3457,14 @@ window.addEventListener('beforeunload',function(){stopAutoCloudBackup();});
       if(!isNaN(d)&&d<=today){const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');addMonth(key,monthName(d.getMonth())+' '+d.getFullYear(),Number(st.fee)||0);}
     }
 
-    // Receiptના monthsને અલગ row તરીકે ઉમેરશો નહીં.
-    // જે મહિનો પહેલેથી monthRows/monthsમાં છે તેમાં જ payment ગણાશે.
+    // Receiptમાં જે months આપેલા હોય તે actual month amount તરીકે ઉપયોગ કરો.
     receipts.forEach(r=>{
       const ms=Array.isArray(r.months)?r.months:[];
       ms.forEach(m=>{
         const y=Number(m.year), mi=Number(m.month);
         const key=y&&mi>=0?y+'-'+String(mi+1).padStart(2,'0'):String(m.name||'')+' '+String(m.year||'');
-        const existing=months.get(key);
-        // Receipt month is only a payment reference.
-        // Never create another month row from a receipt.
-        if(existing && !existing.label){
-          existing.label=String(m.name||monthName(mi)||'')+(m.year?' '+m.year:'');
-        }
+        const label=String(m.name||monthName(mi)||'')+(m.year?' '+m.year:'');
+        addMonth(key,label,Number(m.fee??m.amount??0));
       });
     });
 
@@ -3433,10 +3474,8 @@ window.addEventListener('beforeunload',function(){stopAutoCloudBackup();});
     const statPaidDirect=stationery.reduce((a,x)=>a+(String(x.payType||'').trim()==='રોકડ'?(Number(x.price)||0):0),0);
     const statPaid=Math.min(statTotal,Math.max(0,statPaidDirect+receiptStatAmount));
 
-    // Total receiptમાંથી stationery અલગ રાખો.
-    let grossPaid=receipts.reduce((a,r)=>a+(Number(r.paidVal)||0),0);
-    let tuitionPaid=Math.max(0,grossPaid-statPaid);
-    if(grossPaid<=0 && Number(st.paid)>0) tuitionPaid=Math.max(0,Number(st.paid)-statPaid);
+    let tuitionPaid=receipts.reduce((a,r)=>a+(Number(r.paidVal)||0),0);
+    if(tuitionPaid<=0 && Number(st.paid)>0) tuitionPaid=Math.max(0,Number(st.paid)-statPaid);
 
     // મહિના પ્રમાણે paid amount receiptsના months પરથી વહેંચો; પછી બાકી paidને જૂના monthsમાં લગાવો.
     receipts.forEach(r=>{
@@ -3452,49 +3491,13 @@ window.addEventListener('beforeunload',function(){stopAutoCloudBackup();});
     remaining=Math.max(0,remaining);
     for(const row of months.values()){if(row.paid<=0&&remaining>0){const x=Math.min(row.total,remaining);row.paid=x;remaining-=x;}}
     const tuitionTotal=Array.from(months.values()).reduce((a,r)=>a+r.total,0);
-    const finalTuitionTotal=monthlyLike && tuitionTotal>0
-      ? tuitionTotal
-      : Math.max(0,Number(st.totalFee||st.fee||0)-statTotal);
+    const finalTuitionTotal=tuitionTotal>0?tuitionTotal:Math.max(0,Number(st.totalFeeWithStationery||st.totalFee||st.fee||0)-statTotal);
     const finalPaid=Math.min(finalTuitionTotal+statTotal,tuitionPaid+statPaid);
     const finalTotal=finalTuitionTotal+statTotal;
     const finalDue=Math.max(0,finalTotal-finalPaid);
-    const rows=Array.from(months.values()).map(r=>{
-      const mp=Math.min(r.total,r.paid), mb=Math.max(0,r.total-mp);
-      const rc=mb===0?'#188038':'#c5221f', rb=mb===0?'#eefbf2':'#fff3f3';
-      const status=mb===0?'ભરેલી':'બાકી';
-      return `<tr style="background:${rb};color:${rc};font-weight:700">
-        <td>${escFee(r.label)}</td>
-        <td>${moneyFee(r.total)}</td>
-        <td>${moneyFee(mp)}</td>
-        <td>${moneyFee(mb)}</td>
-      </tr>`;
-    }).join('');
-    window.__studentFeeReceipts=receipts;
-    window.__studentFeeStudent=st;
-    window.__studentFeeBreakdown={};
-    receipts.forEach((r,i)=>{
-      const gross=Number(r.paidVal??r.amount??r.paid??0)||0;
-      const explicitStat=Number(r.statFee)||0;
-      const stationPart=explicitStat>0?Math.min(statTotal,explicitStat):Math.min(gross,statPaid);
-      window.__studentFeeBreakdown[i]={tuition:Math.max(0,gross-stationPart),stationery:stationPart};
-    });
-    const receiptRows=receipts.slice().reverse().map((r,ri)=>{
-      const originalIndex=receipts.length-1-ri;
-      const ms=Array.isArray(r.months)?r.months:[];
-      const ml=ms.length?ms.map(m=>(m.name||'')+(m.year?' '+m.year:'')).join(', '):'મહિનો નોંધાયેલ નથી';
-      const bd=window.__studentFeeBreakdown[originalIndex]||{};
-      return `<div class="csp-item"><b>🧾 ${escFee(r.date||r.paidDate||'-')}</b> — ${moneyFee(r.paidVal??r.amount??r.paid??0)}<br><small>📚 Tuition: ${moneyFee(bd.tuition||0)} • 🛍️ Stationery: ${moneyFee(bd.stationery||0)}</small><br><small>મહિના: ${escFee(ml)}</small><br><button type="button" class="csp-btn" style="padding:5px 8px;font-size:12px" onclick="viewStudentFeeReceipt(${originalIndex})">🧾 Receipt જુઓ</button></div>`;
-    }).join('');
-    body.innerHTML=`<div class="csp-card">
-      <div style="margin-bottom:8px;font-size:13px;color:#555">📅 દાખલ તારીખ: <b>${escFee(st.joinDate||st.registeredAt?.slice?.(0,10)||'-')}</b></div>
-      <div class="csp-grid" style="grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;">
-        <div class="csp-stat csp-blue" style="padding:6px 4px;font-size:11px;display:flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap;">કુલ ફી <b style="font-size:15px;display:inline;white-space:nowrap">${moneyFee(finalTotal)}</b></div>
-        <div class="csp-stat csp-green" style="padding:6px 4px;font-size:11px;display:flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap;">કુલ જમા <b style="font-size:15px;display:inline;white-space:nowrap">${moneyFee(finalPaid)}</b></div>
-        <div class="csp-stat csp-red" style="padding:6px 4px;font-size:11px;display:flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap;">કુલ બાકી <b style="font-size:15px;display:inline;white-space:nowrap">${moneyFee(finalDue)}</b></div>
-      </div>
-    </div>`+
-      `<div class="csp-card"><h3>📅 મહિના પ્રમાણે ફી</h3>${rows?`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr><th style="padding:5px;font-size:12px">મહિનો</th><th style="padding:5px;font-size:12px">કુલ</th><th style="padding:5px;font-size:12px">જમા</th><th style="padding:5px;font-size:12px">બાકી</th></tr></thead><tbody>${rows}</tbody></table></div>`:'<div class="muted">હાલ મહિના પ્રમાણે Fee માહિતી ઉપલબ્ધ નથી.</div>'}</div>`+
-      `<div class="csp-card"><h3>🧾 Fee Receipts</h3>${receiptRows||'<div class="muted">કોઈ Fee receipt નથી.</div>'}</div>`+
+    const rows=Array.from(months.values()).map(r=>`<tr><td>${escFee(r.label)}</td><td>${moneyFee(r.total)}</td><td style="color:#188038;font-weight:700">${moneyFee(Math.min(r.total,r.paid))}</td><td style="color:#c5221f;font-weight:700">${moneyFee(Math.max(0,r.total-r.paid))}</td></tr>`).join('');
+    body.innerHTML=`<div class="csp-card"><h3>👤 ${escFee(st.name||'-')}</h3><div class="muted">🆔 Student ID: <b>${escFee(st.studentId||st.studentCode||st.id||'-')}</b></div><div class="csp-grid"><div class="csp-stat csp-blue">કુલ ફી<b>${moneyFee(finalTotal)}</b></div><div class="csp-stat csp-green">કુલ જમા<b>${moneyFee(finalPaid)}</b></div><div class="csp-stat csp-red">કુલ બાકી<b>${moneyFee(finalDue)}</b></div></div></div>`+
+      `<div class="csp-card"><h3>📅 મહિના પ્રમાણે ફી</h3>${rows?`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr><th>મહિનો</th><th>કુલ</th><th>જમા</th><th>બાકી</th></tr></thead><tbody>${rows}</tbody></table></div>`:'<div class="muted">હાલ મહિના પ્રમાણે Fee માહિતી ઉપલબ્ધ નથી.</div>'}</div>`+
       `<div class="csp-card"><h3>📚 સ્ટેશનરી</h3><div class="csp-grid"><div class="csp-stat csp-blue">કુલ<b>${moneyFee(statTotal)}</b></div><div class="csp-stat csp-green">જમા<b>${moneyFee(statPaid)}</b></div><div class="csp-stat csp-red">બાકી<b>${moneyFee(Math.max(0,statTotal-statPaid))}</b></div></div>`+
       (stationery.length?stationery.slice().reverse().map(x=>`<div class="csp-item"><b>${escFee(x.itemName||x.name||'-')}</b> × ${Number(x.qty)||1}<br>${moneyFee(x.price)} • ${escFee(x.date||'-')} • ${escFee(x.payType||'')}</div>`).join(''):'')+`</div>`;
   }
@@ -3512,76 +3515,4 @@ window.addEventListener('beforeunload',function(){stopAutoCloudBackup();});
       renderStudentFee(fee||st);
     }catch(e){if(body)body.innerHTML='<div class="csp-card" style="color:#b91c1c">❌ તમારી Fee માહિતી લોડ થઈ શકી નથી.</div>';}
   };
-  window.closeConnectedStudentPortal=function(){
-    const modal=document.getElementById('connectedStudentPortal');
-    if(modal)modal.classList.remove('show');
-  };
-})();
-</script>
-
-<script id="student-fee-receipt-viewer">
-(function(){
-  window.viewStudentFeeReceipt=function(index){
-    const r=(window.__studentFeeReceipts||[])[Number(index)];
-    const st=window.__studentFeeStudent||{};
-    const feeBreak=(window.__studentFeeBreakdown||{})[Number(index)]||{
-      tuition:Math.max(0,Number(r.paidVal??r.amount??r.paid??0)-Number(r.statFee||0)),
-      stationery:Number(r.statFee||0)
-    };
-    if(!r)return;
-
-    const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    const money=v=>'₹'+Math.round(Number(v)||0).toLocaleString('en-IN');
-    const months=Array.isArray(r.months)?r.months:[];
-    const monthText=months.length
-      ? months.map(m=>esc((m.name||'')+(m.year?' '+m.year:'')+' — '+money(m.fee??m.amount??0))).join('<br>')
-      : (feeBreak.monthText||'મહિના પ્રમાણે ચુકવણી માહિતી ઉપલબ્ધ નથી.');
-
-    let old=document.getElementById('studentFeeReceiptViewer');
-    if(old)old.remove();
-
-    const box=document.createElement('div');
-    box.id='studentFeeReceiptViewer';
-    box.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100000;display:flex;align-items:flex-start;justify-content:center;padding:14px;overflow:auto;';
-
-    box.innerHTML='<div id="studentFeeReceiptPaper" style="background:#fff;width:100%;max-width:560px;border-radius:16px;padding:18px;box-shadow:0 8px 30px #0004;">'
-      +'<div class="receipt-actions" style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px;">'
-      +'<button type="button" style="border:0;border-radius:8px;padding:9px 12px;background:#173b72;color:#fff;font-weight:700;" onclick="window.printStudentFeeReceipt()">💾 PDF / સેવ</button>'
-      +'<button type="button" style="border:0;border-radius:8px;padding:9px 12px;background:#eee;" onclick="document.getElementById(\'studentFeeReceiptViewer\').remove()">✕ બંધ</button>'
-      +'</div>'
-      +'<div style="text-align:center;border-bottom:2px solid #173b72;padding-bottom:10px;">'
-      +'<div style="font-size:22px;font-weight:800;">નિર્મળા સ્ટડી ઝોન</div>'
-      +'<div style="font-size:18px;font-weight:700;margin-top:4px;">🧾 Fee Receipt</div>'
-      +'</div>'
-      +'<h3 style="margin-bottom:5px;">👨‍🎓 '+esc(st.name||'-')+'</h3>'
-      +'<div>🆔 Student ID: <b>'+esc(st.studentId||st.studentCode||st.id||'-')+'</b></div>'
-      +'<div style="margin-top:6px;">📅 દાખલ તારીખ: <b>'+esc(st.joinDate||st.registeredAt?.slice?.(0,10)||'-')+'</b></div>'
-      +'<hr>'
-      +'<div><b>🧾 Receipt Date:</b> '+esc(r.date||r.paidDate||'-')+'</div>'
-      +'<div style="margin-top:7px;"><b>💰 કુલ જમા:</b> '+money(r.paidVal??r.amount??r.paid??0)+'</div>'
-      +'<div style="margin-top:10px;padding:10px;background:#eefbf2;border-radius:10px;"><b>📚 Tuition Fee:</b> '+money(feeBreak.tuition||0)+'</div>'
-      +'<div style="margin-top:8px;padding:10px;background:#fff7e8;border-radius:10px;"><b>🛍️ Stationery:</b> '+money(feeBreak.stationery||0)+'</div>'
-      +'<div style="margin-top:10px;"><b>📅 કયા મહિના માટે:</b><br>'+monthText+'</div>'
-      +(r.note?'<div style="margin-top:8px;"><b>નોંધ:</b> '+esc(r.note)+'</div>':'')
-      +(r.payType||r.paymentMode?'<div style="margin-top:8px;"><b>ચુકવણી રીત:</b> '+esc(r.payType||r.paymentMode)+'</div>':'')
-      +'<hr><div style="text-align:center;font-weight:700;">આ receipt વિદ્યાર્થીની Fee માહિતીમાંથી બનાવવામાં આવી છે.</div>'
-      +'</div>';
-
-    document.body.appendChild(box);
-  };
-
-  window.printStudentFeeReceipt=function(){
-    const box=document.getElementById('studentFeeReceiptViewer');
-    if(!box)return;
-    const oldStyle=document.getElementById('studentFeePrintStyle');
-    if(oldStyle)oldStyle.remove();
-    const st=document.createElement('style');
-    st.id='studentFeePrintStyle';
-    st.textContent='@media print{body>*{display:none!important}#studentFeeReceiptViewer{display:block!important;position:static!important;background:#fff!important;padding:0!important}#studentFeeReceiptPaper{display:block!important;max-width:none!important;box-shadow:none!important;border-radius:0!important}.receipt-actions{display:none!important}}';
-    document.head.appendChild(st);
-    window.print();
-    setTimeout(()=>st.remove(),1200);
-  };
-})();
-</script>
-
+  window.closeConnectedStudentPortal
