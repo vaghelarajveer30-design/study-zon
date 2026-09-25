@@ -56,6 +56,13 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #ccd5e2;border-ra
 .personal-list .item{margin-bottom:9px}
 .read-badge{font-size:11px;padding:3px 7px;border-radius:10px;background:#eaf7ea}
 .unread-badge{font-size:11px;padding:3px 7px;border-radius:10px;background:#fff2cc}
+
+.mobile-student-btn{
+ border:0;background:rgba(255,255,255,.16);color:#fff;border-radius:18px;
+ padding:7px 10px;margin:2px;cursor:pointer;font-size:15px;font-weight:600;
+}
+.mobile-student-btn.active{background:#fff;color:#173b72;}
+#headerUser{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:3px;}
 </style></style> <style id="teacher-reset-visibility-fix">
 #nsl-forgot{
   position:fixed!important;
@@ -1075,7 +1082,7 @@ function teacherLogin(){
    alert('Teacher ID અથવા Password ખોટો છે.');
  }
 }
-function teacherLogout(){stopAutoCloudBackup();document.getElementById('teacherHome').classList.add('hidden');document.getElementById('studentLogin').classList.remove('hidden');document.getElementById('headerUser').textContent='';}
+function teacherLogout(){stopAutoCloudBackup();document.getElementById('teacherHome').classList.add('hidden');document.getElementById('studentLogin').classList.remove('hidden');document.getElementById('headerUser').innerHTML='';studentVerifiedMobile='';}
 let studentOtpConfirmation=null;
 let studentOtpVerifier=null;
 let registrationOtpConfirmation=null;
@@ -1087,6 +1094,65 @@ let registrationOtpExpiresAt=0;
 
 function digits10(id){
  return String(document.getElementById(id)?.value||'').replace(/\D/g,'').slice(0,10);
+}
+
+let studentVerifiedMobile='';
+function getStudentsByMobile(mobile){
+ const digits=String(mobile||'').replace(/\D/g,'');
+ if(!digits)return [];
+ const map=new Map();
+ const sources=[];
+ try{sources.push(Object.entries(window.students||{}));}catch(e){}
+ try{
+   const c=JSON.parse(localStorage.getItem(OFFLINE_CACHE_KEY)||'{}');
+   if(c.students)sources.push(Object.entries(c.students));
+ }catch(e){}
+ try{sources.push(Object.entries(localData('students')||{}));}catch(e){}
+ for(const arr of sources){
+   for(const [id,s] of arr){
+     if(!s || s.active===false)continue;
+     if(String(s.mobile||'').replace(/\D/g,'')!==digits)continue;
+     if(!map.has(String(id)))map.set(String(id),{id:String(id),...s});
+   }
+ }
+ return Array.from(map.values());
+}
+function renderMobileStudentSwitcher(mobile){
+ const el=document.getElementById('headerUser');
+ if(!el)return;
+ const list=getStudentsByMobile(mobile).filter(s=>
+   String(s.source||'registration')==='teacher' ||
+   s.approved===true || s.approvalStatus==='approved'
+ );
+ if(!list.length){
+   el.textContent=currentStudent?'👨‍🎓 '+currentStudent.name:'';
+   return;
+ }
+ el.innerHTML=list.map(s=>{
+   const active=currentStudent && String(currentStudent.id)===String(s.id);
+   return `<button type="button" class="mobile-student-btn${active?' active':''}" onclick="selectMobileStudent('${esc(s.id)}')">👨‍🎓 ${esc(s.name||'વિદ્યાર્થી')}</button>`;
+ }).join('');
+}
+function selectMobileStudent(id){
+ const s=(window.students||{})[id];
+ if(!s){
+   const list=getStudentsByMobile(studentVerifiedMobile);
+   const found=list.find(x=>String(x.id)===String(id));
+   if(found){
+     window.students[id]=found;
+   }
+ }
+ const pair=Object.entries(window.students||{}).find(([sid,s])=>String(sid)===String(id));
+ if(!pair){
+   alert('❌ વિદ્યાર્થી મળ્યો નથી.');
+   return;
+ }
+ if(String(pair[1]?.source||'registration')!=='teacher' && pair[1]?.approved!==true && pair[1]?.approvalStatus!=='approved'){
+   alert('⏳ આ વિદ્યાર્થીનું Teacher Approval હજી બાકી છે.');
+   return;
+ }
+ loginStudentRecord(pair);
+ studentVerifiedMobile=String(pair[1]?.mobile||studentVerifiedMobile).replace(/\D/g,'');
 }
 function findStudentByMobile(mobile){
  const digits=String(mobile||'').replace(/\D/g,'');
@@ -1207,7 +1273,7 @@ function loginStudentRecord(pair){
  document.getElementById('studentLogin')?.classList.add('hidden');
  document.getElementById('studentHome')?.classList.remove('hidden');
  if(document.getElementById('studentHome'))document.getElementById('studentHome').style.display='block';
- const hu=document.getElementById('headerUser');if(hu)hu.textContent='👨‍🎓 '+s.name;
+ const hu=document.getElementById('headerUser');if(hu)renderMobileStudentSwitcher(s.mobile);
  if(typeof studentSection==='function')studentSection('noticesSection');
  if(typeof renderStudent==='function')renderStudent();
  enableStudentNotifications();
@@ -1256,6 +1322,7 @@ function sendStudentOTP(){
    return;
  }
  const foundStudent=found[1];
+ studentVerifiedMobile=mobile;
  if(String(foundStudent.source||'registration')!=='teacher' && foundStudent.approved!==true && foundStudent.approvalStatus!=='approved'){
    if(msgEl)msgEl.textContent=foundStudent.approvalStatus==='rejected'?'❌ Teacherએ તમારી Registration Reject કરી છે.':'⏳ Registration થઈ ગઈ છે, પરંતુ Teacher Approval હજી બાકી છે.';
    return;
@@ -1279,17 +1346,27 @@ function verifyStudentOTP(){
    if(msgEl)msgEl.textContent='❌ OTP ખોટો છે.';
    return;
  }
- const pair=findStudentByMobile(mobile);
- if(!pair){
-   if(msgEl)msgEl.textContent='❌ Student મળ્યો નથી.';
+ const candidates=getStudentsByMobile(mobile).filter(s=>
+   String(s.source||'registration')==='teacher' ||
+   s.approved===true || s.approvalStatus==='approved'
+ );
+ if(!candidates.length){
+   if(msgEl)msgEl.textContent='❌ આ નંબર માટે કોઈ Approved વિદ્યાર્થી મળ્યો નથી.';
    return;
  }
- const ok=loginStudentRecord(pair);
+ studentVerifiedMobile=mobile;
  studentDemoOtp='';
  studentOtpExpiresAt=0;
- if(ok){
-   if(msgEl)msgEl.textContent='';
-   if(pendingGuestLessonId){setTimeout(openPendingGuestLessonAfterLogin,350);}
+ if(candidates.length===1){
+   const pair=[candidates[0].id,candidates[0]];
+   const ok=loginStudentRecord(pair);
+   if(ok){
+     if(msgEl)msgEl.textContent='';
+     if(pendingGuestLessonId){setTimeout(openPendingGuestLessonAfterLogin,350);}
+   }
+ }else{
+   renderMobileStudentSwitcher(mobile);
+   if(msgEl)msgEl.textContent='👆 ઉપર વિદ્યાર્થીનું નામ પસંદ કરો.';
  }
 }
 
