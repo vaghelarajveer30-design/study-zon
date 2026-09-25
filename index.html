@@ -755,66 +755,112 @@ async function savePDFOffline(id){
  }
 }
 
-async function openPdfInApp(url,title='PDF'){
+
+/* NIRMALA FAST LESSON CACHE: background IndexedDB cache for slow internet */
+const NNC_LESSON_DB='nirmala_lesson_files_v2';
+function nncLessonDB(){
+ return new Promise((resolve,reject)=>{
+  try{
+   const req=indexedDB.open(NNC_LESSON_DB,1);
+   req.onupgradeneeded=()=>{try{req.result.createObjectStore('files');}catch(e){}};
+   req.onsuccess=()=>resolve(req.result);
+   req.onerror=()=>reject(req.error||new Error('IndexedDB unavailable'));
+  }catch(e){reject(e)}
+ });
+}
+async function nncLessonCacheGet(key){
+ try{const db=await nncLessonDB();return await new Promise((res,rej)=>{const tx=db.transaction('files','readonly');const q=tx.objectStore('files').get(key);q.onsuccess=()=>res(q.result||null);q.onerror=()=>rej(q.error);});}catch(e){return null;}
+}
+async function nncLessonCachePut(key,blob,url,type){
+ try{const db=await nncLessonDB();await new Promise((res,rej)=>{const tx=db.transaction('files','readwrite');tx.objectStore('files').put({blob,url,type,savedAt:Date.now()},key);tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});return true;}catch(e){return false;}
+}
+function nncLessonKey(id,url){return String(id)+'|'+String(url||'');}
+async function nncFetchLessonBlob(id,url,type){
+ const key=nncLessonKey(id,url);
+ const cached=await nncLessonCacheGet(key);
+ if(cached?.blob)return cached.blob;
+ try{
+  const res=await fetch(url,{mode:'cors',credentials:'omit',cache:'force-cache'});
+  if(!res.ok)throw new Error('HTTP '+res.status);
+  const blob=await res.blob();
+  await nncLessonCachePut(key,blob,url,type);
+  try{const cache=await caches.open('nirmala-lessons-v2');await cache.put(url,new Response(blob,{headers:{'Content-Type':blob.type||type||'application/octet-stream'}}));}catch(e){}
+  return blob;
+ }catch(e){
+  try{const cache=await caches.open('nirmala-lessons-v2');const r=await cache.match(url);if(r)return await r.blob();}catch(_e){}
+  throw e;
+ }
+}
+async function prefetchOneLesson(id,l){
+ if(!l||!l.content||!['pdf','photo'].includes(String(l.type)))return;
+ const key=nncLessonKey(id,l.content);
+ if(await nncLessonCacheGet(key))return;
+ try{await nncFetchLessonBlob(id,String(l.content),l.type==='pdf'?'application/pdf':'image/jpeg');}catch(e){console.warn('Lesson background cache failed',id,e);}
+}
+let nncPrefetchRunning=false;
+async function prefetchStudentLessons(){
+ if(nncPrefetchRunning||!currentStudent)return;
+ if(!navigator.onLine)return;
+ nncPrefetchRunning=true;
+ try{
+  const list=Object.entries(lessons||{}).filter(([id,l])=>l&&l.active!==false&&l.content&&['pdf','photo'].includes(String(l.type)));
+  // Two at a time so the student's slow connection remains usable.
+  let cursor=0;
+  const worker=async()=>{while(cursor<list.length){const item=list[cursor++];await prefetchOneLesson(item[0],item[1]);}};
+  await Promise.all([worker(),worker()]);
+ }catch(e){}finally{nncPrefetchRunning=false;}
+}
+async function openLessonPhotoFast(id){
+ const l=(lessons||{})[id];
+ if(!l||l.type!=='photo'||!l.content){alert('Photo ઉપલબ્ધ નથી.');return;}
+ markViewed('lessons',id);
+ try{
+  const blob=await nncFetchLessonBlob(id,String(l.content),'image/jpeg');
+  const u=URL.createObjectURL(blob);
+  let m=document.getElementById('nncPhotoViewer');
+  if(!m){m=document.createElement('div');m.id='nncPhotoViewer';m.style.cssText='position:fixed;inset:0;background:#111;z-index:1000000;display:flex;flex-direction:column;';m.innerHTML='<div style="height:54px;background:#173b72;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 10px"><b id="nncPhotoTitle">📷 Lesson</b><button onclick="closeNncPhoto()" style="background:#fff;color:#173b72;border:0;border-radius:8px;padding:7px 12px">✕ બંધ</button></div><div id="nncPhotoBody" style="flex:1;display:flex;align-items:center;justify-content:center;overflow:auto;padding:8px"><img id="nncPhotoImg" style="max-width:100%;max-height:100%;object-fit:contain"></div>';document.body.appendChild(m);}
+  const old=document.getElementById('nncPhotoImg').src;if(old&&old.startsWith('blob:'))try{URL.revokeObjectURL(old)}catch(e){}
+  document.getElementById('nncPhotoTitle').textContent='📷 '+(l.title||'Lesson');document.getElementById('nncPhotoImg').src=u;m.style.display='flex';
+ }catch(e){alert('❌ Lesson Photo ખોલી શકાયો નથી. Internet connection ફરી તપાસો.');}
+}
+function closeNncPhoto(){const m=document.getElementById('nncPhotoViewer');if(m)m.style.display='none';}
+
+async function openPdfInApp(url,title='PDF',cacheId=''){
   if(!url){alert('PDF ઉપલબ્ધ નથી.');return;}
   let modal=document.getElementById('nirmalaPdfViewer');
   if(!modal){
     modal=document.createElement('div');
     modal.id='nirmalaPdfViewer';
     modal.style.cssText='position:fixed;inset:0;background:#eef2f7;z-index:999999;display:flex;flex-direction:column;';
-    modal.innerHTML=
-      '<div style="height:54px;min-height:54px;background:#173b72;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 10px;gap:8px;">'+
-      '<b id="nirmalaPdfViewerTitle" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📄 PDF</b>'+
-      '<button type="button" onclick="closeLessonPDFInApp()" style="background:#fff;color:#173b72;padding:7px 12px;border-radius:8px;flex:none;">✕ બંધ</button>'+
-      '</div>'+
-      '<div id="nirmalaPdfStatus" style="padding:8px 12px;background:#fff;color:#667085;font-size:13px;">⏳ PDF ખોલાઈ રહ્યું છે...</div>'+
-      '<div id="nirmalaPdfPages" style="flex:1;overflow:auto;padding:8px;text-align:center;-webkit-overflow-scrolling:touch;"></div>';
+    modal.innerHTML='<div style="height:54px;min-height:54px;background:#173b72;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 10px;gap:8px;"><b id="nirmalaPdfViewerTitle" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📄 PDF</b><button type="button" onclick="closeLessonPDFInApp()" style="background:#fff;color:#173b72;padding:7px 12px;border-radius:8px;flex:none;">✕ બંધ</button></div><div id="nirmalaPdfStatus" style="padding:8px 12px;background:#fff;color:#667085;font-size:13px;">⏳ PDF ખોલાઈ રહ્યું છે...</div><div id="nirmalaPdfPages" style="flex:1;overflow:auto;padding:8px;text-align:center;-webkit-overflow-scrolling:touch;"></div>';
     document.body.appendChild(modal);
   }
-  const titleEl=document.getElementById('nirmalaPdfViewerTitle');
-  const status=document.getElementById('nirmalaPdfStatus');
-  const pages=document.getElementById('nirmalaPdfPages');
-  if(titleEl)titleEl.textContent='📄 '+(title||'PDF');
-  if(status)status.textContent='⏳ PDF ખોલાઈ રહ્યું છે...';
-  if(pages)pages.innerHTML='';
-  modal.style.display='flex';
-
+  const titleEl=document.getElementById('nirmalaPdfViewerTitle'),status=document.getElementById('nirmalaPdfStatus'),pages=document.getElementById('nirmalaPdfPages');
+  if(titleEl)titleEl.textContent='📄 '+(title||'PDF'); if(status)status.textContent='⏳ PDF ખોલાઈ રહ્યું છે...'; if(pages)pages.innerHTML=''; modal.style.display='flex';
   try{
-    if(!window.pdfjsLib) throw new Error('PDF Viewer લાઇબ્રેરી લોડ થઈ નથી.');
-    const loadingTask=window.pdfjsLib.getDocument({url:String(url),disableAutoFetch:false,disableStream:false});
+    if(!window.pdfjsLib)throw new Error('PDF Viewer લાઇબ્રેરી લોડ થઈ નથી.');
+    let sourceUrl=String(url), blob=null;
+    if(cacheId) blob=await nncFetchLessonBlob(cacheId,sourceUrl,'application/pdf');
+    if(blob) { if(status)status.textContent='📄 Cached Lesson ખોલાઈ રહ્યું છે...'; const source=await blob.arrayBuffer(); var loadingTask=window.pdfjsLib.getDocument({data:source}); }
+    else { var loadingTask=window.pdfjsLib.getDocument({url:sourceUrl,disableAutoFetch:false,disableStream:false}); }
     const pdf=await loadingTask.promise;
     if(status)status.textContent='📄 '+pdf.numPages+' પેજ • એપમાં જ દેખાય છે';
     for(let pageNo=1;pageNo<=pdf.numPages;pageNo++){
-      const page=await pdf.getPage(pageNo);
-      const base=page.getViewport({scale:1});
+      const page=await pdf.getPage(pageNo),base=page.getViewport({scale:1});
       const maxWidth=Math.max(280,Math.min((window.innerWidth||900)-20,900));
-      const scale=Math.max(1,Math.min(2.2,maxWidth/base.width));
-      const viewport=page.getViewport({scale});
-      const wrap=document.createElement('div');
-      wrap.style.cssText='background:#fff;margin:0 auto 10px;box-shadow:0 1px 5px #0002;max-width:100%;';
-      const canvas=document.createElement('canvas');
-      canvas.style.cssText='display:block;width:100%;height:auto;';
-      canvas.width=Math.ceil(viewport.width);
-      canvas.height=Math.ceil(viewport.height);
-      wrap.appendChild(canvas);
-      pages.appendChild(wrap);
+      const scale=Math.max(1,Math.min(2.2,maxWidth/base.width)),viewport=page.getViewport({scale});
+      const wrap=document.createElement('div');wrap.style.cssText='background:#fff;margin:0 auto 10px;box-shadow:0 1px 5px #0002;max-width:100%;';
+      const canvas=document.createElement('canvas');canvas.style.cssText='display:block;width:100%;height:auto;';canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);wrap.appendChild(canvas);pages.appendChild(wrap);
       await page.render({canvasContext:canvas.getContext('2d',{alpha:false}),viewport}).promise;
     }
-  }catch(e){
-    console.error(e);
-    if(status)status.textContent='❌ PDF એપમાં દેખાડી શકાયું નથી.';
-    if(pages)pages.innerHTML='<div style="background:#fff;border-radius:12px;padding:18px;margin:10px;color:#b42318;text-align:left;">PDF એપમાં ખોલવામાં સમસ્યા આવી.<br><br><small>'+String(e?.message||e)+'</small></div>';
-  }
+  }catch(e){console.error(e);if(status)status.textContent='❌ PDF એપમાં દેખાડી શકાયું નથી.';if(pages)pages.innerHTML='<div style="background:#fff;border-radius:12px;padding:18px;margin:10px;color:#b42318;text-align:left;">PDF એપમાં ખોલવામાં સમસ્યા આવી.<br><br><small>'+String(e?.message||e)+'</small></div>';}
 }
 
 function openLessonPDFInApp(id){
   const l=(lessons||{})[id];
-  if(!l || l.type!=='pdf' || !l.content){
-    alert('PDF ઉપલબ્ધ નથી.');
-    return;
-  }
+  if(!l || l.type!=='pdf' || !l.content){ alert('PDF ઉપલબ્ધ નથી.'); return; }
   markViewed('lessons',id);
-  openPdfInApp(String(l.content),l.title||'PDF');
+  openPdfInApp(String(l.content),l.title||'PDF',String(id));
 }
 function closeLessonPDFInApp(){
   const modal=document.getElementById('nirmalaPdfViewer');
@@ -857,6 +903,7 @@ function openOfflineOrOnlineLesson(id){
  if(!l)return;
  if(l.type==='text'){markViewed('lessons',id);return;}
  if(l.type==='pdf'){openLessonPDFInApp(id);return;}
+ if(l.type==='photo'){openLessonPhotoFast(id);return;}
  const url=l.content;
  if(!url){alert('આ Lesson માટે ફાઇલ ઉપલબ્ધ નથી.');return;}
  markViewed('lessons',id);
@@ -2777,16 +2824,6 @@ function renderGuestLessons(){
  if(panel && !getGuestNewLessons().length)panel.classList.add('hidden');
 }
 
-function unreadPersonalCount(){
-  if(!currentStudent)return 0;
-  const sid=String(currentStudent.id||Object.entries(students||{}).find(([id,st])=>st===currentStudent)?.[0]||'');
-  const name=String(currentStudent.name||'').trim().toLowerCase();
-  return Object.values(personalMessages||{}).filter(p=>{
-    if(!p || p.read)return false;
-    return String(p.studentId||'')===sid ||
-      String(p.studentName||'').trim().toLowerCase()===name;
-  }).length;
-}
 function renderStudent(){
  if(!currentStudent)return;
  updateLoginOnlineTestButton();
@@ -2802,7 +2839,8 @@ function renderStudent(){
  document.getElementById('noticeCountBadge').textContent=unreadN?' ('+unreadN+')':''; 
  if(document.getElementById('noticesSection'))document.getElementById('noticesSection').onclick=function(){localStorage.setItem('nirmala_notice_seen_'+String(currentStudent.name).toLowerCase(),String(Date.now()));};
  renderStudentLessons();
- 
+ setTimeout(()=>prefetchStudentLessons(),250);
+
  const nowSeen=Number(localStorage.getItem('nirmala_content_seen_'+String(currentStudent.name).toLowerCase())||0);
  const lc=Object.values(lessons||{}).filter(l=>{const d=Date.parse(l.date||'');return !isNaN(d)&&d>nowSeen}).length;
  const lb=document.getElementById('lessonCountBadge');if(lb)lb.textContent=lc?' ('+lc+')':'';
@@ -2919,7 +2957,7 @@ function renderStudentLessons(){
     const offline=localStorage.getItem('nirmala_lesson_offline_'+id)==='1';
     let body='';
     if(l.type==='photo'){
-      body='<img class="photo-preview" src="'+esc(l.content)+'" alt="Lesson">';
+      body='<button type="button" onclick="openLessonPhotoFast(\''+id+'\')">📷 Photo Lesson ખોલો</button>';
     }else if(l.type==='pdf'){
       body='<button type="button" onclick="openLessonPDFInApp(\''+id+'\')">📄 PDF એપમાં ખોલો</button>';
     }else if(l.type==='link'||l.type==='video'){
@@ -3127,29 +3165,6 @@ window.addEventListener('beforeunload',function(){stopAutoCloudBackup();});
 #connectedModuleFrame{flex:1;width:100%;border:0;background:#f4f7fb}
 #connectedStudentPortal{position:fixed;inset:0;background:#f4f7fb;z-index:1999999;display:none;overflow:auto;padding:12px;box-sizing:border-box}
 #connectedStudentPortal.show{display:block}
-.csp-student-summary{padding:18px 18px 20px}
-.csp-student-name{font-size:24px;font-weight:800;margin-bottom:5px}
-.csp-student-id{color:#667085;font-size:14px;margin-bottom:15px}
-.csp-section-title{font-size:21px;margin:0 0 14px}
-.csp-table-wrap{overflow-x:auto}
-.csp-fee-table{width:100%;border-collapse:separate;border-spacing:0;font-size:16px}
-.csp-fee-table th{padding:10px 9px;text-align:left;font-weight:800;color:#172033;background:#fff}
-.csp-fee-table th:not(:first-child){text-align:center}
-.csp-fee-table td{padding:11px 9px;font-weight:700}
-.csp-fee-table td:not(:first-child){text-align:center}
-.csp-fee-table tr.fee-month-paid td{background:#eaf8ef;color:#188038}
-.csp-fee-table tr.fee-month-pending td{background:#fff0f0;color:#c5221f}
-.csp-fee-table tr.fee-month-paid td:first-child{border-radius:7px 0 0 7px}
-.csp-fee-table tr.fee-month-paid td:last-child{border-radius:0 7px 7px 0}
-.csp-fee-table tr.fee-month-pending td:first-child{border-radius:7px 0 0 7px}
-.csp-fee-table tr.fee-month-pending td:last-child{border-radius:0 7px 7px 0}
-.csp-fee-table .fee-paid{color:#188038}
-.csp-fee-table .fee-due{color:#c5221f}
-.csp-receipt{border:1px solid #e1e7ef;border-radius:12px;padding:12px;margin:9px 0;background:#fff}
-.csp-receipt-head{font-size:17px;color:#172033}
-.csp-receipt-head span{color:#173b72;font-weight:800}
-.csp-receipt-line{margin-top:5px;color:#334155}
-.csp-receipt-note{margin-top:5px;color:#667085;font-size:13px}
 .csp-wrap{max-width:900px;margin:auto}.csp-card{background:#fff;border-radius:14px;padding:14px;margin:10px 0;box-shadow:0 2px 10px #0001}.csp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}.csp-stat{border:1px solid #dbe3ef;border-radius:10px;padding:10px;text-align:center}.csp-stat b{display:block;font-size:20px}.csp-green{color:#188038}.csp-red{color:#c5221f}.csp-blue{color:#173b72}.csp-item{border:1px solid #e1e7ef;border-radius:10px;padding:10px;margin:7px 0}.csp-btn{border:0;border-radius:9px;padding:9px 12px;background:#173b72;color:#fff;font-weight:700}.csp-btn.secondary{background:#e9eef7;color:#173b72}.csp-student-pick{display:grid;gap:8px}
 </style>
 <div id="connectedModuleModal">
@@ -3471,55 +3486,22 @@ window.addEventListener('beforeunload',function(){stopAutoCloudBackup();});
       let item=null;
       if(cloudMode&&db){try{const snap=await db.ref(key+'/'+id).once('value');item=snap.val();}catch(e){console.warn(e);}}
       if(!item) item=(window[key]||{})[id]||null;
-      // Lesson delete is handled separately so deleting one Lesson never makes the
-      // Student Lesson list temporarily empty or require a new Login.
-      if(key==='lessons'){
-        const localBefore=localData('lessons');
-        const remaining={...localBefore};
-        delete remaining[id];
-        saveLocalData('lessons',remaining);
-        window.lessons=remaining; lessons=remaining;
-        // Immediately show the remaining lessons. Do not clear/reload the whole list.
-        if(typeof renderTeacher==='function')renderTeacher();
-        if(typeof renderStudent==='function'&&currentStudent)renderStudent();
-
-        if(cloudMode&&db&&navigator.onLine){
-          await db.ref('lessons/'+id).remove();
-          // Read back the authoritative Lesson list after the single child is removed.
-          // This prevents a transient empty/stale Firebase snapshot from replacing all lessons.
-          try{
-            const snap=await db.ref('lessons').once('value');
-            const cloudLessons=snap.val()||{};
-            saveLocalData('lessons',cloudLessons);
-            window.lessons=cloudLessons; lessons=cloudLessons;
-          }catch(syncErr){
-            console.warn('Lesson list refresh after delete failed; keeping local remaining lessons:',syncErr);
-          }
-        }
-
-        const fileUrl=item?.content||item?.url||item?.pdfUrl||item?.fileUrl||'';
-        if(storage&&cloudMode&&/^https?:/i.test(String(fileUrl))&&String(fileUrl).includes('firebasestorage.googleapis.com')){
-          try{await storage.refFromURL(fileUrl).delete();}catch(e){console.warn('Storage file could not be deleted:',e);}
-        }
-        if(typeof renderTeacher==='function')renderTeacher();
-        if(typeof renderStudent==='function'&&currentStudent)renderStudent();
-      }else{
-        await dataRemove(key,id);
-        const fileUrl=item?.content||item?.url||item?.pdfUrl||item?.fileUrl||'';
-        if(storage&&cloudMode&&/^https?:/i.test(String(fileUrl))&&String(fileUrl).includes('firebasestorage.googleapis.com')){
-          try{await storage.refFromURL(fileUrl).delete();}catch(e){console.warn('Storage file could not be deleted:',e);}
-        }
-        // Force the current in-memory/local list to refresh so the count decreases immediately.
-        const d=localData(key); delete d[id]; saveLocalData(key,d); window[key]=d;
-        if(key==='students')students=d;
-        if(key==='tests')tests=d;
-        if(key==='notices')notices=d;
-        if(key==='questionBanks')questionBanks=d;
-        if(key==='personalMessages')personalMessages=d;
-        if(typeof renderTeacherStudents==='function')renderTeacherStudents();
-        if(typeof renderTeacher==='function')renderTeacher();
-        if(typeof renderStudent==='function'&&currentStudent)renderStudent();
+      await dataRemove(key,id);
+      const fileUrl=item?.content||item?.url||item?.pdfUrl||item?.fileUrl||'';
+      if(storage&&cloudMode&&/^https?:/i.test(String(fileUrl))&&String(fileUrl).includes('firebasestorage.googleapis.com')){
+        try{await storage.refFromURL(fileUrl).delete();}catch(e){console.warn('Storage file could not be deleted:',e);}
       }
+      // Force the current in-memory/local list to refresh so the count decreases immediately.
+      const d=localData(key); delete d[id]; saveLocalData(key,d); window[key]=d;
+      if(key==='students')students=d;
+      if(key==='tests')tests=d;
+      if(key==='lessons')lessons=d;
+      if(key==='notices')notices=d;
+      if(key==='questionBanks')questionBanks=d;
+      if(key==='personalMessages')personalMessages=d;
+      if(typeof renderTeacherStudents==='function')renderTeacherStudents();
+      if(typeof renderTeacher==='function')renderTeacher();
+      if(typeof renderStudent==='function'&&currentStudent)renderStudent();
       alert('✅ '+label+' Delete થઈ ગયું.');
     }catch(e){console.error(e);alert('❌ Delete થઈ શક્યું નથી.\n'+(e?.message||e));}
   };
@@ -3560,31 +3542,26 @@ window.addEventListener('beforeunload',function(){stopAutoCloudBackup();});
   function monthName(i){return ['જાન્યુઆરી','ફેબ્રુઆરી','માર્ચ','એપ્રિલ','મે','જૂન','જુલાઈ','ઓગસ્ટ','સપ્ટેમ્બર','ઓક્ટોબર','નવેમ્બર','ડિસેમ્બર'][Number(i)]||'';}
   function renderStudentFee(st){
     const body=document.getElementById('cspBody'); if(!body)return;
-    const join=st.joinDate||st.registeredAt?.slice?.(0,10)||'';
+    const join=String(st.joinDate||st.registeredAt?.slice?.(0,10)||'');
     const today=new Date();
     const todayStr=today.toISOString().slice(0,10);
     const receipts=Array.isArray(st.receipts)?st.receipts:[];
     const stationery=Array.isArray(st.stationery)?st.stationery.filter(x=>x&&Number(x.price)>0):[];
     const feeHistory=Array.isArray(st.feeHistory)?st.feeHistory:[];
     const periods=Array.isArray(st.attendancePeriods)&&st.attendancePeriods.length?st.attendancePeriods:[{fromDate:join,toDate:null}];
-
+    const monthName=i=>['જાન્યુઆરી','ફેબ્રુઆરી','માર્ચ','એપ્રિલ','મે','જૂન','જુલાઈ','ઓગસ્ટ','સપ્ટેમ્બર','ઓક્ટોબર','નવેમ્બર','ડિસેમ્બર'][Number(i)]||'';
     const getFeeForDate=d=>{
       let chosen=null, chosenDate='';
-      feeHistory.forEach(h=>{
-        const hd=String(h.fromDate||'');
-        if(hd&&hd<=d&&(!chosenDate||hd>chosenDate)){chosenDate=hd;chosen=h;}
-      });
+      feeHistory.forEach(h=>{const hd=String(h.fromDate||'');if(hd&&hd<=d&&(!chosenDate||hd>chosenDate)){chosenDate=hd;chosen=h;}});
       return chosen?(parseFloat(chosen.fee)||0):(parseFloat(st.fee)||0);
     };
     const activeOn=d=>periods.some(p=>String(p.fromDate||'')<=d&&(!p.toDate||d<=String(p.toDate)));
-    const monthName=i=>['જાન્યુઆરી','ફેબ્રુઆરી','માર્ચ','એપ્રિલ','મે','જૂન','જુલાઈ','ઓગસ્ટ','સપ્ટેમ્બર','ઓક્ટોબર','નવેમ્બર','ડિસેમ્બર'][i]||'';
     const months=new Map();
     const addMonth=(key,label,total)=>{
-      if(!months.has(key))months.set(key,{label,total:Number(total)||0,paid:0});
-      else months.get(key).total=Math.max(months.get(key).total,Number(total)||0);
+      const n=Number(total)||0;
+      if(!months.has(key))months.set(key,{key,label,total:n,paid:0});
+      else if(n>0)months.get(key).total=n;
     };
-
-    // Fee Management જેવી જ monthly tuition calculation.
     const firstDate=periods.map(p=>p.fromDate).filter(Boolean).sort()[0]||join||todayStr;
     if(String(st.feeType||'')==='માસિક' && firstDate && firstDate<=todayStr){
       let cur=new Date(firstDate+'T00:00:00');
@@ -3592,44 +3569,25 @@ window.addEventListener('beforeunload',function(){stopAutoCloudBackup();});
       const end=new Date(today.getFullYear(),today.getMonth(),1);
       let guard=0;
       while(cur<=end&&guard++<240){
-        const y=cur.getFullYear(),m=cur.getMonth();
-        const last=new Date(y,m+1,0);
+        const y=cur.getFullYear(),m=cur.getMonth(),last=new Date(y,m+1,0);
         let active=false;
         for(let d=new Date(Math.max(new Date(y,m,1).getTime(),new Date(firstDate+'T00:00:00').getTime()));d<=last;d.setDate(d.getDate()+1)){
-          const ds=d.toISOString().slice(0,10);
-          if(ds>todayStr)break;
+          const ds=d.toISOString().slice(0,10); if(ds>todayStr)break;
           if(activeOn(ds)){active=true;break;}
         }
-        if(active){
-          const key=y+'-'+String(m+1).padStart(2,'0');
-          addMonth(key,monthName(m)+' '+y,getFeeForDate(y+'-'+String(m+1).padStart(2,'0')+'-01'));
-        }
+        if(active){const key=y+'-'+String(m+1).padStart(2,'0');addMonth(key,monthName(m)+' '+y,getFeeForDate(y+'-'+String(m+1).padStart(2,'0')+'-01'));}
         cur.setMonth(cur.getMonth()+1);
       }
     }else if(firstDate){
       const d=new Date(firstDate+'T00:00:00');
-      if(!isNaN(d)&&d<=today){
-        const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-        addMonth(key,monthName(d.getMonth())+' '+d.getFullYear(),Number(st.fee)||0);
-      }
+      if(!isNaN(d)&&d<=today){const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');addMonth(key,monthName(d.getMonth())+' '+d.getFullYear(),Number(st.fee)||0);}
     }
-
-    // Receiptમાં દર્શાવેલા monthsમાં જ paid amount ગણવો.
-    // Stationery/extra amount કોઈ આગામી unpaid monthમાં આપમેળે transfer નહીં થાય.
+    // Receipt months must always appear, even if Fee Management history is incomplete.
     receipts.forEach(r=>{
-      let rem=Math.max(0,Number(r.paidVal)||0);
-      const ms=Array.isArray(r.months)?r.months:[];
-      ms.forEach(m=>{
+      (Array.isArray(r.months)?r.months:[]).forEach(m=>{
         const y=Number(m.year),mi=Number(m.month);
-        const key=y&&mi>=0
-          ? y+'-'+String(mi+1).padStart(2,'0')
-          : String(m.name||'')+' '+String(m.year||'');
-        const row=months.get(key);
-        if(row&&rem>0){
-          const x=Math.min(row.total,rem);
-          row.paid+=x;
-          rem-=x;
-        }
+        const key=(y&&mi>=0)?y+'-'+String(mi+1).padStart(2,'0'):String(m.name||'')+' '+String(m.year||'');
+        addMonth(key,String(m.name||monthName(mi)||'')+(m.year?' '+m.year:''),Number(m.fee??m.amount??0));
       });
     });
 
@@ -3637,81 +3595,56 @@ window.addEventListener('beforeunload',function(){stopAutoCloudBackup();});
     const receiptStatAmount=receipts.reduce((a,r)=>a+(Number(r.statFee)||0),0);
     const statPaidDirect=stationery.reduce((a,x)=>a+(String(x.payType||'').trim()==='રોકડ'?(Number(x.price)||0):0),0);
     const statPaid=Math.min(statTotal,Math.max(0,statPaidDirect+receiptStatAmount));
-
-    let tuitionPaid=receipts.reduce((a,r)=>a+(Number(r.paidVal)||0),0);
-    if(tuitionPaid<=0 && Number(st.paid)>0) tuitionPaid=Math.max(0,Number(st.paid)-statPaid);
-
-    const tuitionTotal=Array.from(months.values()).reduce((a,r)=>a+r.total,0);
-    const finalTuitionTotal=tuitionTotal>0
-      ? tuitionTotal
-      : Math.max(0,Number(st.totalFeeWithStationery||st.totalFee||st.fee||0)-statTotal);
-    const finalTotal=finalTuitionTotal+statTotal;
-
-    // Total paidમાં tuition receipts + stationery payment આવે છે,
-    // પરંતુ stationery paymentને કોઈ unpaid tuition monthમાં ઉમેરવામાં આવતું નથી.
-    const finalPaid=Math.min(finalTotal,tuitionPaid+statPaid);
+    // Fee Management's paid amount is authoritative. If unavailable, fall back to receipt totals.
+    const receiptPaidTotal=receipts.reduce((a,r)=>a+(Number(r.paidVal)||0),0);
+    const finalPaidRaw=Number.isFinite(Number(st.paid))&&Number(st.paid)>0?Number(st.paid):receiptPaidTotal;
+    const finalTotalRaw=Number(st.totalFeeWithStationery)>0?Number(st.totalFeeWithStationery):(Number(st.totalFee)>0?Number(st.totalFee)+statTotal:Number(st.fee||0)*months.size+statTotal);
+    const finalTotal=Math.max(0,finalTotalRaw);
+    const finalPaid=Math.min(finalTotal,Math.max(0,finalPaidRaw));
     const finalDue=Math.max(0,finalTotal-finalPaid);
 
+    // Allocate only tuition portion month-by-month; stationery stays separate.
+    const tuitionPaid=Math.max(0,finalPaid-statPaid);
+    receipts.forEach(r=>{
+      let rem=Math.max(0,(Number(r.paidVal)||0)-(Number(r.statFee)||0));
+      (Array.isArray(r.months)?r.months:[]).forEach(m=>{
+        const y=Number(m.year),mi=Number(m.month);const key=(y&&mi>=0)?y+'-'+String(mi+1).padStart(2,'0'):String(m.name||'')+' '+String(m.year||'');
+        const row=months.get(key); if(row&&rem>0){const x=Math.min(row.total,rem);row.paid+=x;rem-=x;}
+      });
+    });
+    // Any remaining tuition paid in Fee Management is applied to the next unpaid month.
+    let allocated=Array.from(months.values()).reduce((a,r)=>a+r.paid,0);
+    let remaining=Math.max(0,tuitionPaid-allocated);
+    for(const row of months.values()){
+      if(remaining<=0)break;
+      const room=Math.max(0,row.total-row.paid); if(room>0){const x=Math.min(room,remaining);row.paid+=x;remaining-=x;}
+    }
     const rows=Array.from(months.values()).map(r=>{
-      const paid=Math.min(r.total,r.paid);
+      const paid=Math.min(r.total,Math.max(0,r.paid));
       const due=Math.max(0,r.total-paid);
-      const paidClass=due<=0?'fee-month-paid':'fee-month-pending';
-      return `<tr class="${paidClass}">
-        <td>${escFee(r.label)}</td>
-        <td>${moneyFee(r.total)}</td>
-        <td class="fee-paid">${moneyFee(paid)}</td>
-        <td class="fee-due">${moneyFee(due)}</td>
-      </tr>`;
+      const full=r.total>0&&paid>=r.total;
+      const bg=full?'#eaf7ef':'#fff0f0';
+      const mc=full?'#188038':'#c5221f';
+      return `<tr style="background:${bg};font-weight:700"><td style="color:${mc}">${escFee(r.label)}</td><td style="color:${mc}">${moneyFee(r.total)}</td><td style="color:#188038">${moneyFee(paid)}</td><td style="color:#c5221f">${moneyFee(due)}</td></tr>`;
     }).join('');
 
-    const receiptRows=receipts.slice().reverse().map(r=>{
-      const total=Math.max(0,Number(r.paidVal||r.amount||r.paid)||0);
-      const stat=Math.max(0,Number(r.statFee)||0);
-      const tuition=Math.max(0,total-stat);
-      const date=escFee(r.date||r.paidDate||'-');
-      const monthsText=(Array.isArray(r.months)?r.months:[]).map(m=>{
-        const mi=Number(m.month);
-        const nm=String(m.name||monthName(mi)||'');
-        return nm+(m.year?' '+m.year:'');
-      }).filter(Boolean).join(', ');
-      return `<div class="csp-receipt">
-        <div class="csp-receipt-head">🧾 <b>${date}</b> <span>— ${moneyFee(total)}</span></div>
-        <div class="csp-receipt-line">📚 Tuition: <b>${moneyFee(tuition)}</b> • 🛍️ Stationery: <b>${moneyFee(stat)}</b></div>
-        ${monthsText?`<div class="csp-receipt-line">📅 મહિના: ${escFee(monthsText)}</div>`:''}
-        ${r.note?`<div class="csp-receipt-note">${escFee(r.note)}</div>`:''}
-      </div>`;
-    }).join('') || '<div class="muted">હજી કોઈ Fee Receipt નથી.</div>';
+    const receiptHtml=receipts.slice().reverse().map(r=>{
+      const paid=Number(r.paidVal)||0, stat=Number(r.statFee)||0, tuition=Math.max(0,paid-stat);
+      const ms=(Array.isArray(r.months)?r.months:[]).map(m=>String(m.name||monthName(m.month)||'')+(m.year?' '+m.year:'')).filter(Boolean).join(', ');
+      return `<div class="csp-item"><b>${escFee(r.date||r.createdAt||'-')} — ${moneyFee(paid)}</b><br>📚 Tuition: ${moneyFee(tuition)} • 🛍️ Stationery: ${moneyFee(stat)}${ms?'<br>મહિના: '+escFee(ms):''}</div>`;
+    }).join('');
+    const stationeryHtml=stationery.slice().reverse().map(x=>`<div class="csp-item"><b>${escFee(x.itemName||x.name||'-')}</b> × ${Number(x.qty)||1}<br>${moneyFee(x.price)}${x.date?' • '+escFee(x.date):''}${x.payType?' • '+escFee(x.payType):''}</div>`).join('');
 
-    const studentName=escFee(st.name||'-');
-    const studentId=escFee(st.studentId||st.studentCode||st.id||'-');
-
-    body.innerHTML=`
-      <div class="csp-card csp-student-summary">
-        <div class="csp-student-name">👤 ${studentName}</div>
-        <div class="csp-student-id">🆔 Student ID: <b>${studentId}</b></div>
-        <div class="csp-student-id">📅 દાખલ તારીખ: <b>${escFee(join||'-')}</b></div>
-        <div class="csp-grid">
-          <div class="csp-stat csp-blue"><span>કુલ ફી</span><b>${moneyFee(finalTotal)}</b></div>
-          <div class="csp-stat csp-green"><span>કુલ જમા</span><b>${moneyFee(finalPaid)}</b></div>
-          <div class="csp-stat csp-red"><span>કુલ બાકી</span><b>${moneyFee(finalDue)}</b></div>
-        </div>
-      </div>
-
-      <div class="csp-card">
-        <h3 class="csp-section-title">📅 મહિના પ્રમાણે ફી</h3>
-        ${rows
-          ? `<div class="csp-table-wrap"><table class="csp-fee-table">
-              <thead><tr><th>મહિનો</th><th>કુલ</th><th>જમા</th><th>બાકી</th></tr></thead>
-              <tbody>${rows}</tbody>
-            </table></div>`
-          : '<div class="muted">હાલ મહિના પ્રમાણે Fee માહિતી ઉપલબ્ધ નથી.</div>'}
-      </div>
-
-      <div class="csp-card">
-        <h3 class="csp-section-title">🧾 Fee Receipts</h3>
-        ${receiptRows}
-      </div>
-    `;
+    body.innerHTML=
+      `<div class="csp-card"><h3>👤 ${escFee(st.name||'-')}</h3>`+
+      `<div class="muted">🆔 Student ID: <b>${escFee(st.studentId||st.studentCode||st.id||'-')}</b></div>`+
+      (join?`<div class="muted">📅 દાખલ તારીખ: <b>${escFee(join)}</b></div>`:'')+
+      `<div class="csp-grid"><div class="csp-stat csp-blue">કુલ ફી<b>${moneyFee(finalTotal)}</b></div><div class="csp-stat csp-green">કુલ જમા<b>${moneyFee(finalPaid)}</b></div><div class="csp-stat csp-red">કુલ બાકી<b>${moneyFee(finalDue)}</b></div></div></div>`+
+      `<div class="csp-card"><h3>📅 મહિના પ્રમાણે ફી</h3>`+
+      (rows?`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr><th>મહિનો</th><th>કુલ</th><th>જમા</th><th>બાકી</th></tr></thead><tbody>${rows}</tbody></table></div>`:'<div class="muted">હાલ મહિના પ્રમાણે Fee માહિતી ઉપલબ્ધ નથી.</div>')+
+      `</div>`+
+      `<div class="csp-card"><h3>🧾 Fee Receipts</h3>${receiptHtml||'<div class="muted">કોઈ Fee Receipt નથી.</div>'}</div>`+
+      `<div class="csp-card"><h3>📚 Stationery</h3>${stationeryHtml||'<div class="muted">કોઈ Stationery ખરીદી નથી.</div>'}</div>`;
   }
 
   window.openConnectedStudentPortal=async function(){
@@ -3727,4 +3660,9 @@ window.addEventListener('beforeunload',function(){stopAutoCloudBackup();});
       renderStudentFee(fee||st);
     }catch(e){if(body)body.innerHTML='<div class="csp-card" style="color:#b91c1c">❌ તમારી Fee માહિતી લોડ થઈ શકી નથી.</div>';}
   };
-  window.closeConnectedStudentPortal
+  window.closeConnectedStudentPortal=function(){
+    const modal=document.getElementById('connectedStudentPortal');
+    if(modal)modal.classList.remove('show');
+  };
+})();
+</script>
