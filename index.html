@@ -803,11 +803,14 @@ async function prefetchStudentLessons(){
  if(!navigator.onLine)return;
  nncPrefetchRunning=true;
  try{
-  const list=Object.entries(lessons||{}).filter(([id,l])=>l&&l.active!==false&&l.content&&['pdf','photo'].includes(String(l.type)));
-  // Two at a time so the student's slow connection remains usable.
-  let cursor=0;
-  const worker=async()=>{while(cursor<list.length){const item=list[cursor++];await prefetchOneLesson(item[0],item[1]);}};
-  await Promise.all([worker(),worker()]);
+  const list=Object.entries(lessons||{})
+    .filter(([id,l])=>l&&l.active!==false&&l.content&&['pdf','photo'].includes(String(l.type)))
+    .sort((a,b)=>Number(b[1].createdAt||0)-Number(a[1].createdAt||0));
+  // Slow-network mode: one file at a time. Already cached files are skipped immediately.
+  for(const item of list){
+    if(!navigator.onLine)break;
+    await prefetchOneLesson(item[0],item[1]);
+  }
  }catch(e){}finally{nncPrefetchRunning=false;}
 }
 async function openLessonPhotoFast(id){
@@ -879,22 +882,23 @@ function openOfflineOrOnlinePDF(id){
 async function saveLessonOffline(id, silent=false){
  const l=lessons[id]; if(!l || !l.content){if(!silent)alert('Lesson ફાઇલ ઉપલબ્ધ નથી.');return false}
  if(l.type==='text'){ localStorage.setItem('nirmala_lesson_offline_'+id,'1'); if(!silent)alert('✅ Text Lesson Offline માટે Save થઈ ગયું છે.'); return true; }
- const url=l.content;
+ const url=String(l.content);
  try{
-  if(!('caches' in window))throw new Error('cache unsupported');
-  const cache=await caches.open('nirmala-lessons-v1');
-  const cached=await cache.match(url);
-  if(!cached){
-    const response=await fetch(url,{mode:'cors'});
-    if(!response.ok)throw new Error('download failed');
-    await cache.put(url,response.clone());
+  // Permanent app-side cache first: IndexedDB survives normal app/browser reopen and does not need Internet.
+  const cached=await nncLessonCacheGet(nncLessonKey(id,url));
+  if(cached?.blob){
+    localStorage.setItem('nirmala_lesson_offline_'+id,'1');
+    if(!silent)alert('✅ Lesson Offline માટે પહેલેથી Save છે.');
+    return true;
   }
+  if(!navigator.onLine)throw new Error('offline');
+  await nncFetchLessonBlob(id,url,l.type==='pdf'?'application/pdf':'image/jpeg');
   localStorage.setItem('nirmala_lesson_offline_'+id,'1');
   if(!silent)alert('✅ Lesson Offline માટે Save થઈ ગયું છે.');
   return true;
  }catch(e){
   console.error(e);
-  if(!silent)alert('❌ Lesson Offline Save થઈ નથી. Internet/CORS અથવા Firebase Storage permission તપાસો.');
+  if(!silent)alert('❌ Lesson Offline Save થઈ નથી. Internet connection ફરી તપાસો.');
   return false;
  }
 }
@@ -2669,6 +2673,25 @@ function renderPersonalTeacher(){
    return `<div class="item"><b>💬 ${esc(p.title||'Personal')}</b> — ${esc(s?.name||'વિદ્યાર્થી')}<br>${esc(p.message||'')}${p.link?`<br>🔗 <a href="${esc(p.link)}" target="_blank">Link ખોલો</a>`:''}${p.fileUrl?`<br>📎 <a href="${esc(p.fileUrl)}" target="_blank">${esc(p.fileName||'File')}</a>`:''}<br><small>${esc(p.date||'')}</small> <button class="danger" type="button" onclick="deleteTeacherItem('personalMessages','${sid}')">Delete</button></div>`;
  }).join('')||'<p class="muted">હજી Personal Message મોકલ્યો નથી.</p>';
 }
+function unreadPersonalCount(){
+ if(!currentStudent)return 0;
+ const sid=currentStudent.id || Object.entries(students||{}).find(([id,s])=>s===currentStudent)?.[0];
+ return Object.values(personalMessages||{}).filter(p=>
+   !p?.read && (String(p.studentId)===String(sid) || String(p.studentName||'').trim().toLowerCase()===String(currentStudent.name||'').trim().toLowerCase())
+ ).length;
+}
+async function markPersonalMessagesRead(){
+ if(!currentStudent)return;
+ const sid=currentStudent.id || Object.entries(students||{}).find(([id,s])=>s===currentStudent)?.[0];
+ const matches=Object.entries(personalMessages||{}).filter(([id,p])=>
+   !p?.read && (String(p.studentId)===String(sid) || String(p.studentName||'').trim().toLowerCase()===String(currentStudent.name||'').trim().toLowerCase())
+ );
+ if(!matches.length)return;
+ for(const [id,p] of matches){
+   try{ await dataSet('personalMessages',id,{...p,read:true,readAt:Date.now()}); }catch(e){ console.warn('Personal read update failed',e); }
+ }
+}
+
 function renderStudentPersonal(){
  if(!currentStudent)return;
  const sid=currentStudent.id || Object.entries(students).find(([id,s])=>s===currentStudent)?.[0];
@@ -3582,12 +3605,29 @@ window.addEventListener('beforeunload',function(){stopAutoCloudBackup();});
       const d=new Date(firstDate+'T00:00:00');
       if(!isNaN(d)&&d<=today){const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');addMonth(key,monthName(d.getMonth())+' '+d.getFullYear(),Number(st.fee)||0);}
     }
-    // Receipt months must always appear, even if Fee Management history is incomplete.
+    function normalizeReceiptMonth(m){
+      if(!m)return null;
+      let y=Number(m.year)||0;
+      let mi=Number(m.month);
+      const rawName=String(m.name||m.monthName||'').trim();
+      const names=['જાન્યુઆરી','ફેબ્રુઆરી','માર્ચ','એપ્રિલ','મે','જૂન','જુલાઈ','ઓગસ્ટ','સપ્ટેમ્બર','ઓક્ટોબર','નવેમ્બર','ડિસેમ્બર'];
+      if(!y){const ym=rawName.match(/(20\d{2})/);if(ym)y=Number(ym[1]);}
+      if(!Number.isFinite(mi))mi=-1;
+      // Fee Management records may store month as 0-based, 1-based, or only by Gujarati name.
+      if(mi>=0&&mi<=11){
+        // When a month name is also present, prefer its exact Gujarati month index.
+        const ni=names.findIndex(n=>rawName.includes(n));
+        if(ni>=0)mi=ni;
+      }else if(mi>=1&&mi<=12){mi=mi-1;}
+      else mi=names.findIndex(n=>rawName.includes(n));
+      if(!y||mi<0||mi>11)return null;
+      return {key:y+'-'+String(mi+1).padStart(2,'0'),label:names[mi]+' '+y,month:mi,year:y};
+    }
+    // Receipt months merge into the existing month row; they must never create duplicate April/May rows.
     receipts.forEach(r=>{
       (Array.isArray(r.months)?r.months:[]).forEach(m=>{
-        const y=Number(m.year),mi=Number(m.month);
-        const key=(y&&mi>=0)?y+'-'+String(mi+1).padStart(2,'0'):String(m.name||'')+' '+String(m.year||'');
-        addMonth(key,String(m.name||monthName(mi)||'')+(m.year?' '+m.year:''),Number(m.fee??m.amount??0));
+        const nm=normalizeReceiptMonth(m); if(!nm)return;
+        addMonth(nm.key,nm.label,Number(m.fee??m.amount??0));
       });
     });
 
@@ -3608,8 +3648,8 @@ window.addEventListener('beforeunload',function(){stopAutoCloudBackup();});
     receipts.forEach(r=>{
       let rem=Math.max(0,(Number(r.paidVal)||0)-(Number(r.statFee)||0));
       (Array.isArray(r.months)?r.months:[]).forEach(m=>{
-        const y=Number(m.year),mi=Number(m.month);const key=(y&&mi>=0)?y+'-'+String(mi+1).padStart(2,'0'):String(m.name||'')+' '+String(m.year||'');
-        const row=months.get(key); if(row&&rem>0){const x=Math.min(row.total,rem);row.paid+=x;rem-=x;}
+        const nm=normalizeReceiptMonth(m); if(!nm)return;
+        const row=months.get(nm.key); if(row&&rem>0){const x=Math.min(row.total,rem);row.paid+=x;rem-=x;}
       });
     });
     // Any remaining tuition paid in Fee Management is applied to the next unpaid month.
