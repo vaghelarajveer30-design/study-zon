@@ -880,12 +880,30 @@ function openLessonDirectLink(id){
  const l=(lessons||{})[id];
  if(!l||!l.content){alert('આ Lessonની Link ઉપલબ્ધ નથી.');return;}
  const type=nncNormalizeLessonType(l.type);
- if(!['pdf','photo','link','video'].includes(type)){alert('આ Lesson માટે સીધી Link ઉપલબ્ધ નથી.');return;}
- markViewed('lessons',id);
- // Direct URL lets the phone/browser load the original file using its native viewer.
- // This can show a PDF progressively without waiting for the app to cache/render every page.
- openInChromePDF(String(l.content));
+ if(type==='pdf'){openLessonPDFInApp(id);return;}
+ if(type==='photo'){openLessonPhotoFast(id);return;}
+ if(type==='link'||type==='video'){openLessonWebInApp(id);return;}
+ alert('આ Lesson માટે Link ઉપલબ્ધ નથી.');
 }
+function openLessonWebInApp(id){
+ const l=(lessons||{})[id];
+ if(!l||!l.content){alert('આ Lessonની Link ઉપલબ્ધ નથી.');return;}
+ const url=safeHttpUrl(String(l.content));
+ if(!url){alert('આ Lessonની Link યોગ્ય નથી.');return;}
+ markViewed('lessons',id);
+ let modal=document.getElementById('nncLessonWebModal');
+ if(!modal){
+  modal=document.createElement('div');modal.id='nncLessonWebModal';
+  modal.style.cssText='position:fixed;inset:0;z-index:1000002;background:#f3f6fb;display:none;flex-direction:column;';
+  modal.innerHTML='<div style="height:54px;min-height:54px;background:#173b72;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 10px;gap:8px;"><b id="nncLessonWebTitle" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📖 Lesson</b><button type="button" onclick="closeLessonWebInApp()" style="background:#fff;color:#173b72;padding:7px 12px;border-radius:8px;flex:none;">✕ બંધ</button></div><div id="nncLessonWebStatus" style="padding:7px 10px;background:#fff;color:#667085;font-size:13px;">⏳ એપમાં ખોલી રહ્યા છીએ...</div><iframe id="nncLessonWebFrame" title="Lesson" style="border:0;flex:1;width:100%;background:#fff;" allow="fullscreen; autoplay; encrypted-media; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin"></iframe>';
+  document.body.appendChild(modal);
+ }
+ document.getElementById('nncLessonWebTitle').textContent='📖 '+(l.title||'Lesson');
+ document.getElementById('nncLessonWebStatus').textContent='📖 આ Lesson એપની અંદર ખૂલી રહ્યું છે.';
+ const frame=document.getElementById('nncLessonWebFrame');frame.src='about:blank';modal.style.display='flex';
+ setTimeout(()=>{frame.src=url;},30);
+}
+function closeLessonWebInApp(){const m=document.getElementById('nncLessonWebModal');const f=document.getElementById('nncLessonWebFrame');if(f)f.src='about:blank';if(m)m.style.display='none';}
 
 async function openLessonPhotoFast(id){
  const l=(lessons||{})[id];
@@ -1010,7 +1028,7 @@ function openOfflineOrOnlineLesson(id){
  const url=l.content;
  if(!url){alert('આ Lesson માટે ફાઇલ ઉપલબ્ધ નથી.');return;}
  markViewed('lessons',id);
- openInChromePDF(url);
+ openLessonWebInApp(id);
 }
 async function downloadLessonFile(id){
  const l=lessons[id];
@@ -3084,31 +3102,31 @@ function renderStudentLessons(){
   const actual=[...new Set(courseItems.map(([id,l])=>String(l.subject||'').trim()).filter(Boolean))];
   const preferred=subjectOrderForCourse(course);
   const subjects=preferred.filter(x=>actual.includes(x)).concat(actual.filter(x=>!preferred.includes(x)));
-  subjectBox.innerHTML=(subjects.length?'<button type="button" class="'+(!subject?'':'secondary')+'" onclick="selectLessonSubjectByName(\'\')">📚 બધા વિષય</button>':'')+subjects.map(s=>
+  subjectBox.innerHTML=subjects.map(s=>
     '<button type="button" class="'+(s===subject?'':'secondary')+'" onclick="selectLessonSubjectByName(this.dataset.subject)" data-subject="'+esc(s)+'">📖 '+esc(s)+'</button>'
   ).join('');
 
-  const subjectItems=subject?courseItems.filter(([id,l])=>String(l.subject||'').trim()===subject):courseItems;
+  const subjectItems=subject?courseItems.filter(([id,l])=>String(l.subject||'').trim()===subject):[];
   const topics=[...new Set(subjectItems.map(([id,l])=>String(l.title||l.chapter||'સામાન્ય Topic').trim()||'સામાન્ય Topic'))];
   let activeTopic=topic;
   if(activeTopic&&!topics.includes(activeTopic))activeTopic='';
-  topicBox.innerHTML=subject?(topics.length?'<button type="button" class="'+(!activeTopic?'':'secondary')+'" onclick="selectLessonTopicByName(\'\')">📝 બધા Topic</button>'+topics.map(t=>
+  topicBox.innerHTML=subject?(topics.length?topics.map(t=>
     '<button type="button" class="'+(t===activeTopic?'':'secondary')+'" onclick="selectLessonTopicByName(this.dataset.topic)" data-topic="'+esc(t)+'">📝 '+esc(t)+'</button>'
   ).join(''):'<p class="muted">આ વિષયમાં હજી Topic નથી.</p>'):'';
 
-  const shown=subjectItems.filter(([id,l])=>{
+  const shown=subject&&activeTopic?subjectItems.filter(([id,l])=>{
     const t=String(l.title||l.chapter||'સામાન્ય Topic').trim()||'સામાન્ય Topic';
-    return !activeTopic||t===activeTopic;
-  });
+    return t===activeTopic;
+  }):[];
   const v=getViewed();
-  resultsBox.innerHTML=shown.slice().reverse().map(([id,l])=>{
+  resultsBox.innerHTML=(!subject?'<p class="muted">જરૂરી વિષય પસંદ કરો.</p>':(!activeTopic?'<p class="muted">હવે જરૂરી Topic પસંદ કરો.</p>':shown.slice().reverse().map(([id,l])=>{
     const fav=isFavorite('lessons',id),seen=!!(v.lessons&&v.lessons[id]);
     const offline=localStorage.getItem('nirmala_lesson_offline_'+id)==='1';
     const type=nncNormalizeLessonType(l.type);
     let body='';
-    if(type==='photo')body='<button type="button" onclick="openLessonPhotoFast(\''+id+'\')">📷 Photo જુઓ / લોડ કરો</button> <button type="button" class="secondary" onclick="openLessonDirectLink(\''+id+'\')">🔗 Linkથી ખોલો</button>';
-    else if(type==='pdf')body='<button type="button" onclick="openLessonPDFInApp(\''+id+'\')">📄 એપમાં જુઓ / લોડ કરો</button> <button type="button" class="secondary" onclick="openLessonDirectLink(\''+id+'\')">🔗 Linkથી ખોલો</button>';
-    else if(['link','video'].includes(type))body='<a href="'+esc(l.content||'')+'" target="_blank" onclick="markViewed(\'lessons\',\''+id+'\')"><button type="button">🔗 '+(type==='video'?'Video જુઓ':'Lesson ખોલો')+'</button></a>';
+    if(type==='photo')body='<button type="button" onclick="openLessonPhotoFast(\''+id+'\')">📷 Photo જુઓ / લોડ કરો</button>';
+    else if(type==='pdf')body='<button type="button" onclick="openLessonPDFInApp(\''+id+'\')">📄 એપમાં જુઓ / લોડ કરો</button>';
+    else if(['link','video'].includes(type))body='<button type="button" onclick="openLessonWebInApp(\''+id+'\')">🔗 '+(type==='video'?'Video જુઓ':'Lesson ખોલો')+'</button>';
     else body='<div style="white-space:pre-wrap;line-height:1.7;margin-top:10px">'+esc(l.content||'')+'</div>';
     const offlineBtn=(type==='photo'||type==='pdf')?'<button type="button" class="secondary" style="margin-top:8px" onclick="saveLessonOffline(\''+id+'\')">'+(offline?'✅ Offline Saved':'📥 Offline Save')+'</button>':'';
     return '<div class="item">'+
@@ -3118,7 +3136,7 @@ function renderStudentLessons(){
       '<span class="badge">📖 '+esc(l.subject||'સામાન્ય')+'</span> '+
       (l.chapter?'<span class="badge">📝 '+esc(l.chapter)+'</span> ':'')+
       (seen?'<span class="badge">✓ જોયું</span>':'')+'<br><small>'+esc(l.date||'')+'</small>'+body+'<br>'+offlineBtn+'</div>';
-  }).join('')||'<p class="muted">આ Courseમાં Lessonની માહિતી હજી મળી નથી. Internet જોડો અને થોડા સમય પછી ફરી ખોલો અથવા શિક્ષકને Course પસંદગી તપાસવા કહો.</p>';
+  }).join('')||'<p class="muted">આ Topicમાં Lessonની માહિતી હજી મળી નથી. Internet જોડો અને ફરી પ્રયાસ કરો.</p>'));
   window.lessonCourseFilter=course;
   window.lessonSubjectFilter=subject;
   window.lessonChapterFilter=activeTopic;
