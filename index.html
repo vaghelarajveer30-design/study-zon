@@ -1436,6 +1436,8 @@ function loginStudentRecord(pair){
    return false;
  }
  window.currentStudent=s; currentStudent=s;
+ // On each successful login, dismiss all notifications that existed before this login.
+ clearOldStudentNotifications(sid);
  localStorage.setItem('nirmala_current_student',sid);
  localStorage.setItem('nirmala_current_student_id',s.studentId||'');
  saveStudentSession(s);
@@ -2938,6 +2940,11 @@ function updateGuestLessonButton(){
  btn.style.display=arr.length?'inline-flex':'none';
  if(count)count.textContent=arr.length?String(arr.length):'';
 }
+function studentNotificationCutoffKey(studentId){return 'nirmala_notification_cutoff_'+String(studentId||'guest');}
+function clearOldStudentNotifications(studentId){
+ // Keep a per-student cutoff on this device; older cloud records remain intact for other students.
+ try{localStorage.setItem(studentNotificationCutoffKey(studentId),String(Date.now()));}catch(e){}
+}
 async function openLoginNotifications(){
  const panel=document.getElementById('loginNotificationPanel');
  const list=document.getElementById('loginNotificationList');
@@ -2949,7 +2956,11 @@ async function openLoginNotifications(){
    try{const snap=await db.ref('notifications').once('value');records=snap.val()||records;}
    catch(e){console.warn('Login notifications load failed',e);}
  }
- const arr=Object.entries(records).filter(([id,n])=>n&&String(n.targetStudentId||'all')==='all').sort((a,b)=>Number(b[1].createdAt||0)-Number(a[1].createdAt||0));
+ const mobile=digits10('studentMobile');
+ const found=mobile.length===10?findStudentByMobile(mobile):null;
+ const sid=found?String(found[0]):'guest';
+ const cutoff=Number(localStorage.getItem(studentNotificationCutoffKey(sid))||0);
+ const arr=Object.entries(records).filter(([id,n])=>n&&String(n.targetStudentId||'all')==='all'&&Number(n.createdAt||0)>cutoff).sort((a,b)=>Number(b[1].createdAt||0)-Number(a[1].createdAt||0)).slice(0,1);
  const count=document.getElementById('loginNotificationCount');if(count)count.textContent=String(arr.length);
  list.innerHTML=arr.map(([id,n])=>'<div class="item"><b>🔔 '+esc(n.title||'નવી સૂચના')+'</b><div style="white-space:pre-wrap;margin-top:5px">'+esc(n.body||'')+'</div><small>'+esc(n.date|| (n.createdAt?new Date(Number(n.createdAt)).toLocaleString('gu-IN') :''))+'</small></div>').join('')||'<p class="muted">હાલમાં કોઈ નવી સૂચના નથી.</p>';
 }
