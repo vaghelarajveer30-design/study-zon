@@ -1226,9 +1226,8 @@ function loadFirebaseConfigForm(){
 }
 
 function creds(){
-  // Fixed teacher credentials for NIRMLA STUDY ZON
-  // Ignore stale localStorage credentials from older APK builds.
-  return {id:'Teacher', pass:'101091'};
+  // Teacher credentials can be changed from the authenticated Settings screen.
+  return {id:localStorage.getItem('teacher_id') || 'teacher', pass:localStorage.getItem('teacher_pass') || '1234'};
 }
 function openTeacherLogin(){
  const modal=document.getElementById('teacherLoginModal') || document.getElementById('teacherModal');
@@ -2959,8 +2958,13 @@ async function openLoginNotifications(){
  const mobile=digits10('studentMobile');
  const found=mobile.length===10?findStudentByMobile(mobile):null;
  const sid=found?String(found[0]):'guest';
- const cutoff=Number(localStorage.getItem(studentNotificationCutoffKey(sid))||0);
- const arr=Object.entries(records).filter(([id,n])=>n&&String(n.targetStudentId||'all')==='all'&&Number(n.createdAt||0)>cutoff).sort((a,b)=>Number(b[1].createdAt||0)-Number(a[1].createdAt||0)).slice(0,1);
+ const cutoff=Date.now()-(24*60*60*1000);
+ const arr=Object.entries(records).filter(([id,n])=>{
+   if(!n)return false;
+   const created=Number(n.createdAt||Date.parse(n.date||'')||0);
+   const target=String(n.targetStudentId||'all');
+   return created>=cutoff && (target==='all' || (sid!=='guest' && target===sid));
+ }).sort((a,b)=>Number(b[1].createdAt||0)-Number(a[1].createdAt||0));
  const count=document.getElementById('loginNotificationCount');if(count)count.textContent=String(arr.length);
  list.innerHTML=arr.map(([id,n])=>'<div class="item"><b>🔔 '+esc(n.title||'નવી સૂચના')+'</b><div style="white-space:pre-wrap;margin-top:5px">'+esc(n.body||'')+'</div><small>'+esc(n.date|| (n.createdAt?new Date(Number(n.createdAt)).toLocaleString('gu-IN') :''))+'</small></div>').join('')||'<p class="muted">હાલમાં કોઈ નવી સૂચના નથી.</p>';
 }
@@ -3891,5 +3895,81 @@ window.addEventListener('beforeunload',function(){stopAutoCloudBackup();});
     const modal=document.getElementById('connectedStudentPortal');
     if(modal)modal.classList.remove('show');
   };
+})();
+</script>
+
+<script id="nirmala-requested-auth-notification-fixes">
+(function(){
+  // Teacher credentials saved here are used by both teacher login dialogs.
+  window.saveTeacherCredentials=function(){
+    const home=document.getElementById('teacherHome');
+    if(!home || home.classList.contains('hidden')){
+      const m=document.getElementById('credentialMsg'); if(m)m.textContent='❌ પહેલા શિક્ષક લોગિન કરો.';
+      return;
+    }
+    const id=(document.getElementById('setTeacherId')?.value||'').trim();
+    const pass=document.getElementById('setTeacherPass')?.value||'';
+    const m=document.getElementById('credentialMsg');
+    if(!id || !pass){if(m)m.textContent='❌ નવું Teacher ID અને Password બંને લખો.';return;}
+    if(pass.length<4){if(m)m.textContent='❌ Password ઓછામાં ઓછો 4 અક્ષરનો હોવો જોઈએ.';return;}
+    try{
+      localStorage.setItem('teacher_id',id);
+      localStorage.setItem('teacher_pass',pass);
+      if(m)m.textContent='✅ Teacher ID અને Password આ એપમાં બદલાઈને સેવ થઈ ગયા. હવે આગળના લોગિનમાં નવા ID/Password વાપરો.';
+      const a=document.getElementById('setTeacherId'); if(a)a.value='';
+      const b=document.getElementById('setTeacherPass'); if(b)b.value='';
+    }catch(e){if(m)m.textContent='❌ સેટિંગ સેવ થઈ શક્યું નથી: '+(e?.message||e);}
+  };
+
+  // Lessons, Lesson 2 and tests are only accessible after a student session exists.
+  const protectedSections=new Set(['lessonsSection','questionStudentSection','onlineTestStudentSection']);
+  const hasStudentSession=()=>!!(window.currentStudent || (typeof currentStudent!=='undefined' && currentStudent));
+  const oldStudentSection=window.studentSection;
+  if(typeof oldStudentSection==='function'){
+    window.studentSection=function(id){
+      if(protectedSections.has(String(id)) && !hasStudentSession()){
+        alert('🔐 લેશન અને કસોટી જોવા માટે પહેલા વિદ્યાર્થી લોગિન કરો.');
+        if(typeof window.nirmalaOpenStudentLogin==='function')window.nirmalaOpenStudentLogin();
+        return;
+      }
+      return oldStudentSection.apply(this,arguments);
+    };
+  }
+  function guardLesson(name){
+    const old=window[name];
+    if(typeof old!=='function')return;
+    window[name]=function(){
+      if(!hasStudentSession()){
+        alert('🔐 લેશન જોવા માટે પહેલા વિદ્યાર્થી લોગિન કરો.');
+        if(typeof window.nirmalaOpenStudentLogin==='function')window.nirmalaOpenStudentLogin();
+        return;
+      }
+      return old.apply(this,arguments);
+    };
+  }
+  ['openLessonDirectLink','openLessonWebInApp','openLessonPhotoFast','openLessonPDFInApp','openOfflineOrOnlineLesson'].forEach(guardLesson);
+  const oldOpenOnlineTest=window.openOnlineTest;
+  if(typeof oldOpenOnlineTest==='function'){
+    window.openOnlineTest=function(){
+      if(!hasStudentSession()){
+        alert('🔐 કસોટી આપવા માટે પહેલા વિદ્યાર્થી લોગિન કરો.');
+        if(typeof window.nirmalaOpenStudentLogin==='function')window.nirmalaOpenStudentLogin();
+        return;
+      }
+      return oldOpenOnlineTest.apply(this,arguments);
+    };
+  }
+  const oldOpenConnectedTest=window.openConnectedTestDirect;
+  if(typeof oldOpenConnectedTest==='function'){
+    window.openConnectedTestDirect=function(){
+      if(!window.currentStudent && typeof currentStudent!=='undefined' && currentStudent)window.currentStudent=currentStudent;
+      if(!hasStudentSession()){
+        alert('🔐 કસોટી આપવા માટે પહેલા વિદ્યાર્થી લોગિન કરો.');
+        if(typeof window.nirmalaOpenStudentLogin==='function')window.nirmalaOpenStudentLogin();
+        return;
+      }
+      return oldOpenConnectedTest.apply(this,arguments);
+    };
+  }
 })();
 </script>
