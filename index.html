@@ -1,4 +1,4 @@
-<html lang="gu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NIRMLA STUDY ZON</title> <style>
+<!doctype html><html lang="gu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NIRMLA STUDY ZON</title> <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f4f7fb;color:#172033}
 header{background:#173b72;color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center}
 button{border:0;border-radius:9px;padding:10px 14px;background:#173b72;color:white;font-weight:700;cursor:pointer}
@@ -4036,4 +4036,101 @@ window.addEventListener('beforeunload',function(){stopAutoCloudBackup();});
         if(typeof window.nirmalaOpenStudentLogin==='function')window.nirmalaOpenStudentLogin();
         return;
       }
-      return oldOpenConnectedTest
+      return oldOpenConnectedTest.apply(this,arguments);
+    };
+  }
+})();
+</script>
+
+<script id="nirmala-teacher-subject-filter-fix">
+(function(){
+  // Keep the original dashboard renderer, but replace the lesson filters and
+  // the copy-paste Lesson 2 list with subject-specific views.
+  const oldRenderTeacher = window.renderTeacher;
+  const norm = v => String(v || '').trim() || 'સામાન્ય';
+  const escText = v => (typeof window.esc === 'function' ? window.esc(String(v ?? '')) : String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])));
+
+  window.renderTeacherLessonFilters = function(){
+    const courseBox=document.getElementById('teacherLessonCourseButtons');
+    const subjectBox=document.getElementById('teacherLessonSubjectButtons');
+    const summary=document.getElementById('teacherLessonSummary');
+    if(!courseBox||!subjectBox||!summary)return;
+    const all=Object.entries(window.lessons||{}).filter(([,l])=>l&&l.active!==false);
+    const courses=[...new Set(all.map(([,l])=>norm(l.course)))];
+    if(!courses.includes(window.teacherLessonCourseFilter)) window.teacherLessonCourseFilter=courses[0]||'';
+    const selectedCourse=window.teacherLessonCourseFilter||'';
+    const courseItems=all.filter(([,l])=>norm(l.course)===selectedCourse);
+    const subjects=[...new Set(courseItems.map(([,l])=>norm(l.subject)))];
+    if(!subjects.includes(window.teacherLessonSubjectFilter)) window.teacherLessonSubjectFilter=subjects[0]||'';
+    const selectedSubject=window.teacherLessonSubjectFilter||'';
+    courseBox.innerHTML=courses.map(c=>{
+      const count=all.filter(([,l])=>norm(l.course)===c).length;
+      return `<button type="button" class="${selectedCourse===c?'selected':''}" onclick='selectTeacherLessonCourse(${JSON.stringify(c)})'>${c==='નવોદય'?'🎯':c==='CET'?'🎓':c==='જ્ઞાન સાધના'?'📘':'📚'} ${escText(c)} <span class="badge">${count}</span></button>`;
+    }).join('')||'<span class="muted">હજી કોઈ Lesson નથી.</span>';
+    subjectBox.innerHTML=subjects.map(sub=>{
+      const count=courseItems.filter(([,l])=>norm(l.subject)===sub).length;
+      return `<button type="button" class="${selectedSubject===sub?'selected':''}" onclick='selectTeacherLessonSubject(${JSON.stringify(sub)})'>📖 ${escText(sub)} <span class="badge">${count}</span></button>`;
+    }).join('')||'<span class="muted">આ Courseમાં વિષય નથી.</span>';
+    const visible=courseItems.filter(([,l])=>!selectedSubject||norm(l.subject)===selectedSubject);
+    summary.innerHTML='<div class="teacher-lesson-stat"><b>'+visible.length+'</b><span>📚 પસંદ કરેલા વિષયના Lessons</span></div><div class="teacher-lesson-stat"><b>'+courseItems.length+'</b><span>📖 Courseના Lessons</span></div><div class="teacher-lesson-stat"><b>'+subjects.length+'</b><span>📌 વિષયો</span></div>';
+  };
+
+  window.selectTeacherLessonCourse=function(course){
+    window.teacherLessonCourseFilter=String(course||'');
+    const items=Object.values(window.lessons||{}).filter(l=>l&&l.active!==false&&norm(l.course)===window.teacherLessonCourseFilter);
+    window.teacherLessonSubjectFilter=items.length?norm(items[0].subject):'';
+    window.renderTeacher();
+  };
+  window.selectTeacherLessonSubject=function(subject){
+    window.teacherLessonSubjectFilter=String(subject||'');
+    window.renderTeacher();
+  };
+
+  window.renderQuestionBanks=function(){
+    const box=document.getElementById('teacherQuestionBanks'); if(!box)return;
+    let filter=document.getElementById('teacherQuestionSubjectButtons');
+    if(!filter){
+      filter=document.createElement('div');
+      filter.id='teacherQuestionSubjectButtons';
+      filter.className='teacher-filter-row';
+      filter.style.cssText='display:flex;gap:8px;overflow-x:auto;padding:6px 0 10px;margin:8px 0;-webkit-overflow-scrolling:touch';
+      box.parentNode.insertBefore(filter,box);
+    }
+    const entries=Object.entries(window.questionBanks||{}).filter(([,q])=>q&&q.active!==false);
+    const subjects=[...new Set(entries.map(([,q])=>norm(q.subject)))];
+    if(!subjects.includes(window.teacherQuestionSubjectFilter)) window.teacherQuestionSubjectFilter=subjects[0]||'';
+    const selected=window.teacherQuestionSubjectFilter||'';
+    filter.innerHTML=subjects.map(sub=>{
+      const count=entries.filter(([,q])=>norm(q.subject)===sub).length;
+      return `<button type="button" class="${selected===sub?'selected':''}" onclick='selectTeacherQuestionSubject(${JSON.stringify(sub)})'>📖 ${escText(sub)} <span class="badge">${count}</span></button>`;
+    }).join('')||'<span class="muted">હજી કોઈ વિષયનું લેશન 2 નથી.</span>';
+    const shown=entries.filter(([,q])=>!selected||norm(q.subject)===selected).reverse();
+    box.innerHTML=shown.map(([id,q])=>`<div class="item"><b>📚 ${escText(norm(q.course))}</b> → <b>📖 ${escText(norm(q.subject))}</b>${q.title?' — 📌 '+escText(q.title):''}<br><small>${escText(q.date||'')}</small><br><button class="danger" type="button" style="margin-top:8px" onclick="deleteTeacherItem('questionBanks','${escText(id)}')">🗑️ કાઢી નાખો પ્રશ્નો</button></div>`).join('')||'<p class="muted">આ વિષયમાં હજી લેશન 2 નથી.</p>';
+  };
+  window.selectTeacherQuestionSubject=function(subject){
+    window.teacherQuestionSubjectFilter=String(subject||'');
+    window.renderQuestionBanks();
+  };
+
+  if(typeof oldRenderTeacher==='function'){
+    window.renderTeacher=function(){
+      oldRenderTeacher.apply(this,arguments);
+      window.renderQuestionBanks();
+    };
+  }
+  if(typeof window.saveQuestionBank==='function'){
+    const oldSaveQuestionBank=window.saveQuestionBank;
+    window.saveQuestionBank=async function(){
+      const subject=document.getElementById('questionSubject')?.value||'';
+      if(subject.trim()) window.teacherQuestionSubjectFilter=subject.trim();
+      return await oldSaveQuestionBank.apply(this,arguments);
+    };
+  }
+  // Add a visible heading so the new buttons are clear on mobile.
+  const style=document.createElement('style');
+  style.textContent='#teacherQuestionSubjectButtons button{white-space:nowrap;min-width:max-content;padding:9px 13px}#teacherQuestionSubjectButtons button.selected{outline:3px solid #8fb3ff;transform:translateY(-1px)}';
+  document.head.appendChild(style);
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{try{window.renderTeacherLessonFilters();window.renderQuestionBanks();}catch(e){console.warn(e);}});
+  else {try{window.renderTeacherLessonFilters();window.renderQuestionBanks();}catch(e){console.warn(e);}}
+})();
+</script>
