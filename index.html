@@ -256,6 +256,7 @@ const defaultFirebaseConfig = {
 };
 let firebaseConfig = JSON.parse(localStorage.getItem('nirmala_firebase_config') || 'null') || defaultFirebaseConfig;
 let db=null, storage=null, students={}, notices={}, lessons={}, tests={}, personalMessages={}, questionBanks={};
+let firebaseListenersAttached=false;
 window.nncLessonsLoaded=!!(window.nncLessonsLoaded);
 let cloudMode=false;
 window.firebaseConfig=firebaseConfig;
@@ -495,7 +496,7 @@ function updateConnectionStatus(){
  if(navigator.onLine) el.textContent='🟢 Online';
  else el.textContent='🔴 Offline';
 }
-window.addEventListener('online',()=>{updateConnectionStatus(); if(typeof initFirebase==='function') installPWAHelpers(); registerOfflineWorker(); initFirebase(); setTimeout(()=>{if(isTeacherDashboardOpen())startAutoCloudBackup();},1200);});
+window.addEventListener('online',()=>{updateConnectionStatus(); if(typeof initFirebase==='function') installPWAHelpers(); registerOfflineWorker(); initFirebase(); if(currentStudent)setTimeout(()=>refreshStudentLearningData().catch(()=>{}),900); setTimeout(()=>{if(isTeacherDashboardOpen())startAutoCloudBackup();},1200);});
 window.addEventListener('offline',updateConnectionStatus);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)pollStudentNotifications();});
 window.addEventListener('focus',()=>pollStudentNotifications());
@@ -1104,18 +1105,39 @@ async function syncPendingStudentsToCloud(){
  for(const [id,st] of Object.entries(pending)){
    if(!st) { clearStudentPendingSync(id); continue; }
    try{
-     const snap=await db.ref('students/'+id).once('value');
-     if(!snap.exists()) await db.ref('students/'+id).set(st);
-     else {
-       const remote=snap.val()||{};
-       // Remote record wins only for fields that exist remotely; preserve the local registration fields.
-       await db.ref('students/'+id).update(st);
+     let rejection='';
+     const result=await db.ref('students').transaction(current=>{
+       const records=current&&typeof current==='object'?{...current}:{};
+       if(records[id]){
+         // Existing ID means this record was already synced; preserve newer cloud fields
+         // while applying any locally queued edits.
+         records[id]={...records[id],...st};
+         return records;
+       }
+       const check=checkRegistrationDuplicate(st.name,st.mobile,id,records,st.fatherName,st.schoolName);
+       if(!check.ok){rejection=check.message;return;}
+       records[id]=st;
+       return records;
+     },undefined,false);
+     if(result.committed){
+       clearStudentPendingSync(id);
+     }else if(rejection){
+       // A registration made offline may conflict with a registration already in the cloud.
+       // Remove the rejected local-only record so it cannot appear as a second student.
+       const local=localData('students');
+       delete local[id];
+       saveLocalData('students',local);
+       clearStudentPendingSync(id);
+       const regMsg=document.getElementById('regMsg');
+       if(regMsg)regMsg.textContent=rejection;
+       console.warn('Pending student registration rejected:',id,rejection);
      }
-     clearStudentPendingSync(id);
    }catch(e){ console.warn('Pending student sync failed:',id,e); }
  }
  const merged=mergePendingStudentsWithCloud(localData('students'));
  window.students=merged; students=merged; ensureAllLearningStudentIds(); cacheCurrentData();
+ if(currentStudent)renderStudent();
+ renderGuestLessons();renderTeacher();
 }
 
 function dataSet(key,id,value){
@@ -1462,7 +1484,8 @@ function loginStudentRecord(pair){
  if(typeof studentSection==='function')studentSection('noticesSection');
  if(typeof renderStudent==='function')renderStudent();
  enableStudentNotifications();
- // Save the student and lesson index locally; prefetch lesson files while online for later offline use.
+ // Load the lesson index immediately after login; retry briefly for slow Firebase connections.
+ if(typeof scheduleStudentLearningRefresh==='function')scheduleStudentLearningRefresh();
  try{cacheCurrentData();}catch(e){}
  if(navigator.onLine && typeof prefetchStudentLessons==='function')setTimeout(()=>prefetchStudentLessons().catch(()=>{}),800);
  return true;
@@ -1574,22 +1597,83 @@ function normalizeRegistrationName(v){
 function normalizeRegistrationMobile(v){
  return String(v??'').replace(/\D/g,'').slice(-10);
 }
-function getRegistrationStudents(){
- return Object.values(window.students||students||{}).filter(s=>String(s?.source||'registration')==='registration');
+function getRegistrationStudents(sourceStudents=null){
+ const source=sourceStudents||window.students||students||{};
+ return Object.entries(source).map(([id,s])=>{
+   if(!s||typeof s!=='object')return null;
+   return {...s,id:String(id)};
+ }).filter(Boolean);
 }
-function checkRegistrationDuplicate(name,mobile,excludeId=''){
+function registrationStudentIdentity(s){
+ const name=normalizeRegistrationName(s?.name);
+ const father=normalizeRegistrationName(s?.fatherName);
+ if(!name)return '';
+ return name+'|'+(father||('mobile:'+normalizeRegistrationMobile(s?.mobile)+'|school:'+normalizeRegistrationName(s?.schoolName)));
+}
+function checkRegistrationDuplicate(name,mobile,excludeId='',sourceStudents=null,fatherName='',schoolName=''){
  const n=normalizeRegistrationName(name);
+ const f=normalizeRegistrationName(fatherName);
  const m=normalizeRegistrationMobile(mobile);
- const list=getRegistrationStudents().filter(s=>String(s?.id||'')!==String(excludeId||''));
- if(list.some(s=>normalizeRegistrationName(s?.name)===n && normalizeRegistrationMobile(s?.mobile)===m)){
-   return {ok:false,message:'❌ આ નામ અને મોબાઇલ નંબર સાથે વિદ્યાર્થીનું Registration પહેલેથી થઈ ગયું છે. બીજી વાર Registration થઈ શકશે નહીં.'};
+ if(!n||m.length!==10)return {ok:false,message:'❌ વિદ્યાર્થીનું નામ અને 10 અંકનો મોબાઇલ નંબર જરૂરી છે.'};
+ const all=getRegistrationStudents(sourceStudents).filter(s=>String(s.id||'')!==String(excludeId||''));
+ const duplicate=all.find(s=>{
+   const sn=normalizeRegistrationName(s.name);
+   const sf=normalizeRegistrationName(s.fatherName);
+   const sameNameAndMobile=sn===n && normalizeRegistrationMobile(s.mobile)===m;
+   const sameNameAndFather=!!f && sn===n && sf===f;
+   return sameNameAndMobile||sameNameAndFather;
+ });
+ if(duplicate){
+   return {ok:false,message:'❌ આ વિદ્યાર્થીનું Registration પહેલેથી થઈ ગયું છે. એક જ વિદ્યાર્થીની બીજી વાર નોંધણી થઈ શકશે નહીં.'};
  }
- const sameMobile=list.filter(s=>normalizeRegistrationMobile(s?.mobile)===m);
- const distinctNames=new Set(sameMobile.map(s=>normalizeRegistrationName(s?.name)).filter(Boolean));
- if(distinctNames.size>=3){
-   return {ok:false,message:'❌ એક મોબાઇલ નંબર પરથી વધુમાં વધુ 3 અલગ બાળકોનું Registration થઈ શકે છે.'};
+ const sameMobile=all.filter(s=>normalizeRegistrationMobile(s.mobile)===m);
+ const distinctStudents=new Set(sameMobile.map(registrationStudentIdentity).filter(Boolean));
+ if(distinctStudents.size>=3){
+   return {ok:false,message:'❌ એક મોબાઇલ નંબર પરથી વધુમાં વધુ 3 અલગ વિદ્યાર્થીઓનું Registration થઈ શકે છે.'};
  }
  return {ok:true};
+}
+async function saveNewStudentSafely(id,student){
+ const local=localData('students');
+ if(cloudMode&&db&&navigator.onLine){
+   let rejection='';
+   const pending=getPendingStudentSync();
+   const result=await db.ref('students').transaction(current=>{
+     const records=current&&typeof current==='object'?{...current}:{};
+     if(records[id]){
+       rejection='❌ આ Student ID પહેલેથી વપરાયેલો છે. ફરી પ્રયાસ કરો.';
+       return;
+     }
+     const combined={...pending,...records};
+     const check=checkRegistrationDuplicate(student.name,student.mobile,id,combined,student.fatherName,student.schoolName);
+     if(!check.ok){rejection=check.message;return;}
+     records[id]=student;
+     return records;
+   },undefined,false);
+   if(!result.committed)return {ok:false,message:rejection||'❌ Firebaseમાં વિદ્યાર્થીની નોંધણી સેવ થઈ શકી નથી.'};
+   const cloudRecords=result.snapshot.val()||{};
+   const merged=mergePendingStudentsWithCloud(cloudRecords);
+   merged[id]=student;
+   saveLocalData('students',merged);
+   window.students=students=merged;
+   clearStudentPendingSync(id);
+   ensureAllLearningStudentIds();
+   cacheCurrentData();
+   if(currentStudent)renderStudent();
+   renderGuestLessons();renderTeacher();
+   return {ok:true,offline:false};
+ }
+ const check=checkRegistrationDuplicate(student.name,student.mobile,id,local,student.fatherName,student.schoolName);
+ if(!check.ok)return {ok:false,message:check.message};
+ local[id]=student;
+ saveLocalData('students',local);
+ window.students=students=local;
+ markStudentPendingSync(id,student);
+ ensureAllLearningStudentIds();
+ cacheCurrentData();
+ if(currentStudent)renderStudent();
+ renderGuestLessons();renderTeacher();
+ return {ok:true,offline:true};
 }
 async function editRegisteredStudent(id){
  const s=(window.students||students||{})[id];
@@ -1607,7 +1691,7 @@ async function editRegisteredStudent(id){
  if(!String(name).trim()||!String(fatherName).trim()||!String(schoolName).trim()||!String(address).trim()){
    alert('❌ કોઈ માહિતી ખાલી રાખી શકાશે નહીં.');return;
  }
- const chk=checkRegistrationDuplicate(name,mobile,id);
+ const chk=checkRegistrationDuplicate(name,mobile,id,null,fatherName,schoolName);
  if(!chk.ok){alert(chk.message);return;}
  const updated={...s,name:String(name).trim(),fatherName:String(fatherName).trim(),schoolName:String(schoolName).trim(),address:String(address).trim(),mobile};
  try{
@@ -1621,6 +1705,8 @@ async function editRegisteredStudent(id){
  }
 }
 
+let registrationOtpContext=null;
+let registrationSubmitBusy=false;
 function sendRegistrationOTP(){
  const name=(document.getElementById('regStudentName')?.value||'').trim();
  const fatherName=(document.getElementById('regFatherName')?.value||'').trim();
@@ -1633,16 +1719,28 @@ function sendRegistrationOTP(){
  if(!schoolName){if(msgEl)msgEl.textContent='❌ શાળાનું નામ નાખો.';return;}
  if(!address){if(msgEl)msgEl.textContent='❌ એડ્રેસ નાખો.';return;}
  if(mobile.length!==10){if(msgEl)msgEl.textContent='❌ 10 અંકનો મોબાઇલ નંબર નાખો.';return;}
- const registrationCheck=checkRegistrationDuplicate(name,mobile);
- if(!registrationCheck.ok){if(msgEl)msgEl.textContent=registrationCheck.message;return;}
+ const registrationCheck=checkRegistrationDuplicate(name,mobile,'',null,fatherName,schoolName);
+ if(!registrationCheck.ok){
+   registrationDemoOtp='';registrationOtpExpiresAt=0;registrationOtpContext=null;
+   const area=document.getElementById('regOtpArea');if(area)area.style.display='none';
+   if(msgEl)msgEl.textContent=registrationCheck.message;
+   return;
+ }
  registrationDemoOtp=make4DigitOtp();
  registrationOtpExpiresAt=Date.now()+5*60*60*1000;
+ registrationOtpContext={
+   name:normalizeRegistrationName(name),
+   fatherName:normalizeRegistrationName(fatherName),
+   schoolName:normalizeRegistrationName(schoolName),
+   mobile
+ };
  showDemoOtp('regDemoOtp',registrationDemoOtp);
  document.getElementById('regOtpArea').style.display='block';
  if(msgEl)msgEl.textContent='✅ 4 અંકનો Registration OTP તૈયાર છે. 5 કલાક સુધી માન્ય રહેશે.';
 }
 
 async function verifyRegistrationOTP(){
+ if(registrationSubmitBusy)return;
  const name=(document.getElementById('regStudentName')?.value||'').trim();
  const fatherName=(document.getElementById('regFatherName')?.value||'').trim();
  const schoolName=(document.getElementById('regSchoolName')?.value||'').trim();
@@ -1650,6 +1748,10 @@ async function verifyRegistrationOTP(){
  const mobile=digits10('regStudentMobile');
  const otp=String(document.getElementById('regStudentOTP')?.value||'').replace(/\D/g,'');
  const msgEl=document.getElementById('regMsg');
+ if(!name||!fatherName||!schoolName||!address||mobile.length!==10){
+   if(msgEl)msgEl.textContent='❌ નોંધણીની બધી માહિતી યોગ્ય રીતે ભરો.';
+   return;
+ }
  if(!registrationDemoOtp||!otpStillValid(registrationOtpExpiresAt)||otp.length!==4){
    if(msgEl)msgEl.textContent='❌ પહેલા 4 અંકનો OTP મેળવો અને સમયસર દાખલ કરો.';
    return;
@@ -1658,10 +1760,20 @@ async function verifyRegistrationOTP(){
    if(msgEl)msgEl.textContent='❌ OTP ખોટો છે.';
    return;
  }
- const registrationCheck=checkRegistrationDuplicate(name,mobile);
+ const context=registrationOtpContext;
+ if(!context||context.name!==normalizeRegistrationName(name)||
+    context.fatherName!==normalizeRegistrationName(fatherName)||
+    context.schoolName!==normalizeRegistrationName(schoolName)||context.mobile!==mobile){
+   if(msgEl)msgEl.textContent='❌ OTP લીધા પછી માહિતી બદલાઈ છે. ફરીથી OTP મેળવો.';
+   return;
+ }
+ const registrationCheck=checkRegistrationDuplicate(name,mobile,'',null,fatherName,schoolName);
  if(!registrationCheck.ok){if(msgEl)msgEl.textContent=registrationCheck.message;return;}
+ registrationSubmitBusy=true;
+ const submitBtn=document.querySelector('#regOtpArea button');
+ if(submitBtn)submitBtn.disabled=true;
  try{
-   const id='s_'+Date.now();
+   const id='s_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
    const studentId=nextThreeDigitStudentId();
    const student={
      studentId,
@@ -1677,31 +1789,26 @@ async function verifyRegistrationOTP(){
      source:'registration',
      registeredAt:new Date().toISOString()
    };
-   // Save registration locally first so a slow/offline network never blocks the student.
-   // Queue it for cloud sync; another teacher device can receive it only after connectivity returns.
-   const localStudents=localData('students');
-   localStudents[id]=student;
-   saveLocalData('students',localStudents);
-   window.students=localStudents; students=localStudents;
-   markStudentPendingSync(id,student);
-   try{ if(typeof ensureAllLearningStudentIds==='function')ensureAllLearningStudentIds(); }catch(e){}
-   try{ if(typeof cacheCurrentData==='function')cacheCurrentData(); }catch(e){}
-   try{ if(typeof renderTeacher==='function' && currentTeacher)renderTeacher(); }catch(e){}
-   if(cloudMode && db && navigator.onLine){
-     // Do not await the network: background sync will retry if it fails.
-     setTimeout(()=>syncPendingStudentsToCloud().catch(e=>console.warn('Registration background sync failed',e)),0);
+   const saved=await saveNewStudentSafely(id,student);
+   if(!saved.ok){
+     if(msgEl)msgEl.textContent=saved.message;
+     return;
    }
    registrationDemoOtp='';
    registrationOtpExpiresAt=0;
+   registrationOtpContext=null;
    syncLearningStudentToFee(student);
    const sm=document.getElementById('studentMobile');if(sm)sm.value=mobile;
-   alert('✅ Registration સ્થાનિક રીતે સેવ થઈ ગઈ.\n\n🆔 તમારો 3 અંકનો Student ID: '+studentId+'\n\nઇન્ટરનેટ ઉપલબ્ધ થતાં શિક્ષકના Adminમાં આપમેળે મોકલાશે. આ ID સાચવી રાખો. Login માટે હંમેશા મોબાઇલ નંબર વાપરવો.');
+   alert('✅ Registration '+(saved.offline?'સ્થાનિક રીતે સેવ થઈ ગઈ.':'સફળતાપૂર્વક સેવ થઈ ગઈ.')+'\n\n🆔 તમારો 3 અંકનો Student ID: '+studentId+'\n\n'+(saved.offline?'ઇન્ટરનેટ ઉપલબ્ધ થતાં શિક્ષકના Adminમાં આપમેળે મોકલાશે.':'શિક્ષકની મંજૂરી મળ્યા પછી તમે Login કરી શકશો.')+' આ ID સાચવી રાખો. Login માટે હંમેશા મોબાઇલ નંબર વાપરો.');
    document.getElementById('studentRegistration')?.classList.add('hidden');
    document.getElementById('studentLogin')?.classList.remove('hidden');
    if(msgEl)msgEl.innerHTML='✅ Registration થઈ ગઈ. 🆔 Student ID: <b>'+studentId+'</b>';
  }catch(e){
    console.error(e);
-   if(msgEl)msgEl.textContent='❌ Registration સેવ થવામાં સમસ્યા આવી.';
+   if(msgEl)msgEl.textContent='❌ Registration સેવ થઈ શકી નથી. Internet/Firebase જોડાણ તપાસો. '+(e?.message||'');
+ }finally{
+   registrationSubmitBusy=false;
+   if(submitBtn)submitBtn.disabled=false;
  }
 }
 
@@ -1771,6 +1878,7 @@ function restoreStudentSession(){
     if(hu)hu.textContent='👨‍🎓 '+(currentStudent.name||'');
     if(typeof studentSection==='function')studentSection('noticesSection');
     if(typeof renderStudent==='function')renderStudent();
+    if(typeof scheduleStudentLearningRefresh==='function')scheduleStudentLearningRefresh();
     ensureNativeNotificationPermission();
   enableStudentNotifications();
   setTimeout(()=>ensureOneSignalStudentIdentity(),500);
@@ -1783,41 +1891,77 @@ function restoreStudentSession(){
 
 let openStudentSectionId='';
 let openTeacherSectionId='';
+let studentLearningRefreshPromise=null;
 async function refreshStudentLearningData(){
-  if(!currentStudent)return;
-  if(!navigator.onLine || !cloudMode || !db){
-    renderStudentLessons();
-    renderStudentQuestions();
-    return;
-  }
-  const status=document.getElementById('lessonSyncStatus');
-  if(status)status.textContent='⏳ લેશન અને લખાણવાળા પ્રશ્નોની માહિતી ફરીથી મેળવી રહ્યા છીએ...';
-  let refreshed=false;
-  for(const key of ['lessons','questionBanks']){
-    try{
-      const snap=await db.ref(key).once('value');
-      const cloud=snap.val()||{};
-      const local=localData(key);
-      // Keep an existing local copy if the server returns an empty snapshot.
-      const value=(Object.keys(cloud).length || !Object.keys(local).length)?cloud:local;
-      if(key==='lessons'){
-        const deleted=new Set(nncDeletedLessonIds());
-        const clean={};Object.entries(value).forEach(([id,item])=>{if(!deleted.has(String(id)))clean[id]=item;});
-        window.lessons=lessons=clean;window.nncLessonsLoaded=true;saveLocalData('lessons',clean);
-      }else{
-        window.questionBanks=questionBanks=value;saveLocalData('questionBanks',value);
-      }
-      refreshed=true;
-    }catch(e){console.warn('Student learning data refresh failed:',key,e);}
-  }
-  renderStudentLessons();
-  renderStudentQuestions();
-  if(status){
-    const count=Object.keys(lessons||{}).length;
-    status.textContent=refreshed?(count?'✅ લેશનની માહિતી ફરીથી તપાસી.':'⚠️ Firebaseમાંથી લેશનની માહિતી મળી નથી. શિક્ષકનું અપલોડ અને Firebase સેટિંગ તપાસો.'):'⚠️ માહિતી લોડ થઈ નથી. નેટવર્ક અથવા Firebase પરવાનગી તપાસો.';
-  }
-  cacheCurrentData();
+ if(!currentStudent)return false;
+ if(studentLearningRefreshPromise)return studentLearningRefreshPromise;
+ studentLearningRefreshPromise=(async()=>{
+   const status=document.getElementById('lessonSyncStatus');
+   // Show cached lesson names immediately while the cloud request is running.
+   renderStudentLessons();
+   renderStudentQuestions();
+   if(!navigator.onLine||!cloudMode||!db){
+     if(status)status.textContent=Object.keys(lessons||{}).length
+       ?'📴 સેવ થયેલી Lesson માહિતી બતાવી રહ્યા છીએ. નવી માહિતી માટે Internet/Firebase જોડાણ જરૂરી છે.'
+       :'📴 Lesson માહિતી હજી આ મોબાઇલમાં સેવ નથી. Internet જોડો અને ફરી પ્રયાસ કરો.';
+     return false;
+   }
+   if(status)status.textContent='⏳ લેશનની માહિતી Firebaseમાંથી મેળવી રહ્યા છીએ...';
+   let lessonRefreshed=false,lessonError=null;
+   try{
+     const snap=await db.ref('lessons').once('value');
+     const cloud=snap.val()||{};
+     const local=localData('lessons');
+     // An empty cloud response must not erase lessons already saved on this device.
+     const value=(Object.keys(cloud).length||!Object.keys(local).length)?cloud:local;
+     const deleted=new Set(nncDeletedLessonIds());
+     const clean={};
+     Object.entries(value).forEach(([id,item])=>{if(!deleted.has(String(id)))clean[id]=item;});
+     window.lessons=lessons=clean;
+     window.nncLessonsLoaded=true;
+     saveLocalData('lessons',clean);
+     lessonRefreshed=true;
+   }catch(e){
+     lessonError=e;
+     console.warn('Student lesson refresh failed:',e);
+   }
+   // Render lessons as soon as their request finishes; question-bank loading must not
+   // hold the Lesson screen blank on a slow student phone.
+   renderStudentLessons();
+   try{
+     const snap=await db.ref('questionBanks').once('value');
+     const cloud=snap.val()||{};
+     const local=localData('questionBanks');
+     const value=(Object.keys(cloud).length||!Object.keys(local).length)?cloud:local;
+     window.questionBanks=questionBanks=value;
+     saveLocalData('questionBanks',value);
+   }catch(e){console.warn('Student question-bank refresh failed:',e);}
+   renderStudentQuestions();
+   if(status){
+     const count=Object.keys(lessons||{}).length;
+     if(lessonRefreshed){
+       status.textContent=count
+         ?'✅ Firebaseમાંથી Lesson માહિતી મળી ગઈ. '+count+' Lesson ઉપલબ્ધ છે.'
+         :'⚠️ Firebase જોડાયું છે, પરંતુ હાલ કોઈ Lesson માહિતી મળી નથી. શિક્ષકનું Upload/Course તપાસો.';
+     }else{
+       status.textContent='⚠️ Lesson માહિતી લોડ થઈ શકી નથી. Internet અથવા Firebase Read Permission તપાસો.'+(lessonError?.message?' ('+lessonError.message+')':'');
+     }
+   }
+   cacheCurrentData();
+   return lessonRefreshed;
+ })();
+ try{return await studentLearningRefreshPromise;}
+ finally{studentLearningRefreshPromise=null;}
 }
+function scheduleStudentLearningRefresh(){
+ [200,1200,3000].forEach((delay,index)=>setTimeout(()=>{
+   if(!currentStudent||!navigator.onLine)return;
+   if(index===0||!cloudMode||!db||!window.nncLessonsLoaded||!Object.keys(lessons||{}).length){
+     refreshStudentLearningData().catch(e=>console.warn('Scheduled Lesson refresh failed:',e));
+   }
+ },delay));
+}
+
 function studentSection(id){
  const el=document.getElementById(id);
  const wasOpen=openStudentSectionId===id && el && !el.classList.contains('hidden');
@@ -1883,6 +2027,11 @@ function initFirebase(){
   if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);
   db=firebase.database(); storage=firebase.storage(); cloudMode=true;
   initStudentNotifications();
+  // Avoid duplicate listeners, but still retry queued student sync after reconnect.
+  if(firebaseListenersAttached){
+    if(navigator.onLine)setTimeout(()=>syncPendingStudentsToCloud().catch(()=>{}),250);
+    return;
+  }
   localKeys.forEach(k=>db.ref(k).on('value',s=>{
     const cloudValue=s.val()||{};
     if(k==='students'){
@@ -1922,6 +2071,7 @@ function initFirebase(){
     }
     renderGuestLessons(); renderTeacher(); cacheCurrentData();
   }));
+  firebaseListenersAttached=true;
   setTimeout(()=>{ syncPendingStudentsToCloud().catch(()=>{}); if(!currentStudent) restoreStudentSession(); pollStudentNotifications(); }, 350);
  }catch(e){cloudMode=false;console.log(e); setTimeout(()=>{ if(!currentStudent) restoreStudentSession(); },350);}
 }
@@ -1984,12 +2134,14 @@ async function addStudent(){
  if(!name||!fatherName||!schoolName||!address||mobile.length!==10){
    return alert('વિદ્યાર્થીનું નામ, પપ્પાનું નામ, શાળાનું નામ, એડ્રેસ અને 10 અંકનો મોબાઇલ નંબર નાખો.');
  }
- const id='s_'+Date.now();
+ const id='s_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
  const studentId=nextThreeDigitStudentId();
+ const student={studentId,studentCode:studentId,name,fatherName,schoolName,address,mobile,active:true,approved:true,approvalStatus:'approved',source:'teacher',registeredAt:new Date().toISOString()};
  try{
-   await dataSet('students',id,{studentId,studentCode:studentId,name,fatherName,schoolName,address,mobile,active:true,approved:true,approvalStatus:'approved',source:'teacher',registeredAt:new Date().toISOString()});
+   const saved=await saveNewStudentSafely(id,student);
+   if(!saved.ok)return alert(saved.message);
    ['newStudentName','newStudentFather','newStudentSchool','newStudentMobile','newStudentAddress'].forEach(x=>{const e=document.getElementById(x);if(e)e.value='';});
-   alert('✅ Student સફળતાપૂર્વક ઉમેરાયો.\n\n🆔 Student ID: '+studentId);
+   alert('✅ Student સફળતાપૂર્વક ઉમેરાયો.'+(saved.offline?'\n\n📴 હાલ Offline છે; Internet મળતાં Cloudમાં Sync થશે.':'')+'\n\n🆔 Student ID: '+studentId);
    hideTeacherAddStudent();
    if(typeof renderTeacher==='function')renderTeacher();
  }catch(e){alert('❌ Student ઉમેરાઈ શક્યો નથી: '+(e?.message||e));}
@@ -3229,20 +3381,22 @@ function renderStudentLessons(){
     '<button type="button" class="'+(s===subject?'':'secondary')+'" onclick="selectLessonSubjectByName(this.dataset.subject)" data-subject="'+esc(s)+'">📖 '+esc(s)+'</button>'
   ).join('');
 
-  const subjectItems=subject?courseItems.filter(([id,l])=>String(l.subject||'').trim()===subject):[];
-  const topics=[...new Set(subjectItems.map(([id,l])=>String(l.title||l.chapter||'સામાન્ય Topic').trim()||'સામાન્ય Topic'))];
+  // વિષય અને Topic વૈકલ્પિક filter છે: Course પસંદ કરતાં જ તેના બધા Lessons દેખાડો.
+  const subjectItems=subject?courseItems.filter(([id,l])=>String(l.subject||'').trim()===subject):courseItems;
+  const topics=subject?[...new Set(subjectItems.map(([id,l])=>String(l.title||l.chapter||'સામાન્ય Topic').trim()||'સામાન્ય Topic'))]:[];
   let activeTopic=topic;
   if(activeTopic&&!topics.includes(activeTopic))activeTopic='';
   topicBox.innerHTML=subject?(topics.length?topics.map(t=>
     '<button type="button" class="'+(t===activeTopic?'':'secondary')+'" onclick="selectLessonTopicByName(this.dataset.topic)" data-topic="'+esc(t)+'">📝 '+esc(t)+'</button>'
   ).join(''):'<p class="muted">આ વિષયમાં હજી Topic નથી.</p>'):'';
 
-  const shown=subject&&activeTopic?subjectItems.filter(([id,l])=>{
+  let shown=subjectItems;
+  if(subject&&activeTopic)shown=subjectItems.filter(([id,l])=>{
     const t=String(l.title||l.chapter||'સામાન્ય Topic').trim()||'સામાન્ય Topic';
     return t===activeTopic;
-  }):[];
+  });
   const v=getViewed();
-  resultsBox.innerHTML=(!subject?'<p class="muted">જરૂરી વિષય પસંદ કરો.</p>':(!activeTopic?'<p class="muted">હવે જરૂરી Topic પસંદ કરો.</p>':shown.slice().reverse().map(([id,l])=>{
+  const lessonCards=shown.slice().reverse().map(([id,l])=>{
     const fav=isFavorite('lessons',id),seen=!!(v.lessons&&v.lessons[id]);
     const offline=localStorage.getItem('nirmala_lesson_offline_'+id)==='1';
     const type=nncNormalizeLessonType(l.type);
@@ -3254,12 +3408,19 @@ function renderStudentLessons(){
     const offlineBtn=(type==='photo'||type==='pdf')?'<button type="button" class="secondary" style="margin-top:8px" onclick="saveLessonOffline(\''+id+'\')">'+(offline?'✅ Offline Saved':'📥 Offline Save')+'</button>':'';
     return '<div class="item">'+
       '<button type="button" class="favorite-btn" onclick="toggleFavorite(\'lessons\',\''+id+'\')">'+(fav?'⭐':'☆')+'</button>'+
-      '<h4>'+esc(l.title||l.chapter||'Lesson')+'</h4>'+ 
+      '<h4>'+esc(l.title||l.chapter||'Lesson')+'</h4>'+
       '<span class="badge">'+courseIcon(course)+' '+esc(course)+'</span> '+
       '<span class="badge">📖 '+esc(l.subject||'સામાન્ય')+'</span> '+
       (l.chapter?'<span class="badge">📝 '+esc(l.chapter)+'</span> ':'')+
       (seen?'<span class="badge">✓ જોયું</span>':'')+'<br><small>'+esc(l.date||'')+'</small>'+body+'<br>'+offlineBtn+'</div>';
-  }).join('')||'<p class="muted">આ Topicમાં Lessonની માહિતી હજી મળી નથી. Internet જોડો અને ફરી પ્રયાસ કરો.</p>'));
+  }).join('');
+  if(!courseItems.length){
+    resultsBox.innerHTML='<p class="muted">આ Courseમાં હાલમાં કોઈ Lesson ઉપલબ્ધ નથી. Internet જોડીને ફરી પ્રયાસ કરો.</p>';
+  }else if(!lessonCards){
+    resultsBox.innerHTML='<p class="muted">આ પસંદગીમાં Lesson મળ્યું નથી. બીજો વિષય અથવા Topic પસંદ કરો.</p>';
+  }else{
+    resultsBox.innerHTML=lessonCards;
+  }
   window.lessonCourseFilter=course;
   window.lessonSubjectFilter=subject;
   window.lessonChapterFilter=activeTopic;
