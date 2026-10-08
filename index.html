@@ -482,7 +482,62 @@ function initStudentNotifications(){
   db.ref('notifications').on('child_added',snap=>{
     const n=snap.val()||{};
     if(Number(n.createdAt||0)<=notificationStartedAt)return;
-    if(studentCanReceiveNotification(n)){showStudentNotification(n.title,n.body); try{localStorage.setItem('nirmala_last_notification_'+String(currentStudent.id||''),String(Number(n.createdAt||Date.now())))}catch(e){}}
+    if(studentCanReceiveNotification(n)){
+      showStudentNotification(n.title,n.body);
+      try{localStorage.setItem('nirmala_last_notification_'+String(currentStudent.id||''),String(Number(n.createdAt||Date.now())))}catch(e){}
+      // A Lesson notification is also a realtime data-refresh signal. This means
+      // the new Lesson name/details appear without the student pressing Refresh.
+      if(String(n.type||'').toLowerCase()==='lesson' && currentStudent && navigator.onLine){
+        setTimeout(()=>refreshStudentLearningData().catch(()=>{}),80);
+      }
+    }
+  });
+}
+
+// Fast Lesson index listener. Firebase sends only the changed Lesson record,
+// so a newly published Lesson does not wait for a full-screen refresh.
+let nncLessonRealtimeReady=false;
+let nncLessonRealtimeStartedAt=0;
+function initLessonRealtimeListener(){
+  if(!cloudMode||!db||nncLessonRealtimeReady)return;
+  nncLessonRealtimeReady=true;
+  nncLessonRealtimeStartedAt=Date.now();
+  db.ref('lessons').on('child_added',snap=>{
+    const id=String(snap.key||'');
+    const item=snap.val()||{};
+    if(!id||!item)return;
+    const deleted=new Set(nncDeletedLessonIds());
+    if(deleted.has(id))return;
+    // Merge the single new/updated record into the local Lesson index.
+    const current={...(lessons||{})};
+    current[id]=item;
+    window.lessons=lessons=current;
+    window.nncLessonsLoaded=true;
+    saveLocalData('lessons',current);
+    cacheCurrentData();
+    if(currentStudent){
+      renderStudentLessons();
+      updateGuestLessonButton();
+    }
+  });
+  db.ref('lessons').on('child_changed',snap=>{
+    const id=String(snap.key||'');
+    const item=snap.val()||{};
+    if(!id)return;
+    const current={...(lessons||{})};
+    if(item.active===false) delete current[id]; else current[id]=item;
+    window.lessons=lessons=current;
+    window.nncLessonsLoaded=true;
+    saveLocalData('lessons',current);
+    if(currentStudent)renderStudentLessons();
+  });
+  db.ref('lessons').on('child_removed',snap=>{
+    const id=String(snap.key||'');
+    const current={...(lessons||{})};
+    delete current[id];
+    window.lessons=lessons=current;
+    saveLocalData('lessons',current);
+    if(currentStudent)renderStudentLessons();
   });
 }
 
@@ -876,19 +931,9 @@ async function prefetchOneLesson(id,l){
 }
 let nncPrefetchRunning=false;
 async function prefetchStudentLessons(){
- if(nncPrefetchRunning||!currentStudent)return;
- if(!navigator.onLine)return;
- nncPrefetchRunning=true;
- try{
-  const list=Object.entries(lessons||{})
-    .filter(([id,l])=>l&&!nncIsDeletedLesson(id)&&l.active!==false&&l.content&&['pdf','photo'].includes(nncNormalizeLessonType(l.type)))
-    .sort((a,b)=>Number(b[1].createdAt||0)-Number(a[1].createdAt||0));
-  // Slow-network mode: one file at a time. Already cached files are skipped immediately.
-  for(const item of list){
-    if(!navigator.onLine)break;
-    await prefetchOneLesson(item[0],item[1]);
-  }
- }catch(e){}finally{nncPrefetchRunning=false;}
+ // Kept for compatibility with older calls. Automatic bulk prefetch is intentionally
+ // disabled so a large Lesson library cannot slow down the student's phone/network.
+ return false;
 }
 function openLessonDirectLink(id){
  const l=(lessons||{})[id];
@@ -2029,6 +2074,7 @@ function initFirebase(){
   initStudentNotifications();
   // Avoid duplicate listeners, but still retry queued student sync after reconnect.
   if(firebaseListenersAttached){
+    initLessonRealtimeListener();
     if(navigator.onLine)setTimeout(()=>syncPendingStudentsToCloud().catch(()=>{}),250);
     return;
   }
@@ -2050,9 +2096,10 @@ function initFirebase(){
         const source=(Object.keys(cloudValue||{}).length || !Object.keys(localLessons||{}).length)?(cloudValue||{}):localLessons;
         const clean={};Object.entries(source).forEach(([id,item])=>{if(!deleted.has(String(id)))clean[id]=item;});
         window.lessons=clean;lessons=clean;saveLocalData('lessons',clean);
-        // Persist the full lesson index before downloading lesson media.
+        // Save only the Lesson index locally. Do NOT download every PDF/Photo in the
+        // background: that makes student phones slow when many Lessons exist.
         cacheCurrentData();
-        if(currentStudent && navigator.onLine)setTimeout(()=>prefetchStudentLessons().catch(()=>{}),1200);
+        if(currentStudent) renderStudentLessons();
       }else{
         let value=cloudValue;
         if(k==='questionBanks' && !Object.keys(value||{}).length){
@@ -2072,6 +2119,8 @@ function initFirebase(){
     renderGuestLessons(); renderTeacher(); cacheCurrentData();
   }));
   firebaseListenersAttached=true;
+  // Attach the dedicated Lesson realtime listener once Firebase is ready.
+  initLessonRealtimeListener();
   setTimeout(()=>{ syncPendingStudentsToCloud().catch(()=>{}); if(!currentStudent) restoreStudentSession(); pollStudentNotifications(); }, 350);
  }catch(e){cloudMode=false;console.log(e); setTimeout(()=>{ if(!currentStudent) restoreStudentSession(); },350);}
 }
